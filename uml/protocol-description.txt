@@ -1,0 +1,40 @@
+Client1                       Server                     Client2
+
+   #    ---- ClientHello --->   #                           #
+   #    player_name = "Bot 1"   #                           #
+   #                            #                           #
+   #    <--- ServerHello ----   #                           #
+   #                            #                           #
+   #    ------- Ready ------>   #                           #
+   #                            #                           #
+   #    <-------- Ok --------   #                           #
+   #         GameStarted        #                           #
+   #                            #                           #
+   #    <-- EventHappened ---   #                           #
+   #                            #                           #
+   #             ...            #                           #
+   #                            #                           #
+   #    <-- NewFieldState ---   #                           #
+   #    <----- YourTurn -----   #   <--- ClientHello ----   #
+   #                            #   player_name = "Bot 1"   #
+   #    --------- Act ------>   #                           #
+   #      action = Move::Up     #   -------- Err ------->   #
+   #                            #   "Name already taken"    #
+   #             ...            #    (connection closed)    #
+   #                            #                           #
+   #    <-- EventHappened ---   #                           #
+   #      SnakeDied("Bot 0")    #                           #
+   #                            #                           #
+   #             ...            #                           #
+   #                            #                           #
+   #    <-- NewFieldState ---   #                           #
+   #    <----- YourTurn -----   #                           #
+   #                            #                           #
+   #    --------- Act ------>   #                           #
+   #    action = Move::Right    #                           #
+   #                            #                           #
+   #            ...             #                           #
+   #                            #                           #
+   #    <-- EventHappened ---   #                           #
+   #        GameFinished        #                           #
+   #     (connection closed)    #                           #
