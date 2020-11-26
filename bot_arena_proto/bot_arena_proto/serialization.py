@@ -20,8 +20,8 @@ class Serializable:
         """Serialize self into a byte string."""
         ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_bytes(Class: Type[SerializableSelfType], b: bytes) -> SerializableSelfType:
         """Deserialize from a byte string."""
         ...
@@ -65,8 +65,8 @@ class PrimitiveSerializable(Serializable):
         """Serialize self into a primitive."""
         ...
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_primitive(Class: Type[SerializableSelfType], p: Primitive) -> SerializableSelfType:
         """Deserialize from a primitive."""
         ...
