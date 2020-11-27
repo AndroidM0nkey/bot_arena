@@ -320,8 +320,7 @@ functionalty</panel_attributes>
     </coordinates>
     <panel_attributes>FieldState
 --
-+width: int
-+height: int
+
 +snakes: List[SnakeState]
 +objects: List[Object]</panel_attributes>
     <additional_attributes/>
