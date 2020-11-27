@@ -1,4 +1,4 @@
-from bot_arena_proto.serialization import PrimitiveSerializable, SerializableSelfType, Primitive
+from bot_arena_proto.serialization import PrimitiveSerializable, Primitive
 
 from dataclasses import dataclass
 from typing import Type, List, Dict
@@ -11,7 +11,7 @@ class Foo(PrimitiveSerializable):
         return self.data
 
     @classmethod
-    def from_primitive(Class: Type[SerializableSelfType], p: Primitive) -> SerializableSelfType:
+    def from_primitive(Class: Type['Foo'], p: Primitive) -> 'Foo':
         assert isinstance(p, str)
         return Class(data=p)
 
@@ -29,7 +29,7 @@ class Bar(PrimitiveSerializable):
         }
 
     @classmethod
-    def from_primitive(Class: Type[SerializableSelfType], p: Primitive) -> SerializableSelfType:
+    def from_primitive(Class: Type['Bar'], p: Primitive) -> 'Bar':
         assert isinstance(p, dict)
         return Class(a=p['a'], b=p['b'], c=p['c'])
 
