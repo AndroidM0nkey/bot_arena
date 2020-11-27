@@ -9,7 +9,7 @@ import cbor2  # type: ignore
 SerializableSelfType = TypeVar('SerializableSelfType', covariant=True, bound='Serializable')
 
 # Unfortunately, mypy does not yet seem to support proper recursive type definition
-Primitive = Union[dict, list, str, int, float, bool]
+Primitive = Union[dict, list, str, int, float, bool, None]
 
 
 class Serializable:
