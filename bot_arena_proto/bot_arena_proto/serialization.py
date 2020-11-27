@@ -5,7 +5,7 @@ from typing import Protocol, Type, TypeVar, Union
 import cbor2  # type: ignore
 
 
-# Self types. See https://github.com/python/mypy/issues/1212
+# Self type. See https://github.com/python/mypy/issues/1212
 SerializableSelfType = TypeVar('SerializableSelfType', covariant=True, bound='Serializable')
 
 # Unfortunately, mypy does not yet seem to support proper recursive type definition
