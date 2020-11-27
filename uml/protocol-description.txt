@@ -8,9 +8,9 @@ Client1                       Server                     Client2
    #    ------- Ready ------>   #                           #
    #                            #                           #
    #    <-------- Ok --------   #                           #
-   #         GameStarted        #                           #
    #                            #                           #
    #    <-- EventHappened ---   #                           #
+   #      GameStarted(40,40)    #                           #
    #                            #                           #
    #             ...            #                           #
    #                            #                           #
