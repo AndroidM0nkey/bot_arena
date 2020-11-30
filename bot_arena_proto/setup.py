@@ -8,4 +8,6 @@ setup(
 
     # Enable type hints in the installed package
     package_data = {'bot_arena_proto': ['py.typed']},
+
+    requires = ['algebraic_data_types']
 )

@@ -66,7 +66,7 @@ class Event(PrimitiveSerializable):
 
     @classmethod
     @abstractmethod
-    def from_primitive_impl(Class: Type[SerializableSelfType], p: Primitive) -> SerializableSelfType:
+    def from_primitive_impl(Class, p: Primitive) -> Any:
         ...
 
 

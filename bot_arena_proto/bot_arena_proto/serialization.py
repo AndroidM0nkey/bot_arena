@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Protocol, Type, TypeVar, Union
+from typing import Protocol, Type, TypeVar, Union, Optional, Any
 
 # No type hints available for this library, unfortunately.
 import cbor2  # type: ignore
@@ -12,7 +12,7 @@ SerializableSelfType = TypeVar('SerializableSelfType', covariant=True, bound='Se
 Primitive = Union[dict, list, str, int, float, bool, None]
 
 
-class Serializable:
+class Serializable(Protocol):
     """A type that can be serialized into and deserialized from a byte string."""
 
     @abstractmethod
@@ -27,7 +27,7 @@ class Serializable:
         ...
 
 
-class PrimitiveSerializable(Serializable):
+class PrimitiveSerializable(Serializable, Protocol):
     """A type that can be serialized into and deserialized from a primitive.
 
     It is usually very convenient to serialize a class not directly to a byte
@@ -67,7 +67,7 @@ class PrimitiveSerializable(Serializable):
 
     @classmethod
     @abstractmethod
-    def from_primitive(Class: Type[SerializableSelfType], p: Primitive) -> SerializableSelfType:
+    def from_primitive(Class, p: Primitive) -> Any:
         """Deserialize from a primitive."""
         ...
 
@@ -134,3 +134,58 @@ class PrimitiveSerializable(Serializable):
         # things that haven't been initially thought of. So, at least for now,
         # let us leave this mypy warning ignored.
         return Class.from_primitive(primitive)  # type: ignore
+
+
+class DeserializationError(Exception):
+    def __init__(self, comment: Optional[str] = None):
+        super().__init__()
+        self.comment = comment
+
+    def fmt_comment(self) -> str:
+        if self.comment is None:
+            return ''
+        else:
+            return ' of value ' + self.comment
+
+    def __repr__(self) -> str:
+        return f'During deserialization{self.fmt_comment()}, {self.describe_error()}'
+
+    def describe_error(self) -> str:
+        return 'an unknown error occured'
+
+
+class DeserializationTypeError(DeserializationError):
+    def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None):
+        super().__init__(comment)
+        self.Expected = Expected
+        self.Actual = Actual
+
+    def describe_error(self) -> str:
+        return f'the type `{self.Actual}` arised, while the code expected `{self.Expected}`'
+
+
+class DeserializationAdtTagError(DeserializationError):
+    def __init__(self, Adt: type, tag: str, comment: Optional[str] = None):
+        super().__init__(comment)
+        self.Adt = Adt
+        self.tag = tag
+
+    def describe_error(self) -> str:
+        return f'the tag {repr(self.tag)} arised, which is not valid for the algebraic data type {self.Adt}'
+
+
+class DeserializationLogicError(DeserializationError):
+    def __init__(self, message: str, comment: Optional[str] = None):
+        super().__init__(comment)
+        self.message = message
+
+    def describe_error(self) -> str:
+        return self.message
+
+
+_T = TypeVar('_T')
+
+def ensure_type(value: Any, Tp: Type[_T], comment: Optional[str] = None) -> _T:
+    if isinstance(value, Tp):
+        return value
+    raise DeserializationTypeError(Expected=Tp, Actual=type(value), comment=comment)
