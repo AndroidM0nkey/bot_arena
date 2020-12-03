@@ -1,114 +1,44 @@
-from bot_arena_proto.serialization import PrimitiveSerializable, Primitive, SerializableSelfType
+from bot_arena_proto.serialization import Primitive, DeserializationAdtTagError, ensure_type
 
-from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Type, TypeVar, Callable, Tuple, Any
+from typing import Type, cast
 
-_T = TypeVar('_T')
+from adt import adt, Case
 
 
-class Event(PrimitiveSerializable):
-    # Just some ugly emulation of algebraic data type
-    def match(
-        self, *,
-        snake_died: Callable[['SnakeDied'], _T],
-        game_finished: Callable[['GameFinished'], _T],
-        game_started: Callable[['GameStarted'], _T],
-    ) -> _T:
-        func: Any
-
-        if isinstance(self, SnakeDied):
-            func = snake_died
-        elif isinstance(self, GameFinished):
-            func = game_finished
-        elif isinstance(self, GameStarted):
-            func = game_started
-        else:
-            raise TypeError(f'Unknown event type: {type(self)}')
-
-        return func(self)
+@adt
+class Event:
+    SnakeDied: Case[str]
+    GameFinished: Case
+    GameStarted: Case[int, int]
 
     def to_primitive(self) -> Primitive:
-        return [self.type_string(), self.to_primitive_impl()]
-
-    def type_string(self) -> str:
-        return self.match(
-            snake_died = lambda _: 'SnakeDied',
-            game_started = lambda _: 'GameStarted',
-            game_finished = lambda _: 'GameFinished',
+        return cast(
+            Primitive,
+            self.match(
+                snakedied = lambda snake_name: ['SnakeDied', {'name': snake_name}],
+                gamefinished = lambda: ['GameFinished'],
+                gamestarted = lambda width, height: ['GameStarted', {'width': width, 'height': height}],
+            )
         )
-
-    @staticmethod
-    def type_string_to_subclass(type_string: str) -> Type['Event']:
-        if type_string == 'SnakeDied':
-            return SnakeDied
-        if type_string == 'GameStarted':
-            return GameStarted
-        if type_string == 'GameFinished':
-            return GameFinished
-        raise ValueError(f'Unknown event type string: {repr(type_string)}')
 
     @classmethod
     def from_primitive(Class: Type['Event'], p: Primitive) -> 'Event':
-        if not isinstance(p, list):
-            raise TypeError(f'Bad deserialized type: expected list, got {type(p)}')
+        p = ensure_type(p, list)
+        [tag, *data] = p
+        tag = ensure_type(tag, str)
+        if tag == 'SnakeDied':
+            [data_dict] = data
+            data_dict = ensure_type(data_dict, dict)
+            snake_name = ensure_type(data_dict['name'], str)
+            return Event.SnakeDied(snake_name)
+        if tag == 'GameFinished':
+            return Event.GameFinished()
+        if tag == 'GameStarted':
+            [data_dict] = data
+            data_dict = ensure_type(data_dict, dict)
+            width = ensure_type(data_dict['width'], int)
+            height = ensure_type(data_dict['height'], int)
+            return Event.GameStarted(width, height)
 
-        [type_string, inner_primitive] = p
-        if not isinstance(type_string, str):
-            raise TypeError(f'Bad deserialized type: expected str, got {type(type_string)}')
-
-        Subclass = Class.type_string_to_subclass(type_string)
-        return Subclass.from_primitive_impl(inner_primitive)
-
-    @abstractmethod
-    def to_primitive_impl(self) -> Primitive:
-        ...
-
-    @classmethod
-    @abstractmethod
-    def from_primitive_impl(Class, p: Primitive) -> Any:
-        ...
-
-
-@dataclass
-class SnakeDied(Event):
-    snake_name: str
-
-    def to_primitive_impl(self) -> Primitive:
-        return self.snake_name
-
-    @classmethod
-    def from_primitive_impl(Class: Type['SnakeDied'], p: Primitive) -> 'SnakeDied':
-        if not isinstance(p, str):
-            raise TypeError(f'Bad deserialized type: expected str, got {type(p)}')
-        return SnakeDied(snake_name=p)
-
-
-class GameFinished(Event):
-    def to_primitive_impl(self) -> Primitive:
-        return None
-
-    @classmethod
-    def from_primitive_impl(Class: Type['GameFinished'], p: Primitive) -> 'GameFinished':
-        if p is not None:
-            raise TypeError(f'Bad deserialized type: expected NoneType, got {type(p)}')
-        return GameFinished()
-
-
-@dataclass
-class GameStarted(Event):
-    field_size: Tuple[int, int]
-
-    def to_primitive_impl(self) -> Primitive:
-        return list(self.field_size)
-
-    @classmethod
-    def from_primitive_impl(Class: Type['GameStarted'], p: Primitive) -> 'GameStarted':
-        if not isinstance(p, list):
-            raise TypeError(f'Bad deserialized type: expected list, got {type(p)}')
-        [width, height] = p
-        if not isinstance(width, int):
-            raise TypeError(f'Bad deserialized type of `width`: expected int, got {type(width)}')
-        if not isinstance(height, int):
-            raise TypeError(f'Bad deserialized type of `height`: expected int, got {type(height)}')
-        return GameStarted(field_size=(width, height))
+        raise DeserializationAdtTagError(Class, tag)
