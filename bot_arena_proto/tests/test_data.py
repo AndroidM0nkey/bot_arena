@@ -4,6 +4,7 @@ import pytest
 
 
 class TestBasicSoundnesss:
+    @staticmethod
     def test_direction():
         # There are two lists so that we try not to compare objects with themselves (when `a is b`);
         # we rather compare different objects that are assumed to be / not to be equal (`a == b`).
@@ -17,15 +18,18 @@ class TestBasicSoundnesss:
                 else:
                     assert x != y
 
-    def test_poins():
+    @staticmethod
+    def test_points():
         assert Point(1, 2) == Point(y=2, x=1)
         assert Point(x=3, y=4) != Point(x=4, y=3)
 
+    @staticmethod
     def test_object():
         assert Object.FOOD() == Object.FOOD()
 
 
 class TestBasicSerde:
+    @staticmethod
     def test_direction():
         assert Direction.UP().to_primitive() == 'u'
         assert Direction.DOWN().to_primitive() == 'd'
