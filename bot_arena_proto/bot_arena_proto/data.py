@@ -25,7 +25,8 @@ class Direction:
             down = lambda: 'd',
             left = lambda: 'l',
             right = lambda: 'r',
-        )
+        )  # type: ignore
+        # mypy complains unreasonably here
 
     @classmethod
     def from_primitive(Class: Type['Direction'], p: Primitive) -> 'Direction':
@@ -102,7 +103,8 @@ class Object:
     FOOD: Case
 
     def to_primitive(self) -> Primitive:
-        return self.match(food = lambda: 'f')
+        return self.match(food = lambda: 'f')  # type: ignore
+        # mypy complains unreasonably here
 
     @classmethod
     def from_primitive(Class: Type['Object'], p: Primitive) -> 'Object':
@@ -117,7 +119,8 @@ class Action:
     MOVE: Case['Direction']
 
     def to_primitive(self) -> Primitive:
-        return self.match(move = lambda direction: ['m', direction.to_primitive()])
+        return self.match(move = lambda direction: ['m', direction.to_primitive()])  # type: ignore
+        # mypy complains unreasonably here
 
     @classmethod
     def from_primitive(Class: Type['Action'], p: Primitive) -> 'Action':
