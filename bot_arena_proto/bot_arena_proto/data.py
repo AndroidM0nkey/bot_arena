@@ -71,7 +71,7 @@ class SnakeState:
     @classmethod
     def from_primitive(Class: Type['SnakeState'], p: Primitive) -> 'SnakeState':
         p = ensure_type(p, dict)
-        head = Point.from_primitive(p)
+        head = Point.from_primitive(p['head'])
         tail = ensure_type(p['tail'], list, 'Snake.tail')
         tail = [Direction.from_primitive(x) for x in tail]
         return Class(head=head, tail=tail)
