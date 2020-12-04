@@ -11,12 +11,13 @@ from typing import List, Type, Tuple
 
 from adt import adt, Case
 
+
 @adt
 class Direction:
-    Up: Case
-    Down: Case
-    Left: Case
-    Right: Case
+    UP: Case
+    DOWN: Case
+    LEFT: Case
+    RIGHT: Case
 
     def to_primitive(self) -> Primitive:
         return self.match(
@@ -31,13 +32,13 @@ class Direction:
         p = ensure_type(p, str)
 
         if p == 'u':
-            return Class.Up()
+            return Class.UP()
         if p == 'd':
-            return Class.Down()
+            return Class.DOWN()
         if p == 'l':
-            return Class.Left()
+            return Class.LEFT()
         if p == 'r':
-            return Class.Right()
+            return Class.RIGHT()
 
         raise DeserializationAdtTagError(Class, p)
 
@@ -98,7 +99,7 @@ class FieldState:
 
 @adt
 class Object:
-    Food: Case
+    FOOD: Case
 
     def to_primitive(self) -> Primitive:
         return self.match(food = lambda: 'f')
@@ -107,13 +108,13 @@ class Object:
     def from_primitive(Class: Type['Object'], p: Primitive) -> 'Object':
         p = ensure_type(p, str)
         if p == 'f':
-            return Class.Food()
+            return Class.FOOD()
         raise DeserializationAdtTagError(Class, p)
 
 
 @adt
 class Action:
-    Move: Case['Direction']
+    MOVE: Case['Direction']
 
     def to_primitive(self) -> Primitive:
         return self.match(move = lambda direction: ['m', direction.to_primitive()])
@@ -123,7 +124,7 @@ class Action:
         [tag, *data] = ensure_type(p, list)
         tag = ensure_type(tag, str)
         if tag == 'm':
-            return Action.Move(Direction.from_primitive(data[0]))
+            return Action.MOVE(Direction.from_primitive(data[0]))
         raise DeserializationAdtTagError(Class, tag)
 
 
