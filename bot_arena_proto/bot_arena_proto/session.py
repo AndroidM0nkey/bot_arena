@@ -2,7 +2,7 @@ from bot_arena_proto.data import Action, FieldState
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
 
-from typing import Protocol
+from typing import Protocol, Tuple
 
 from adt import adt, Case
 
@@ -53,13 +53,33 @@ class Session:
 class ClientSession(Session):
     def __init__(self, stream: Stream, name: str) -> None:
         super().__init__(stream)
+        self._name = name
 
-    def initialize(self) -> Tuple[int, int]:
-        self.send_message(Message.CLIENT_HELLO(name))
-        response = self.recv_message()
-        field_dimensions = response.server_hello()
-        self.send_message(Message.READY())
-        return field_dimensions
+    def initialize(self):
+        self.send_message(Message.CLIENT_HELLO(self._name))
+        self.recv_message().server_hello()
+
+    def wait_until_game_started(self) -> Tuple[int, int]:
+        def err(e):
+            def inner(*args):
+                raise e
+            return inner
+
+        def unexpected(s):
+            return err(
+                ValueError(
+                    f'Unexpected event received from the server before the game has started: {s}'
+                )
+            )
+
+        while True:
+            event = self.wait_for_notification().event()
+            result = event.match(
+                snake_died = unexpected('SnakeDied'),
+                game_finished = unexpected('GameFinished'),
+                game_started = lambda width, height: (width, height),
+            )
+            return result
 
     def wait_for_notification(self) -> ClientNotification:
         def err(e):
@@ -68,16 +88,16 @@ class ClientSession(Session):
             return inner
 
         def unexpected(s):
-            return err(f'Unexpected message received from server: {s}')
+            return err(ValueError(f'Unexpected message received from the server: {s}'))
 
         while True:
             result = self.recv_message().match(
-                client_hello = unexpected('CLIENT_HELLO'),
-                server_hello = unexpected('SERVER_HELLO'),
+                client_hello = unexpected('ClientHello'),
+                server_hello = unexpected('ServerHello'),
                 your_turn = lambda: ClientNotification.REQUEST(),
-                ready = unexpected('READY'),
+                ready = unexpected('Ready'),
                 new_field_state = lambda state: ClientNotification.FIELD_STATE(state),
-                act = unexpected('ACT'),
+                act = unexpected('Act'),
                 event_happened = lambda ev: ClientNotification.EVENT(ev),
                 ok = lambda: None,
                 err = lambda text: ClientNotification.ERROR(text),
@@ -86,14 +106,19 @@ class ClientSession(Session):
                 return result
 
     def respond(self, action: Action) -> None:
-        self.send_message(Message.ACTION(action))
+        self.send_message(Message.ACT(action))
 
 
 class ServerSession(Session):
-    def initialize(self, field_size: Tuple[int, int]) -> str:
+    def initialize(self) -> str:
         client_msg = self.recv_message()
         name = client_msg.client_hello()
-        self.send_message(Message.SERVER_HELLO(field_size))
+        self.send_message(Message.SERVER_HELLO())
+        return name
+
+    def start_game(self, field_size: Tuple[int, int]) -> None:
+        width, height = field_size
+        self.send_event(Event.GAME_STARTED(width, height))
 
     def wait_until_ready(self) -> None:
         client_msg = self.recv_message()
@@ -108,7 +133,7 @@ class ServerSession(Session):
     def request_action(self) -> Action:
         self.send_message(Message.YOUR_TURN())
         client_msg = self.recv_message()
-        return client_msg.action()
+        return client_msg.act()
 
     def respond_ok(self) -> None:
         self.send_message(Message.OK())
