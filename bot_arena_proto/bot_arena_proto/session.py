@@ -2,6 +2,7 @@ from bot_arena_proto.data import Action, FieldState
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
 
+from time import sleep
 from typing import Protocol, Tuple
 
 from adt import adt, Case
@@ -46,7 +47,7 @@ class Session:
         buf = bytearray()
         while len(buf) < how_many:
             bytes_still_to_read = how_many - len(buf)
-            self._stream.read(bytes_still_to_read)
+            buf += self._stream.read(bytes_still_to_read)
         return bytes(buf)
 
 
@@ -58,6 +59,9 @@ class ClientSession(Session):
     def initialize(self):
         self.send_message(Message.CLIENT_HELLO(self._name))
         self.recv_message().server_hello()
+
+    def ready(self):
+        self.send_message(Message.READY())
 
     def wait_until_game_started(self) -> Tuple[int, int]:
         def err(e):
@@ -81,7 +85,7 @@ class ClientSession(Session):
             )
             return result
 
-    def wait_for_notification(self) -> ClientNotification:
+    def wait_for_notification(self) -> 'ClientNotification':
         def err(e):
             def inner(*args):
                 raise e
