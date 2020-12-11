@@ -86,7 +86,7 @@ class FieldState:
     def to_primitive(self) -> Primitive:
         return {
             'snakes': [x.to_primitive() for x in self.snakes],
-            'objects': [(point.to_primitive(), obj.to_primitive()) for point, obj in self.objects],
+            'objects': [[point.to_primitive(), obj.to_primitive()] for point, obj in self.objects],
         }
 
     @classmethod
