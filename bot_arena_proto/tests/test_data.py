@@ -85,9 +85,9 @@ class TestBasicSerde:
         obj1 = (Point(5, 6), Object.FOOD())
         obj2 = (Point(9, 3), Object.FOOD())
         obj3 = (Point(1, 1), Object.FOOD())
-        obj1p = obj1.to_primitive()
-        obj2p = obj2.to_primitive()
-        obj3p = obj3.to_primitive()
+        obj1p = [obj1[0].to_primitive(), obj1[1].to_primitive()]
+        obj2p = [obj2[0].to_primitive(), obj2[1].to_primitive()]
+        obj3p = [obj3[0].to_primitive(), obj3[1].to_primitive()]
 
         assert FieldState(
             snakes=[snake1, snake2],
