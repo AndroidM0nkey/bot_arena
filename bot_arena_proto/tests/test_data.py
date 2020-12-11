@@ -105,7 +105,7 @@ class TestBasicSerde:
     @staticmethod
     def test_object():
         assert Object.FOOD().to_primitive() == 'f'
-        assert Object.from_primitive('f') == OBJECT.FOOD()
+        assert Object.from_primitive('f') == Object.FOOD()
 
     @staticmethod
     def test_action():
