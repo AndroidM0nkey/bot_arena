@@ -76,10 +76,10 @@ class TestBasicSerde:
             tail=[Direction.LEFT(), Direction.DOWN(), Direction.RIGHT(), Direction.RIGHT()],
         )
 
-    @classmethod
+    @staticmethod
     def test_field_state():
-        snake1 = SnakeState(head=Point(4, 2), tail=[Direction.LEFT(), Direction.UP()]),
-        snake2 = SnakeState(head=Point(8, 4), tail=[Direction.DOWN()]),
+        snake1 = SnakeState(head=Point(4, 2), tail=[Direction.LEFT(), Direction.UP()])
+        snake2 = SnakeState(head=Point(8, 4), tail=[Direction.DOWN()])
         snake1p = snake1.to_primitive()
         snake2p = snake2.to_primitive()
         obj1 = (Point(5, 6), Object.FOOD())
@@ -102,12 +102,12 @@ class TestBasicSerde:
             objects=[obj1, obj2, obj3],
         )
 
-    @classmethod
+    @staticmethod
     def test_object():
         assert Object.FOOD().to_primitive() == 'f'
         assert Object.from_primitive('f') == OBJECT.FOOD()
 
-    @classmethod
+    @staticmethod
     def test_action():
         assert Action.MOVE(Direction.LEFT()).to_primitive() == ['m', 'l']
         assert Action.from_primitive(['m', 'd']) == Action.MOVE(Direction.DOWN())
