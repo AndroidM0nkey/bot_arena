@@ -90,15 +90,15 @@ class TestBasicSerde:
         obj3p = [obj3[0].to_primitive(), obj3[1].to_primitive()]
 
         assert FieldState(
-            snakes=[snake1, snake2],
+            snakes={'1': snake1, '2': snake2},
             objects=[obj1, obj2, obj3],
-        ).to_primitive() == {'snakes': [snake1p, snake2p], 'objects': [obj1p, obj2p, obj3p]}
+        ).to_primitive() == {'snakes': {'1': snake1p, '2': snake2p}, 'objects': [obj1p, obj2p, obj3p]}
 
         assert FieldState.from_primitive({
-            'snakes': [snake1p, snake2p],
+            'snakes': {'1': snake1p, '2': snake2p},
             'objects': [obj1p, obj2p, obj3p],
         }) == FieldState(
-            snakes=[snake1, snake2],
+            snakes={'1': snake1, '2': snake2},
             objects=[obj1, obj2, obj3],
         )
 

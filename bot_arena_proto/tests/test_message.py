@@ -71,9 +71,9 @@ class TestBasicSerde:
     def test_new_field_state():
         m1 = Message.NEW_FIELD_STATE(
             FieldState(
-                snakes = [
-                    SnakeState(head=Point(1, 4), tail=[Direction.LEFT()]),
-                ],
+                snakes = {
+                    'conda': SnakeState(head=Point(1, 4), tail=[Direction.LEFT()]),
+                },
                 objects = [
                     (Point(3, 1), Object.FOOD()),
                 ]
@@ -82,15 +82,15 @@ class TestBasicSerde:
         p1 = [
             'NewFieldState',
             {
-                'snakes': [{'head': [1, 4], 'tail': ['l']}],
+                'snakes': {'conda': {'head': [1, 4], 'tail': ['l']}},
                 'objects': [[[3, 1], 'f']],
             },
         ]
         m2 = Message.NEW_FIELD_STATE(
             FieldState(
-                snakes = [
-                    SnakeState(head=Point(4, 3), tail=[Direction.UP()]),
-                ],
+                snakes = {
+                    'py': SnakeState(head=Point(4, 3), tail=[Direction.UP()]),
+                },
                 objects = [
                     (Point(2, 2), Object.FOOD()),
                 ]
@@ -99,7 +99,7 @@ class TestBasicSerde:
         p2 = [
             'NewFieldState',
             {
-                'snakes': [{'head': [4, 3], 'tail': ['u']}],
+                'snakes': {'py': {'head': [4, 3], 'tail': ['u']}},
                 'objects': [[[2, 2], 'f']],
             },
         ]

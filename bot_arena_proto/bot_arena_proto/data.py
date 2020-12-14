@@ -7,7 +7,7 @@ from bot_arena_proto.serialization import (
 )
 
 from dataclasses import dataclass
-from typing import List, Type, Tuple
+from typing import List, Type, Tuple, Dict
 
 from adt import adt, Case
 
@@ -80,21 +80,21 @@ class SnakeState:
 
 @dataclass
 class FieldState:
-    snakes: List[SnakeState]
+    snakes: Dict[str, SnakeState]
     objects: List[Tuple[Point, 'Object']]
 
     def to_primitive(self) -> Primitive:
         return {
-            'snakes': [x.to_primitive() for x in self.snakes],
+            'snakes': {name: snake.to_primitive() for name, snake in self.snakes.items()},
             'objects': [[point.to_primitive(), obj.to_primitive()] for point, obj in self.objects],
         }
 
     @classmethod
     def from_primitive(Class: Type['FieldState'], p: Primitive) -> 'FieldState':
         p = ensure_type(p, dict)
-        snakes = ensure_type(p['snakes'], list)
+        snakes = ensure_type(p['snakes'], dict)
         objects = ensure_type(p['objects'], list)
-        snakes = [SnakeState.from_primitive(x) for x in snakes]
+        snakes = {ensure_type(key, str): SnakeState.from_primitive(value) for key, value in snakes.items()}
         objects = [(Point.from_primitive(point), Object.from_primitive(obj)) for point, obj in objects]
         return Class(snakes=snakes, objects=objects)
 

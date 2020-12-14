@@ -94,9 +94,9 @@ def client_session(endpoint):
         fs = sess.wait_for_notification().field_state()
         print_now('Client: received field state update')
         assert fs == FieldState(
-            snakes = [
-                SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
-            ],
+            snakes = {
+                'Bob': SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
+            },
             objects = [
                 (Point(1, 0), Object.FOOD()),
             ]
@@ -140,9 +140,9 @@ def server_session(endpoint):
         print_now('Server: accepted player\'s action')
         sess.send_new_field_state(
             FieldState(
-                snakes = [
-                    SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
-                ],
+                snakes = {
+                    'Bob': SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
+                },
                 objects = [
                     (Point(1, 0), Object.FOOD()),
                 ]
