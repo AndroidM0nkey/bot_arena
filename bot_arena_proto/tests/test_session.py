@@ -1,4 +1,4 @@
-from bot_arena_proto.session import ClientSession, ServerSession
+from bot_arena_proto.session import ClientSession, ServerSession, ClientInfo, GameInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.data import FieldState, Direction, Point, SnakeState, Object, Action
 
@@ -67,13 +67,15 @@ def client_session(endpoint):
     global CLIENT_THREAD_RESULT
     try:
         print_now('Client: starting')
-        sess = ClientSession(endpoint, name='Python39')
+        sess = ClientSession(endpoint, client_info=ClientInfo(name='Python39'))
         print_now('Client: created session')
         sess.initialize()
         print_now('Client: sess.initialize() called')
         sess.ready()
         print_now('Client: sess.ready() called')
-        width, height = sess.wait_until_game_started()
+        game_info = sess.wait_until_game_started()
+        width = game_info.field_width
+        height = game_info.field_height
         print_now('Client: game started')
         assert (width, height) == (18, 22)
 
@@ -113,7 +115,8 @@ def server_session(endpoint):
         print_now('Server: starting')
         sess = ServerSession(endpoint)
         print_now('Server: created session')
-        name = sess.pre_initialize()
+        client_info = sess.pre_initialize()
+        name = client_info.name
         print_now('Server: sess.pre_initialize() called')
         assert name == 'Python39'
         print_now('Server: name ok')
@@ -122,7 +125,7 @@ def server_session(endpoint):
 
         sess.wait_until_ready()
         print_now('Server: client is ready')
-        sess.start_game(field_size=(18, 22))
+        sess.start_game(game_info=GameInfo(field_width=18, field_height=22))
         print_now('Server: game started')
 
         action = sess.request_action()

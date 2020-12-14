@@ -2,6 +2,7 @@ from bot_arena_proto.data import Action, FieldState
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
 
+from dataclasses import dataclass
 from time import sleep
 from typing import Protocol, Tuple
 
@@ -52,18 +53,18 @@ class Session:
 
 
 class ClientSession(Session):
-    def __init__(self, stream: Stream, name: str) -> None:
+    def __init__(self, stream: Stream, client_info: 'ClientInfo') -> None:
         super().__init__(stream)
-        self._name = name
+        self._info = client_info
 
     def initialize(self):
-        self.send_message(Message.CLIENT_HELLO(self._name))
+        self.send_message(Message.CLIENT_HELLO(self._info.name))
         self.recv_message().server_hello()
 
     def ready(self):
         self.send_message(Message.READY())
 
-    def wait_until_game_started(self) -> Tuple[int, int]:
+    def wait_until_game_started(self) -> 'GameInfo':
         def err(e):
             def inner(*args):
                 raise e
@@ -83,7 +84,8 @@ class ClientSession(Session):
                 game_finished = unexpected('GameFinished'),
                 game_started = lambda width, height: (width, height),
             )
-            return result
+            width, height = result
+            return GameInfo(field_width=width, field_height=height)
 
     def wait_for_notification(self) -> 'ClientNotification':
         def err(e):
@@ -114,10 +116,10 @@ class ClientSession(Session):
 
 
 class ServerSession(Session):
-    def pre_initialize(self) -> str:
+    def pre_initialize(self) -> 'ClientInfo':
         client_msg = self.recv_message()
         name = client_msg.client_hello()
-        return name
+        return ClientInfo(name=name)
 
     def initialize_ok(self) -> None:
         self.send_message(Message.SERVER_HELLO())
@@ -125,8 +127,9 @@ class ServerSession(Session):
     def initialize_err(self, text: str) -> None:
         self.send_message(Message.ERR(text))
 
-    def start_game(self, field_size: Tuple[int, int]) -> None:
-        width, height = field_size
+    def start_game(self, game_info: 'GameInfo') -> None:
+        width = game_info.field_width
+        height = game_info.field_height
         self.send_event(Event.GAME_STARTED(width, height))
 
     def wait_until_ready(self) -> None:
@@ -149,6 +152,17 @@ class ServerSession(Session):
 
     def respond_err(self, text: str) -> None:
         self.send_message(Message.ERR(text))
+
+
+@dataclass
+class GameInfo:
+    field_width: int
+    field_height: int
+
+
+@dataclass
+class ClientInfo:
+    name: str
 
 
 @adt
