@@ -1,5 +1,6 @@
 from bot_arena_proto.session import ClientSession, ServerSession
 from bot_arena_proto.event import Event
+from bot_arena_proto.data import FieldState, Direction, Point, SnakeState, Object, Action
 
 import sys
 from threading import Thread, Lock
@@ -76,10 +77,30 @@ def client_session(endpoint):
         print_now('Client: game started')
         assert (width, height) == (18, 22)
 
-        n = sess.wait_for_notification()
-        print_now('Client: got notification')
-        event = n.event()
-        event.game_finished()
+        sess.wait_for_notification().request()
+        print_now('Client: got action request')
+        sess.respond(Action.MOVE(Direction.LEFT()))
+        print_now('Client: move left')
+        assert sess.wait_for_notification().error() == 'Illegal move'
+        print_now('Client: ok, this was wrong')
+
+        sess.wait_for_notification().request()
+        print_now('Client: my turn once again')
+        sess.respond(Action.MOVE(Direction.UP()))
+        print_now('Client: now move up')
+
+        fs = sess.wait_for_notification().field_state()
+        print_now('Client: received field state update')
+        assert fs == FieldState(
+            snakes = [
+                SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
+            ],
+            objects = [
+                (Point(1, 0), Object.FOOD()),
+            ]
+        )
+
+        sess.wait_for_notification().event().game_finished()
         print_now('Client: game finished')
         CLIENT_THREAD_RESULT = 'ok'
     except BaseException as e:
@@ -92,15 +113,39 @@ def server_session(endpoint):
         print_now('Server: starting')
         sess = ServerSession(endpoint)
         print_now('Server: created session')
-        name = sess.initialize()
-        print_now('Server: sess.initialize() called')
+        name = sess.pre_initialize()
+        print_now('Server: sess.pre_initialize() called')
         assert name == 'Python39'
+        print_now('Server: name ok')
+        sess.initialize_ok()
+        print_now('Server: initialized')
 
         sess.wait_until_ready()
         print_now('Server: client is ready')
         sess.start_game(field_size=(18, 22))
         print_now('Server: game started')
 
+        action = sess.request_action()
+        print_now('Server: player responded with an action')
+        assert action == Action.MOVE(Direction.LEFT())
+        sess.respond_err('Illegal move')
+        print_now('Server: informed the player about an illegal move')
+        another_action = sess.request_action()
+        print_now('Server: player responded with another action')
+        assert another_action == Action.MOVE(Direction.UP())
+        sess.respond_ok()
+        print_now('Server: accepted player\'s action')
+        sess.send_new_field_state(
+            FieldState(
+                snakes = [
+                    SnakeState(head=Point(3, 4), tail=[Direction.DOWN()]),
+                ],
+                objects = [
+                    (Point(1, 0), Object.FOOD()),
+                ]
+            )
+        )
+        print_now('Server: sent new field state')
         sess.send_event(Event.GAME_FINISHED())
         print_now('Server: game finished')
         SERVER_THREAD_RESULT = 'ok'

@@ -114,11 +114,16 @@ class ClientSession(Session):
 
 
 class ServerSession(Session):
-    def initialize(self) -> str:
+    def pre_initialize(self) -> str:
         client_msg = self.recv_message()
         name = client_msg.client_hello()
-        self.send_message(Message.SERVER_HELLO())
         return name
+
+    def initialize_ok(self) -> None:
+        self.send_message(Message.SERVER_HELLO())
+
+    def initialize_err(self, text: str) -> None:
+        self.send_message(Message.ERR(text))
 
     def start_game(self, field_size: Tuple[int, int]) -> None:
         width, height = field_size
