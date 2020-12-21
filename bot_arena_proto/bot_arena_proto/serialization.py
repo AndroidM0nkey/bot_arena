@@ -5,6 +5,19 @@ from typing import Protocol, Type, TypeVar, Union, Optional, Any
 import cbor2  # type: ignore
 
 
+__all__ = [
+    'DeserializationAdtTagError',
+    'DeserializationError',
+    'DeserializationLogicError',
+    'DeserializationTypeError',
+    'Primitive',
+    'PrimitiveSerializable',
+    'Serializable',
+    'SerializableSelfType',
+    'ensure_type',
+]
+
+
 # Self type. See https://github.com/python/mypy/issues/1212
 SerializableSelfType = TypeVar('SerializableSelfType', covariant=True, bound='Serializable')
 
