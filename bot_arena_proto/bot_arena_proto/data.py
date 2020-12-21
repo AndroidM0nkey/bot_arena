@@ -14,6 +14,8 @@ from adt import adt, Case
 
 @adt
 class Direction:
+    """A direction in which a snake can move each turn."""
+
     UP: Case
     DOWN: Case
     LEFT: Case
@@ -46,6 +48,8 @@ class Direction:
 
 @dataclass
 class Point:
+    """A 2D point with integer coords representing a cell of the game field."""
+
     x: int
     y: int
 
@@ -63,6 +67,8 @@ class Point:
 
 @dataclass
 class SnakeState:
+    """An object fully describing the precise position of a snake."""
+
     head: Point
     tail: List[Direction]
 
@@ -80,6 +86,16 @@ class SnakeState:
 
 @dataclass
 class FieldState:
+    """An object fully describing the current state of the game field (except its size).
+
+    `snakes` stores the information about snakes. It is a dictionary where keys are snake names,
+    and values are the corresponding SnakeState objects.
+
+    `objects` stores the information about in-game objects. Each entry of the list is
+    a tuple which contains (1) the position of an object in the field and (2)
+    the object itself.
+    """
+
     snakes: Dict[str, SnakeState]
     objects: List[Tuple[Point, 'Object']]
 
@@ -100,6 +116,10 @@ class FieldState:
 
 @adt
 class Object:
+    """An in-game object.
+
+    Currently, the only type of such an object is food, which increases the length of a snake."""
+
     FOOD: Case
 
     def to_primitive(self) -> Primitive:
@@ -116,6 +136,10 @@ class Object:
 
 @adt
 class Action:
+    """An action a player controlling a snake may perform.
+
+    Currently, the only such action is to instruct a snake move in a certain direction."""
+
     MOVE: Case['Direction']
 
     def to_primitive(self) -> Primitive:
@@ -129,5 +153,3 @@ class Action:
         if tag == 'm':
             return Action.MOVE(Direction.from_primitive(data[0]))
         raise DeserializationAdtTagError(Class, tag)
-
-
