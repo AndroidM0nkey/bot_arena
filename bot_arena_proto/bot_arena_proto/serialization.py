@@ -137,6 +137,8 @@ class PrimitiveSerializable(Serializable, Protocol):
 
 
 class DeserializationError(Exception):
+    """Base class for errors occuring during deserialization."""
+
     def __init__(self, comment: Optional[str] = None):
         super().__init__()
         self.comment = comment
@@ -155,6 +157,10 @@ class DeserializationError(Exception):
 
 
 class DeserializationTypeError(DeserializationError):
+    """Deserialization error when a value was deserialized
+    into a certain type, but another one was expected.
+    """
+
     def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None):
         super().__init__(comment)
         self.Expected = Expected
@@ -165,6 +171,10 @@ class DeserializationTypeError(DeserializationError):
 
 
 class DeserializationAdtTagError(DeserializationError):
+    """Deserialization error when a tag not present in the
+    deserialized algebraic data type is encountered.
+    """
+
     def __init__(self, Adt: type, tag: str, comment: Optional[str] = None):
         super().__init__(comment)
         self.Adt = Adt
@@ -175,6 +185,8 @@ class DeserializationAdtTagError(DeserializationError):
 
 
 class DeserializationLogicError(DeserializationError):
+    """Miscellaneous deserialization error. Custom description is provided."""
+
     def __init__(self, message: str, comment: Optional[str] = None):
         super().__init__(comment)
         self.message = message
@@ -186,6 +198,23 @@ class DeserializationLogicError(DeserializationError):
 _T = TypeVar('_T')
 
 def ensure_type(value: Any, Tp: Type[_T], comment: Optional[str] = None) -> _T:
+    """Helper function that ensures that a value has a certain type.
+
+    If `isinstance(value, Tp)` returns False, then DeserializationTypeError
+    is raised. Otherwise, the value is returned unmodified, but, from the
+    perspective of a static type checker, it is guaranteed to have the type
+    `Tp`.  Hence, a typical usage pattern, which would also please a static
+    type checker, would be:
+
+        raw_deserialized_value = ...
+        deseriazed_value = ensure_type(
+            raw_deserialized_value,
+            Foo,
+            comment='Some optional comment',
+        )
+        deserialized_value.foo()
+    """
+
     if isinstance(value, Tp):
         return value
     raise DeserializationTypeError(Expected=Tp, Actual=type(value), comment=comment)
