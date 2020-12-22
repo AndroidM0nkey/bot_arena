@@ -8,6 +8,18 @@ from adt import adt, Case
 
 @adt
 class Event:
+    """An event that is reported to a client.
+
+    Currently, the following types of events exist:
+
+    - SNAKE_DIED:       A snake with the specified name has died.
+
+    - GAME_FINISHED:    The game has just finished.
+
+    - GAME_STARTED:     The game has just started. The two parameters
+                        are the width and the height of the game field.
+    """
+
     SNAKE_DIED: Case[str]
     GAME_FINISHED: Case
     GAME_STARTED: Case[int, int]
