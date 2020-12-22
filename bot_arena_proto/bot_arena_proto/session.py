@@ -9,6 +9,18 @@ from typing import Protocol, Tuple
 from adt import adt, Case
 
 
+__all__ = [
+    'ClientInfo',
+    'ClientNotification',
+    'ClientSession',
+    'GameInfo',
+    'MAX_SANE_LENGTH',
+    'ServerSession',
+    'Session',
+    'Stream',
+]
+
+
 MAX_SANE_LENGTH = 2**20  # 1 MiB should be much more than enough
 
 

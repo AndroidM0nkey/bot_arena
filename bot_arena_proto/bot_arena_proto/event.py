@@ -6,6 +6,9 @@ from typing import Type, cast
 from adt import adt, Case
 
 
+__all__ = ['Event']
+
+
 @adt
 class Event:
     """An event that is reported to a client.

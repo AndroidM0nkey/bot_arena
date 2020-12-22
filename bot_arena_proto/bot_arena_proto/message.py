@@ -13,6 +13,9 @@ from dataclasses import dataclass
 from typing import Type, cast
 
 
+__all__ = ['Message']
+
+
 @adt
 class Message(PrimitiveSerializable):
     """A message, a low-level unit of information that is exchanged
