@@ -166,4 +166,55 @@ This particular functionality may not be of a great interest for the users of th
 library, so they might want to use the high-level API instead.
 
 ## Helper data types
-TODO
+
+### `data` module
+
+- `Direction`: Algebraic data type denoting one of the four possible directions:
+*up*, *down*, *left* and *right*.
+- `Point`: A point with integer coordinates *x* and *y*.
+- `SnakeState`: Stores the complete and accurate position of the snake
+on the game field. It is given by the coordinates of the head (the segment
+of the snake towards which the snake is moving) and the snake's tail,
+given by the vector of `Direction`s. If you start from the head,
+and then move along the direction `tail[0]`, then you will end up in the
+first segment of the snake's tail. If then you follow the direction `tail[1]`,
+you will get to the second segment of the tail and so on. That is, the
+following snippet of code will output the positions of all segments of the snake:
+```python
+# Assume that snake_state is the SnakeState object of interest.
+move_up = lambda x, y: (x, y + 1)
+move_down = lambda x, y: (x, y - 1)
+move_left = lambda x, y: (x - 1, y)
+move_right = lambda x, y: (x + 1, y)
+
+current_pos = snake_state.head
+print(current_pos)
+
+for direction in snake_state.tail:
+    # Choose a direction
+    function = direction.match(
+        up = lambda: move_up,
+        down = lambda: move_down,
+        left = lambda: move_left,
+        right = lambda: move_right,
+    )
+
+    # Obtain new coordinates
+    x, y = function(current_pos.x, current_pos.y)
+    current_pos = Point(x, y)
+
+    # Print out the result
+    print(current_pos)
+```
+- `FieldState`: Stores the information about the positions of the snakes and the objects in
+the game field.
+- `Object`: Algebraic data type representing an object in the game field. Currently,
+the only variant is food.
+- `Action`: Algebraic data type representing an action that can be performed by a
+player in their turn. Currently, the only variant is to move to a specified
+direction.
+
+### `event` module
+
+- `Event`: Algebraic data type representing an event that the server may report to the clients.
+See the docstring for this class for details.
