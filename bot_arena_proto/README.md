@@ -144,6 +144,9 @@ main()
 
 (this example is available under the terms of [CC0](https://creativecommons.org/publicdomain/zero/1.0)).
 
+### Server session
+TODO
+
 ## Low-level API: Messages
 Messages play the central role in the protocol. These are units of information
 carrying predetermined types of data that can be sent by a client or a server
