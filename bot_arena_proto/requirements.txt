@@ -1,6 +1,5 @@
 algebraic-data-types==0.2
 attrs==20.3.0
-bot-arena-proto @ file:///home/kodopp/Projects/bot_arena/bot_arena_proto
 cbor2==5.2.0
 iniconfig==1.1.1
 mypy==0.790
