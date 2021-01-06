@@ -10,4 +10,8 @@ setup(
     package_data = {'bot_arena_server': ['py.typed']},
 
     install_requires = ['bot-arena-proto'],
+
+    entry_points = {
+        'console_scripts': ['bot-arena-server=bot_arena_server.__main__:main'],
+    }
 )
