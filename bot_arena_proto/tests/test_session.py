@@ -3,7 +3,6 @@ from bot_arena_proto.event import Event
 from bot_arena_proto.data import FieldState, Direction, Point, SnakeState, Object, Action
 
 import sys
-from threading import Thread, Lock
 from queue import Queue, Empty
 from types import coroutine
 
