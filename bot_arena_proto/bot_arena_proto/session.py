@@ -86,12 +86,15 @@ class Session:
         await self._stream.write(data)
 
     async def _read_bytes(self, how_many: int) -> bytes:
-        """[Internal] Read at most `how_many` bytes from the underlying stream."""
+        """[Internal] Read exactly `how_many` bytes from the underlying stream."""
 
         buf = bytearray()
         while len(buf) < how_many:
             bytes_still_to_read = how_many - len(buf)
-            buf += await self._stream.read(bytes_still_to_read)
+            new_data = await self._stream.read(bytes_still_to_read)
+            if len(new_data) == 0:
+                raise EOFError('No more data available to read')
+            buf += new_data
         return bytes(buf)
 
 
