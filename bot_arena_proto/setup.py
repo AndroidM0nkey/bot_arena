@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'bot_arena_proto',
-    version = '0.1.0',
+    version = '0.2.0a',
     packages = find_packages(),
 
     # Enable type hints in the installed package
