@@ -86,19 +86,28 @@ from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 
-# Just an example network client (needs nclib package)
-from nclib import Netcat
+# A library that can run async functions.
+# Standard `asyncio` can also be used, although with some tweaks.
+# (needs `curio` package installed)
+import curio
 
 # Session, shared between functions.
 # A properly designed program should probably avoid
 # using global variables, but this is just a tiny example.
 sess = None
 
-def main():
+async def main():
     global sess
 
     # Connect to the server, assuming it is listening on 127.0.0.1:1234.
-    stream = Netcat(connect=('127.0.0.1', 1234))
+    socket = await curio.open_connection(host='127.0.0.1', port=1234)
+
+    # We need an object with read/write methods. In curio, sockets have
+    # recv/send methods, and streams have read/write methods. Hence, we need
+    # to convert the socket to a stream. Consult the documentation
+    # (https://curio.readthedocs.io/en/latest/reference.html#networking)
+    # for details.
+    stream = socket.as_stream()
 
     # [[[ Interesting things start here ]]]
 
@@ -107,13 +116,13 @@ def main():
     sess = ClientSession(stream=stream, client_info=client_info)
 
     # Perform the handshake
-    sess.initialize()
+    await sess.initialize()
 
     ...  # Do what you want before being ready to enter a game
 
     # Start the game
-    sess.ready()
-    game_info = sess.wait_until_game_started()
+    await sess.ready()
+    game_info = await sess.wait_until_game_started()
 
     # Important data
     field_width = game_info.field_width
@@ -121,32 +130,55 @@ def main():
 
     # Handle server-sent notifications
     while True:
-        notification = sess.wait_for_notification()
+        notification = await sess.wait_for_notification()
 
         # Handle the notification. See the documentation for the
         # `algebraic-data-type` package.
-        notification.match(
+        #
+        # Note: the functions `take_turn`, `handle_new_field_state`, `handle_event`
+        # and `handle_error` are async, and the result of the `.match()` method
+        # is awaited. This is correct and probably the only way to combine pattern
+        # matching with asynchronous IO because the following actually happens:
+        #
+        # (1) `.match()` method calls (but does not await) one of these four functions.
+        # (2) This function returns a `coroutine` object, which can be awaited.
+        # (3) This object is the value returned from `.match()`.
+        # (4) This object is then awaited.
+        await notification.match(
             request = take_turn,
-            field_state = lambda state: print(f'New field state: {state}'),
-            event = lambda event: print(f'Event happened: {event}'),
-            error = lambda description: print(f'Error: {description}')
+            field_state = handle_new_field_state,
+            event = handle_event,
+            error = handle_error,
         )
 
+async def handle_new_field_state(state):
+    # Do something when a new field state arrives.
+    print(f'New field state: {state}')
+
+async def handle_event(event):
+    # Do something when an event happens.
+    print(f'Event happened: {event}')
+
+async def handle_error(description):
+    # Do something when an error happens.
+    print(f'Error: {description}')
+
 # This is where the decision-making part happens.
-def take_turn():
+async def take_turn():
+    # Tell the server what to do in your turn.
     global sess
 
     # We will always tell our snake to move right.
     action = Action.MOVE(Direction.RIGHT())
 
     # Send our action to the server
-    sess.respond(action)    # May cause an ERR if the move is invalid.
-                            # This ERR will appear as the next
-                            # ClientNotification. A well-designed client
-                            # should handle this situation.
+    await sess.respond(action)  # May cause an ERR if the move is invalid.
+                                # This ERR will appear as the next
+                                # ClientNotification. A well-designed client
+                                # should handle this situation.
     print('Moved right')
 
-main()
+curio.run(main)
 ```
 
 (this example is available under the terms of [CC0](https://creativecommons.org/publicdomain/zero/1.0)).
