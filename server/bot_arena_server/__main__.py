@@ -1,6 +1,7 @@
 from bot_arena_server.server import Server
 
 from bot_arena_proto.session import ServerSession
+from loguru import logger
 
 
 __all__ = [
@@ -9,8 +10,7 @@ __all__ = [
 
 
 async def handle_client(sess: ServerSession):
-    # TODO
-    print('(session)')
+    logger.info('(session)')
 
 
 def main():

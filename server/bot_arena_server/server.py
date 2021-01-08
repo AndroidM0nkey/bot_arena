@@ -3,6 +3,7 @@ import curio    # type: ignore
 from typing import Tuple, Callable, Coroutine
 
 from bot_arena_proto.session import ServerSession
+from loguru import logger
 
 
 __all__ = [
@@ -19,7 +20,7 @@ class Server:
 
     async def _handle_client(self, socket: curio.io.Socket, peer_address: Tuple[str, int]):
         host, port = peer_address
-        print(f'Connection from {host}:{port}')
+        logger.info('Connection from {}:{}', host, port)
         stream = socket.as_stream()
         sess = ServerSession(stream)
         await self._client_handler(sess)
