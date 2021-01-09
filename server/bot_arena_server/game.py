@@ -1,13 +1,77 @@
 from copy import copy
-from typing import List
+from typing import List, Callable, Tuple, Dict
 
-from bot_arena_proto.data import SnakeState, Direction, Point
+from adt import adt, Case
+from bot_arena_proto.data import SnakeState, Direction, Point, Object
 
 
 __all__ = [
     #'Game',
-    #'Field',
+    'Field',
+    'IllegalAction',
+    'InvalidMoveError',
+    'NoSuchSnakeError',
+    'MoveResult',
 ]
+
+
+class IllegalAction(Exception):
+    pass
+
+
+class InvalidMoveError(IllegalAction):
+    def __str__(self) -> str:
+        return 'Invalid move'
+
+
+class NoSuchSnakeError(IllegalAction):
+    def __init__(self, snake_name: str) -> None:
+        self._snake_name = snake_name
+
+    def __str__(self) -> str:
+        return f'No such snake: {self._snake_name!r}'
+
+
+@adt
+class MoveResult:
+    OK: Case
+    CRASH: Case
+
+
+class Field:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        snakes: Dict[str, '_Snake'],
+        objects: List[Tuple[Point, Object]],
+    ):
+        self._width = width
+        self._height = height
+        self._snakes = snakes
+        self._objects = objects
+
+    def move_snake(self, name: str, direction: Direction) -> MoveResult:
+        return self._move_or_grow_snake(name, lambda snake: snake.move, direction)
+
+    def grow_snake(self, name: str, direction: Direction) -> MoveResult:
+        return self._move_or_grow_snake(name, lambda snake: snake.grow, direction)
+
+    def _move_or_grow_snake(
+        self,
+        name: str,
+        method_chooser: Callable[['_Snake'], Callable[[Direction], None]],
+        direction: Direction,
+    ) -> MoveResult:
+        if name not in self._snakes:
+            raise NoSuchSnakeError(name)
+
+        snake = self._snakes[name]
+
+        # TODO: detect collisions
+        method = method_chooser(snake)
+        method(direction)
+        return MoveResult.OK()
 
 
 class _Snake:
