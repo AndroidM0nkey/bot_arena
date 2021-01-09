@@ -2,7 +2,7 @@ from copy import copy
 from typing import List, Callable, Tuple, Dict
 
 from adt import adt, Case
-from bot_arena_proto.data import SnakeState, Direction, Point, Object
+from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState
 
 
 __all__ = [
@@ -72,6 +72,9 @@ class Field:
         method = method_chooser(snake)
         method(direction)
         return MoveResult.OK()
+
+    def get_state(self) -> FieldState:
+        return FieldState(snakes=copy(self._snakes), objects=copy(self._objects))
 
 
 class _Snake:
