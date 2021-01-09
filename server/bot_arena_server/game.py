@@ -2,11 +2,11 @@ from copy import copy
 from typing import List, Callable, Tuple, Dict
 
 from adt import adt, Case
-from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState
+from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
 
 
 __all__ = [
-    #'Game',
+    'Game',
     'Field',
     'IllegalAction',
     'InvalidMoveError',
@@ -36,6 +36,34 @@ class NoSuchSnakeError(IllegalAction):
 class MoveResult:
     OK: Case
     CRASH: Case
+
+
+def _generate_snake(i: int) -> '_Snake':
+    # TODO: generate snakes in a more randomized way
+    return _Snake(
+        head = Point(2 * i, 5),
+        tail = [Direction.DOWN(), Direction.DOWN()],
+    )
+
+
+class Game:
+    def __init__(self, field_width: int, field_height: int, snake_names: List[str]):
+        snakes = {name: _generate_snake(i) for i, name in enumerate(snake_names)}
+
+        # TODO: generate objects
+
+        self._field = Field(
+            width = field_width,
+            height = field_height,
+            snakes = snakes,
+            objects = [],
+        )
+
+    @property
+    def field(self) -> Field:
+        return self._field
+
+    def take_turn(self, name: str, action: Action)
 
 
 class Field:
