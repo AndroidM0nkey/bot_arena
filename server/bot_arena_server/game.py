@@ -69,6 +69,7 @@ class Field:
         snake = self._snakes[name]
 
         # TODO: detect collisions
+        # TODO: pick objects
         method = method_chooser(snake)
         method(direction)
         return MoveResult.OK()
