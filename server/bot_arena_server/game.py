@@ -1,5 +1,6 @@
 from copy import copy
-from typing import List, Callable, Tuple, Dict
+from dataclasses import dataclass
+from typing import List, Callable, Tuple, Dict, Set
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
@@ -13,6 +14,12 @@ __all__ = [
     'NoSuchSnakeError',
     'MoveResult',
 ]
+
+
+@dataclass
+class ChangeInFreeCells:
+    new_free: List[Point]
+    new_occupied: List[Point]
 
 
 class IllegalAction(Exception):
@@ -81,6 +88,9 @@ class Field:
         self._height = height
         self._snakes = snakes
         self._objects = objects
+        self._occupied_cells: Set[Point] = set()
+        for snake in snakes.values():
+            self._occupied_cells.update(snake.list_occupied_cells())
 
     def move_snake(self, name: str, direction: Direction) -> MoveResult:
         if name not in self._snakes:
@@ -88,31 +98,85 @@ class Field:
 
         snake = self._snakes[name]
 
-        # TODO: detect collisions
+        destination = snake.head.shift(direction)
+        if not self.is_cell_passable(destination):
+            return MoveResult.CRASH()
+
         # TODO: pick objects
-        snake.move(direction)
+        change_in_free_cells = snake.move(direction)
+        self._update_occupied_cells(change_in_free_cells)
+
         return MoveResult.OK()
 
+    def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
+        for cell in change_in_free_cells.new_occupied:
+            self._occupied_cells.add(cell)
+
+        for cell in change_in_free_cells.new_free:
+            self._occupied_cells.remove(cell)
+
+    def is_cell_passable(self, cell: Point) -> bool:
+        if cell not in self:
+            return False
+
+        return cell not in self._occupied_cells
+
+    def __contains__(self, cell: Point) -> bool:
+        return 0 <= cell.x < self.width and 0 <= cell.y < self.height
+
     def get_state(self) -> FieldState:
-        return FieldState(snakes=copy(self._snakes), objects=copy(self._objects))
+        return FieldState(snakes=[s.get_state() for s in self._snakes], objects=copy(self._objects))
+
+    @property
+    def width(self) -> int:
+        return self._width
+
+    @property
+    def height(self) -> int:
+        return self._height
+
+
+def _directions_to_points(head: Point, tail: List[Direction]) -> List[Point]:
+    result: List[Point] = []
+    position = head
+    for direction in tail:
+        position = position.shift(direction)
+        result.append(position)
+    return result
+
+
+def _points_to_directions(head: Point, tail: List[Point]) -> List[Direction]:
+    def inner() -> Generator[Direction, None, None]:
+        last_point = head
+        for point in tail:
+            dx = point.x - last_point.x
+            dy = point.y - last_point.y
+
+            if dx == 1 and dy == 0:
+                yield Direction.RIGHT()
+            elif dx == -1 and dy == 0:
+                yield Direction.LEFT()
+            elif dx == 0 and dy == 1:
+                yield Direction.UP()
+            elif dx == 0 and dy == -1:
+                yield Direction.DOWN()
+            else:
+                raise ValueError(f'Invalid tail: {tail!r}')
+
+            last_point = point
+
+    return list(inner())
 
 
 class _Snake:
     def __init__(self, head: Point, tail: List[Direction]):
         self._head = head
-        self._tail = tail
+        self._tail = _directions_to_cells(head, tail)
 
     def get_state(self) -> SnakeState:
-        # Shallow copying is done because both `self._head` and `self._tail`
-        # may change in the runtime, which is absolutely unacceptable for
-        # a `SnakeState` object, which is by design a record of static data.
-        # Copying prevents this kind of issue, for the price of some small
-        # performance (several milliseconds at most for very long snakes;
-        # much less for typical, shorter snakes) and memory (several
-        # kilobytes, probably?) overhead.
-        return SnakeState(head=copy(self._head), tail=copy(self._tail))
+        return SnakeState(head=self._head, tail=_points_to_direction(self._head, self._tail))
 
-    def move(self, direction: Direction):
+    def move(self, direction: Direction) -> ChangeInFreeCells:
         """Move snake in the specified direction.
 
         The legality of such a movement is not checked.
@@ -123,10 +187,12 @@ class _Snake:
 
         # Moving differs from growing only by not keeping the last segment
         # of the tail.
-        self.grow(direction)
-        self._tail.pop()
+        change_in_free_cells = self.grow(direction)
+        popped_cell = self._tail.pop()
+        change_in_free_cells.new_occupied.append(popped_cell)
+        return change_in_free_cells
 
-    def grow(self, direction: Direction):
+    def grow(self, direction: Direction) -> ChangeInFreeCells:
         """Grow the snake in the specified direction.
 
         Whether the snake can actually grow in this direction is not checked.
@@ -135,23 +201,15 @@ class _Snake:
         reasonable.
         """
 
-        delta_x, delta_y = direction.match(
-            up = lambda: (0, 1),
-            down = lambda: (0, -1),
-            left = lambda: (-1, 0),
-            right = lambda: (1, 0),
-        )
+        old_head = self._head
+        self._head = self._head.shift(direction)
+        self._tail.insert(0, old_head)
+        return ChangeInFreeCells(new_occupied=[self._head], new_free=[])
 
-        self._head.x += delta_x
-        self._head.y += delta_y
+    def list_occupied_cells(self) -> Generator[Point, None, None]:
+        yield self.head
+        yield from self.tail
 
-        self._tail.insert(0, reverse(direction))
-
-
-def reverse(direction: Direction) -> Direction:
-    return direction.match(
-        up = lambda: Direction.DOWN(),
-        down = lambda: Direction.UP(),
-        left = lambda: Direction.RIGHT(),
-        right = lambda: Direction.LEFT(),
-    )
+    @property
+    def head(self) -> Point:
+        return self._head
