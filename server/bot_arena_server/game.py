@@ -83,17 +83,6 @@ class Field:
         self._objects = objects
 
     def move_snake(self, name: str, direction: Direction) -> MoveResult:
-        return self._move_or_grow_snake(name, lambda snake: snake.move, direction)
-
-    def grow_snake(self, name: str, direction: Direction) -> MoveResult:
-        return self._move_or_grow_snake(name, lambda snake: snake.grow, direction)
-
-    def _move_or_grow_snake(
-        self,
-        name: str,
-        method_chooser: Callable[['_Snake'], Callable[[Direction], None]],
-        direction: Direction,
-    ) -> MoveResult:
         if name not in self._snakes:
             raise NoSuchSnakeError(name)
 
@@ -101,8 +90,7 @@ class Field:
 
         # TODO: detect collisions
         # TODO: pick objects
-        method = method_chooser(snake)
-        method(direction)
+        snake.move(direction)
         return MoveResult.OK()
 
     def get_state(self) -> FieldState:
