@@ -63,7 +63,10 @@ class Game:
     def field(self) -> Field:
         return self._field
 
-    def take_turn(self, name: str, action: Action)
+    def take_turn(self, name: str, action: Action):
+        action.match(
+            move = lambda direction: self.field.move_snake(name, direction),
+        )
 
 
 class Field:
