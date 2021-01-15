@@ -67,7 +67,7 @@ class Game:
         )
 
     @property
-    def field(self) -> Field:
+    def field(self) -> 'Field':
         return self._field
 
     def take_turn(self, name: str, action: Action):
