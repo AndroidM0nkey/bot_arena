@@ -1,6 +1,6 @@
 from copy import copy
 from dataclasses import dataclass
-from typing import List, Callable, Tuple, Dict, Set
+from typing import List, Callable, Tuple, Dict, Set, Generator
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
@@ -125,7 +125,10 @@ class Field:
         return 0 <= cell.x < self.width and 0 <= cell.y < self.height
 
     def get_state(self) -> FieldState:
-        return FieldState(snakes=[s.get_state() for s in self._snakes], objects=copy(self._objects))
+        return FieldState(
+            snakes = {name: snake.get_state() for name, snake in self._snakes.items()},
+            objects = copy(self._objects),
+        )
 
     @property
     def width(self) -> int:
@@ -171,10 +174,10 @@ def _points_to_directions(head: Point, tail: List[Point]) -> List[Direction]:
 class _Snake:
     def __init__(self, head: Point, tail: List[Direction]):
         self._head = head
-        self._tail = _directions_to_cells(head, tail)
+        self._tail = _directions_to_points(head, tail)
 
     def get_state(self) -> SnakeState:
-        return SnakeState(head=self._head, tail=_points_to_direction(self._head, self._tail))
+        return SnakeState(head=self._head, tail=_points_to_directions(self._head, self._tail))
 
     def move(self, direction: Direction) -> ChangeInFreeCells:
         """Move snake in the specified direction.
@@ -207,8 +210,8 @@ class _Snake:
         return ChangeInFreeCells(new_occupied=[self._head], new_free=[])
 
     def list_occupied_cells(self) -> Generator[Point, None, None]:
-        yield self.head
-        yield from self.tail
+        yield self._head
+        yield from self._tail
 
     @property
     def head(self) -> Point:
