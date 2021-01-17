@@ -111,3 +111,24 @@ class TestBasicSerde:
     def test_action():
         assert Action.MOVE(Direction.LEFT()).to_primitive() == ['m', 'l']
         assert Action.from_primitive(['m', 'd']) == Action.MOVE(Direction.DOWN())
+
+
+class TestPoint:
+    @staticmethod
+    def test_that_shift_works():
+        origin = Point(4, 7)
+        left = origin.shift(Direction.LEFT())
+        right = origin.shift(Direction.RIGHT())
+        up = origin.shift(Direction.UP())
+        down = origin.shift(Direction.DOWN())
+        assert left == Point(3, 7)
+        assert right == Point(5, 7)
+        assert up == Point(4, 8)
+        assert down == Point(4, 6)
+
+    @staticmethod
+    def test_that_shift_does_not_mutate_self():
+        origin = Point(2, 8)
+        shifted = origin.shift(Direction.RIGHT())
+        assert origin != shifted
+        assert origin == Point(2, 8)

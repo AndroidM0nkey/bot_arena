@@ -74,6 +74,16 @@ class Point:
         y = ensure_type(y, int)
         return Class(x=x, y=y)
 
+    def shift(self, direction: Direction) -> 'Point':
+        dx, dy = direction.match(
+            up = lambda: (0, 1),
+            down = lambda: (0, -1),
+            left = lambda: (-1, 0),
+            right = lambda: (1, 0),
+        )
+
+        return Point(x = self.x + dx, y = self.y + dy)
+
 
 @dataclass
 class SnakeState:
