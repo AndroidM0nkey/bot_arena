@@ -177,7 +177,10 @@ class _Snake:
         self._tail = _directions_to_points(head, tail)
 
     def get_state(self) -> SnakeState:
-        return SnakeState(head=self._head, tail=_points_to_directions(self._head, self._tail))
+        return SnakeState(
+            head = copy(self._head),
+            tail = _points_to_directions(self._head, self._tail),
+        )
 
     def move(self, direction: Direction) -> ChangeInFreeCells:
         """Move snake in the specified direction.

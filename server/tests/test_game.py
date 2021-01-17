@@ -18,9 +18,9 @@ class TestSnake:
         snake = _Snake(head=Point(7, 3), tail=[Direction.RIGHT()])
         state_before = snake.get_state()
         snake._head.y += 1
-        snake._tail.append(Direction.UP())
+        snake._tail.insert(0, Point(7, 3))
         assert snake._head == Point(7, 4)
-        assert snake._tail == [Direction.RIGHT(), Direction.UP()]
+        assert snake._tail == [Point(7, 3), Point(8, 3)]
 
         # Just to make sure subsequent get_state() works fine
         state_after = snake.get_state()
@@ -30,7 +30,7 @@ class TestSnake:
         )
         assert state_after == SnakeState(
             head = Point(7, 4),
-            tail = [Direction.RIGHT(), Direction.UP()],
+            tail = [Direction.DOWN(), Direction.RIGHT()],
         )
 
     @staticmethod
