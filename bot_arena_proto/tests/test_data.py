@@ -1,5 +1,7 @@
 from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object, Action
 
+import itertools
+
 import pytest
 
 
@@ -132,3 +134,30 @@ class TestPoint:
         shifted = origin.shift(Direction.RIGHT())
         assert origin != shifted
         assert origin == Point(2, 8)
+
+    @staticmethod
+    def test_hash_consistency():
+        a = Point(42, 18)
+        b = Point(42, 18)
+        c = Point(43, 18)
+        d = Point(42, 17)
+
+        for i, j in itertools.product([a, b, c, d], repeat=2):
+            assert i != j or hash(i) == hash(j)
+
+
+class TestDirection:
+    @staticmethod
+    def test_hash_consistency():
+        a1 = Direction.UP()
+        b1 = Direction.DOWN()
+        c1 = Direction.LEFT()
+        d1 = Direction.RIGHT()
+        a2 = Direction.UP()
+        b2 = Direction.DOWN()
+        c2 = Direction.LEFT()
+        d2 = Direction.RIGHT()
+
+        for i, j in itertools.product([a1, b1, c1, d1, a2, b2, c2, d2], repeat=2):
+            assert i != j or hash(i) == hash(j)
+

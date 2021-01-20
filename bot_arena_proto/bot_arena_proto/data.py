@@ -55,6 +55,16 @@ class Direction:
 
         raise DeserializationAdtTagError(Class, p)
 
+    def __hash__(self) -> int:
+        a = self.match(
+            up = lambda: 0,
+            down = lambda: 1,
+            left = lambda: 2,
+            right = lambda: 3,
+        )
+
+        return a ^ 0x7843c6aab56971b4
+
 
 @dataclass
 class Point:
@@ -83,6 +93,9 @@ class Point:
         )
 
         return Point(x = self.x + dx, y = self.y + dy)
+
+    def __hash__(self) -> int:
+        return hash((self.x, self.y)) ^ 0xdd77ab420fecfdb9
 
 
 @dataclass
