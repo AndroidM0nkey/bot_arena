@@ -1,3 +1,5 @@
+from bot_arena_server.game import Game, IllegalAction
+
 import re
 
 from bot_arena_proto.session import ServerSession, GameInfo
@@ -13,8 +15,7 @@ def is_name_valid(name):
     return re.match(r'^[a-zA-Z0-9_-]+$', name) is not None
 
 
-async def run_game_loop(sess: ServerSession) -> None:
-    # TODO: this is just a stub. It does not contain any actual game logic.
+async def run_game_loop(sess: ServerSession, game: Game) -> None:
     player_info = await sess.pre_initialize()
     if not is_name_valid(player_info.name):
         await sess.respond_err('Invalid or unacceptable player name')
@@ -32,4 +33,10 @@ async def run_game_loop(sess: ServerSession) -> None:
         logger.info('It\'s {}\'s turn', player_info.name)
         action = await sess.request_action()
         logger.info('{} requested action: {}', player_info.name, action)
-        await sess.respond_ok()
+
+        try:
+            game.take_turn(name=player_info.name, action=action)
+            await sess.respond_ok()
+        except IllegalAction as e:
+            logger.info('The action {} for {} is invalid: {}', action, player_info.name, e)
+            await sess.respond_err(text=str(e))

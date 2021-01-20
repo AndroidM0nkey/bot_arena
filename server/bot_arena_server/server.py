@@ -1,3 +1,5 @@
+from bot_arena_server.game import Game
+
 # (yet another library that does not care about the benefits static typing brings)
 import curio    # type: ignore
 from typing import Tuple, Callable, Coroutine
@@ -12,7 +14,7 @@ __all__ = [
 
 
 class Server:
-    def __init__(self, client_handler: Callable[[ServerSession], Coroutine[None, None, None]]):
+    def __init__(self, client_handler: Callable[[ServerSession, Game], Coroutine[None, None, None]]):
         self._client_handler = client_handler
 
     def listen(self, host: str, port: int) -> None:
@@ -23,4 +25,9 @@ class Server:
         logger.info('Connection from {}:{}', host, port)
         stream = socket.as_stream()
         sess = ServerSession(stream)
-        await self._client_handler(sess)
+
+        # TODO: allocate game rooms properly, not one per client.
+        # (this is a stub as for now).
+        game = Game(field_width=30, field_height=20, snake_names=['Player'])
+
+        await self._client_handler(sess, game)
