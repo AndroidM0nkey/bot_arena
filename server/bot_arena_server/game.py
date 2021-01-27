@@ -4,6 +4,7 @@ from typing import List, Callable, Tuple, Dict, Set, Generator
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
+from bot_arena_proto.session import GameInfo
 
 
 __all__ = [
@@ -74,6 +75,9 @@ class Game:
         action.match(
             move = lambda direction: self.field.move_snake(name, direction),
         )
+
+    def info(self) -> GameInfo:
+        return GameInfo(field_width=self._field.width, field_height=self._field.height)
 
 
 class Field:
