@@ -19,15 +19,15 @@ async def run_game_loop(sess: ServerSession, client_info: ClientInfo, game: Game
         try:
             move_result = game.take_turn(name=client_info.name, action=action)
             crashed = move_result.match(
-                OK = lambda: True,
-                CRASH = lambda: False,
+                OK = lambda: False,
+                CRASH = lambda: True,
             )
 
             if crashed:
-                await sess.respond_ok()
-            else:
                 await on_crash(sess, client_info),
                 break
+            else:
+                await sess.respond_ok()
         except IllegalAction as e:
             logger.info('The action {} for {} is invalid: {}', action, client_info.name, e)
             await sess.respond_err(text=str(e))
