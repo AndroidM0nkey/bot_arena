@@ -1,3 +1,4 @@
+import random
 from copy import copy
 from dataclasses import dataclass
 from typing import List, Callable, Tuple, Dict, Set, Generator
@@ -58,14 +59,15 @@ class Game:
     def __init__(self, field_width: int, field_height: int, snake_names: List[str]):
         snakes = {name: _generate_snake(i) for i, name in enumerate(snake_names)}
 
-        # TODO: generate objects
-
         self._field = Field(
             width = field_width,
             height = field_height,
             snakes = snakes,
             objects = [],
         )
+
+        for i in range(5):
+            self._field.place_object_randomly(Object.FOOD())
 
     @property
     def field(self) -> 'Field':
@@ -120,6 +122,7 @@ class Field:
 
     def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
         self._update_occupied_cells(snake.grow(direction))
+        self._objects.pop(snake.head)
         return MoveResult.OK()
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
@@ -151,6 +154,26 @@ class Field:
     @property
     def height(self) -> int:
         return self._height
+
+    def place_object_randomly(self, obj: Object) -> None:
+        while not self.try_place_object_randomly(obj):
+            pass
+
+    def try_place_object_randomly(self, obj: Object) -> bool:
+        x = random.randrange(0, self.width)
+        y = random.randrange(0, self.height)
+        point = Point(x, y)
+        if self.is_cell_completely_free(point):
+            self._place_object_at(obj, point)
+            return True
+        else:
+            return False
+
+    def is_cell_completely_free(self, cell: Point) -> bool:
+        return (cell not in self._occupied_cells) and (cell not in self._objects)
+
+    def _place_object_at(self, obj: Object, point: Point) -> None:
+        self._objects[point] = obj
 
 
 def _directions_to_points(head: Point, tail: List[Direction]) -> List[Point]:
