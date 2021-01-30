@@ -87,11 +87,11 @@ class Field:
         height: int,
         snakes: Dict[str, '_Snake'],
         objects: List[Tuple[Point, Object]],
-    ):
+    ) -> None:
         self._width = width
         self._height = height
         self._snakes = snakes
-        self._objects = objects
+        self._objects: Dict[Point, Object] = dict(objects)
         self._occupied_cells: Set[Point] = set()
         for snake in snakes.values():
             self._occupied_cells.update(snake.list_occupied_cells())
@@ -106,10 +106,20 @@ class Field:
         if not self.is_cell_passable(destination):
             return MoveResult.CRASH()
 
+        if destination in self._objects:
+            obj = self._objects[destination]
+            return obj.match(
+                food = lambda: self._consume_food(snake, direction)
+            )
+
         # TODO: pick objects
         change_in_free_cells = snake.move(direction)
         self._update_occupied_cells(change_in_free_cells)
 
+        return MoveResult.OK()
+
+    def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
+        self._update_occupied_cells(snake.grow(direction))
         return MoveResult.OK()
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
