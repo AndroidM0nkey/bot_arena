@@ -141,7 +141,7 @@ class Field:
     def get_state(self) -> FieldState:
         return FieldState(
             snakes = {name: snake.get_state() for name, snake in self._snakes.items()},
-            objects = copy(self._objects),
+            objects = list(self._objects.items()),
         )
 
     @property

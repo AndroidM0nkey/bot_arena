@@ -28,6 +28,8 @@ async def run_game_loop(sess: ServerSession, client_info: ClientInfo, game: Game
                 break
             else:
                 await sess.respond_ok()
+
+            logger.debug(game.field.get_state())
         except IllegalAction as e:
             logger.info('The action {} for {} is invalid: {}', action, client_info.name, e)
             await sess.respond_err(text=str(e))
