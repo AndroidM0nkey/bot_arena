@@ -1,7 +1,7 @@
 import random
 from copy import copy
 from dataclasses import dataclass
-from typing import List, Callable, Tuple, Dict, Set, Generator
+from typing import List, Callable, Tuple, Dict, Set, Generator, Optional
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
@@ -47,25 +47,54 @@ class MoveResult:
     CRASH: Case
 
 
-def _generate_snake(i: int) -> '_Snake':
-    # TODO: generate snakes in a more randomized way
-    return _Snake(
-        head = Point(2 * i, 5),
-        tail = [Direction.DOWN(), Direction.DOWN()],
-    )
+def _generate_snake(field: 'Field', length: int) -> '_Snake':
+    while True:
+        maybe_snake = _try_generate_snake(field, length)
+        if maybe_snake is not None:
+            return maybe_snake
+
+
+def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
+    tail = []
+    head = field.random_free_cell()
+    snake_cells = {head}
+
+    for _ in range(length - 1):
+        next_cell_candidates = []
+        for dx, dy in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
+            candidate = Point(head.x + dx, head.y + dy)
+            if field.is_cell_completely_free(candidate) and candidate not in snake_cells:
+                next_cell_candidates.append(candidate)
+
+        if len(next_cell_candidates) == 0:
+            return None
+
+        next_cell = random.choice(next_cell_candidates)
+        tail.append(head)
+        head = next_cell
+        snake_cells.add(next_cell)
+
+    tail.reverse()
+
+    # TODO: run DFS or BFS to ensure that the snake isn't locked out.
+    return _Snake.from_raw_parts(head, tail)
 
 
 class Game:
     def __init__(self, field_width: int, field_height: int, snake_names: List[str]):
-        snakes = {name: _generate_snake(i) for i, name in enumerate(snake_names)}
-
         self._field = Field(
             width = field_width,
             height = field_height,
-            snakes = snakes,
+            snakes = {},
             objects = [],
         )
 
+        for name in snake_names:
+            # TODO: make the length configurable
+            snake = _generate_snake(self._field, 5)
+            self._field.add_snake(name, snake)
+
+        # TODO: make the number of objects configurable
         for i in range(5):
             self._field.place_object_randomly(Object.FOOD())
 
@@ -97,6 +126,18 @@ class Field:
         self._occupied_cells: Set[Point] = set()
         for snake in snakes.values():
             self._occupied_cells.update(snake.list_occupied_cells())
+
+    def random_free_cell(self) -> Point:
+        while True:
+            cell = self._try_random_free_cell()
+            if cell is not None:
+                return cell
+
+    def _try_random_free_cell(self) -> Optional[Point]:
+        x = random.randrange(0, self.width)
+        y = random.randrange(0, self.height)
+        point = Point(x, y)
+        return point if self.is_cell_completely_free(point) else None
 
     def move_snake(self, name: str, direction: Direction) -> MoveResult:
         if name not in self._snakes:
@@ -175,6 +216,11 @@ class Field:
     def _place_object_at(self, obj: Object, point: Point) -> None:
         self._objects[point] = obj
 
+    def add_snake(self, snake_name: str, snake: '_Snake') -> None:
+        if snake_name in self._snakes:
+            raise KeyError(f'Snake `{snake_name}` is already present on the game field')
+        self._snakes[snake_name] = snake
+
 
 def _directions_to_points(head: Point, tail: List[Direction]) -> List[Point]:
     result: List[Point] = []
@@ -212,6 +258,12 @@ class _Snake:
     def __init__(self, head: Point, tail: List[Direction]):
         self._head = head
         self._tail = _directions_to_points(head, tail)
+
+    @staticmethod
+    def from_raw_parts(head: Point, tail: List[Point]) -> '_Snake':
+        snake = _Snake(head, [])
+        snake._tail = tail
+        return snake
 
     def get_state(self) -> SnakeState:
         return SnakeState(
