@@ -1,4 +1,6 @@
 from bot_arena_server.game import Game
+from bot_arena_server.game_room import GameRoom
+from bot_arena_server.pubsub import PublishSubscribeService
 
 import re
 from typing import Tuple, Callable, Coroutine, List
@@ -26,16 +28,23 @@ def create_game(client_infos) -> Game:
 class Server:
     def __init__(
         self,
-        client_handler: Callable[[ServerSession, ClientInfo, Game], Coroutine[None, None, None]],
-    ):
+        client_handler: Callable[
+            [ServerSession, ClientInfo, Game, GameRoom],
+            Coroutine[None, None, None],
+        ],
+    ) -> None:
         self._client_handler = client_handler
         self._client_infos: List[ClientInfo] = []
-        self._game_pubsub = PublishSubscribeService()
+        self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
 
     def listen(self, host: str, port: int) -> None:
         curio.run(curio.tcp_server, host, port, self._handle_client)
 
-    async def _handle_client(self, socket: curio.io.Socket, peer_address: Tuple[str, int]):
+    async def _handle_client(
+        self,
+        socket: curio.io.Socket,
+        peer_address: Tuple[str, int],
+    ) -> None:
         host, port = peer_address
         logger.info('Connection from {}:{}', host, port)
         stream = socket.as_stream()
@@ -55,40 +64,24 @@ class Server:
             client_infos = self._client_infos
             self._client_infos = []
             game = create_game(client_infos)
-            await self._game_pubsub.publish(game)
+            game_room = GameRoom(list(game.snake_names()))
+            await self._game_pubsub.publish((game, game_room))
+            is_game_creator = True
         else:
-            game = await self._wait_until_game_is_ready(sess)
+            game, game_room = await self._wait_until_game_is_ready(sess)
+            is_game_creator = False
+
+        if is_game_creator:
+            await curio.spawn(game_room.run_loop)
 
         await sess.wait_until_ready()
         await sess.start_game(game.info())
         logger.info('Game with {} has started', client_info.name)
-        await self._client_handler(sess, client_info, game)
+        await self._client_handler(sess, client_info, game, game_room)
 
-    async def _wait_until_game_is_ready(self, sess: ServerSession) -> Game:
+    async def _wait_until_game_is_ready(self, sess: ServerSession) -> Tuple[Game, GameRoom]:
         # TODO: poll for messages from the client.
         return await self._game_pubsub.receive()
 
     # TODO: don't hardcode this.
     CLIENTS_PER_GAME = 2
-
-
-class PublishSubscribeService:
-    def __init__(self):
-        self._queues = []
-
-    async def publish(self, message):
-        # Safe handling of potential re-subscribers
-        queues = self._queues
-        self._queues = []
-
-        for q in queues:
-            await q.put(message)
-
-    def subscribe(self):
-        q = curio.Queue(maxsize=1)
-        self._queues.append(q)
-        return q
-
-    async def receive(self):
-        q = self.subscribe()
-        return await q.get()

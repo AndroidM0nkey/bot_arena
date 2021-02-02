@@ -1,4 +1,5 @@
 from bot_arena_server.game import Game, IllegalAction
+from bot_arena_server.game_room import GameRoom
 
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ServerSession, GameInfo, ClientInfo
@@ -10,9 +11,16 @@ __all__ = [
 ]
 
 
-async def run_game_loop(sess: ServerSession, client_info: ClientInfo, game: Game) -> None:
+async def run_game_loop(
+    sess: ServerSession,
+    client_info: ClientInfo,
+    game: Game,
+    game_room: GameRoom,
+) -> None:
     while True:
-        logger.info('It\'s {}\'s turn', client_info.name)
+        await game_room.wait_for_turn(client_info.name)
+
+        logger.info('It is {}\'s turn', client_info.name)
         action = await sess.request_action()
         logger.info('{} requested action: {}', client_info.name, action)
 

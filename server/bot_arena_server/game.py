@@ -1,7 +1,7 @@
 import random
 from copy import copy
 from dataclasses import dataclass
-from typing import List, Callable, Tuple, Dict, Set, Generator, Optional
+from typing import List, Callable, Tuple, Dict, Set, Generator, Optional, Iterable
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
@@ -109,6 +109,9 @@ class Game:
 
     def info(self) -> GameInfo:
         return GameInfo(field_width=self._field.width, field_height=self._field.height)
+
+    def snake_names(self) -> Iterable[str]:
+        return self.field._snakes.keys()
 
 
 class Field:
