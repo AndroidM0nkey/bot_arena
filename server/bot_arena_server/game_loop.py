@@ -18,6 +18,7 @@ async def run_game_loop(
     game_room: GameRoom,
 ) -> None:
     game_room.set_session(client_info.name, sess)
+    await sess.send_new_field_state(game.field.get_state())
     while True:
         await game_room.wait_for_turn(client_info.name)
         logger.info('It is {}\'s turn', client_info.name)
