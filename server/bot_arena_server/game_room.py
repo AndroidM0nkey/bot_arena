@@ -1,6 +1,6 @@
 from bot_arena_server.game import Game
 
-from typing import List, Dict, Callable, Coroutine, Any
+from typing import List, Dict, Callable, Coroutine, Any, Set
 
 import curio    # type: ignore
 from adt import adt, Case
@@ -21,6 +21,7 @@ class GameRoom:
         self._client_names = client_names
         self._took_turn = {name: False for name in client_names}
         self._sessions: Dict[str, ServerSession] = {}
+        self._dead: Set[str] = set()
 
     def set_session(self, client_name: str, session: ServerSession) -> None:
         if client_name in self._sessions:
@@ -28,6 +29,15 @@ class GameRoom:
         if client_name not in self._clients:
             raise KeyError(f'No such client in the game room: `{client_name}`')
         self._sessions[client_name] = session
+
+    async def report_death(self, client_name: str) -> None:
+        if client_name in self._dead:
+            raise KeyError(f'Snake `{client_name}` somehow managed to die twice')
+        if client_name not in self._clients:
+            raise KeyError(f'No such client in the game room: `{client_name}`')
+
+        await self.broadcast_event(Event.SNAKE_DIED(client_name), lambda name: True)
+        self._dead.add(client_name)
 
     async def wait_for_turn(self, client_name: str) -> None:
         if client_name not in self._clients:
@@ -49,12 +59,14 @@ class GameRoom:
         while True:
             logger.debug('New round')
             for client_name in self._client_names:
-                # TODO: don't accept turns from dead players
+                if client_name in self._dead:
+                    continue
                 logger.debug('{}\'s turn', client_name)
                 queue = self._clients[client_name]
                 await queue.put(None)
                 logger.debug('here')
                 await queue.join()
+                # TODO: recognize the end of the game
         logger.debug('Loop finished')
 
     async def broadcast(

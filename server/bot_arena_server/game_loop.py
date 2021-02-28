@@ -33,7 +33,7 @@ async def run_game_loop(
             )
 
             if crashed:
-                await on_crash(sess, client_info),
+                await on_crash(sess, client_info, game_room),
                 break
             else:
                 await sess.respond_ok()
@@ -49,9 +49,7 @@ async def run_game_loop(
             await sess.respond_err(text=str(e))
 
 
-async def on_crash(sess: ServerSession, client_info: ClientInfo) -> None:
+async def on_crash(sess: ServerSession, client_info: ClientInfo, game_room: GameRoom) -> None:
     logger.info('{} died', client_info.name)
     await sess.respond_ok()
-
-    # TODO: broadcast this message
-    await sess.send_event(Event.SNAKE_DIED(client_info.name))
+    await game_room.report_death(client_info.name)
