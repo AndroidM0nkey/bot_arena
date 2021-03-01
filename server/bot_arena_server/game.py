@@ -18,10 +18,39 @@ __all__ = [
 ]
 
 
-@dataclass
 class ChangeInFreeCells:
-    new_free: List[Point]
-    new_occupied: List[Point]
+    def __init__(self, new_free: Iterable[Point], new_occupied: Iterable[Point]):
+        new_free = set(new_free)
+        new_occupied = set(new_occupied)
+        self._new_free = new_free - new_occupied
+        self._new_occupied = new_occupied - new_free
+
+    def __eq__(self, other: object) -> bool:
+        # I hate Python's type system so much.
+        if not isinstance(other, ChangeInFreeCells):
+            return NotImplemented
+        return (self._new_free, self._new_occupied) == (other._new_free, other._new_occupied)
+
+    def __repr__(self) -> str:
+        return f'ChangeInFreeCells(new_free={self._new_free!r}, new_occupied={self._new_occupied!r})'
+
+    def add_new_free(self, point: Point):
+        if point in self._new_occupied:
+            self._new_occupied.remove(point)
+        else:
+            self._new_free.add(point)
+
+    def add_new_occupied(self, point: Point):
+        if point in self._new_free:
+            self._new_free.remove(point)
+        else:
+            self._new_occupied.add(point)
+
+    def new_free(self) -> Set[Point]:
+        return copy(self._new_free)
+
+    def new_occupied(self) -> Set[Point]:
+        return copy(self._new_occupied)
 
 
 class IllegalAction(Exception):
@@ -150,6 +179,14 @@ class Field:
 
         destination = snake.head.shift(direction)
         if not self.is_cell_passable(destination):
+            # The snake has crashed.
+            # Free up the cells that were occupied by this snake.
+            self._update_occupied_cells(
+                ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
+            )
+            # Delete it from the world.
+            self._snakes.pop(name)
+            # Report the death.
             return MoveResult.CRASH()
 
         if destination in self._objects:
@@ -170,10 +207,10 @@ class Field:
         return MoveResult.OK()
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
-        for cell in change_in_free_cells.new_occupied:
+        for cell in change_in_free_cells.new_occupied():
             self._occupied_cells.add(cell)
 
-        for cell in change_in_free_cells.new_free:
+        for cell in change_in_free_cells.new_free():
             self._occupied_cells.remove(cell)
 
     def is_cell_passable(self, cell: Point) -> bool:
@@ -214,7 +251,7 @@ class Field:
             return False
 
     def is_cell_completely_free(self, cell: Point) -> bool:
-        return (cell not in self._occupied_cells) and (cell not in self._objects)
+        return (cell in self) and (cell not in self._occupied_cells) and (cell not in self._objects)
 
     def _place_object_at(self, obj: Object, point: Point) -> None:
         self._objects[point] = obj
@@ -287,7 +324,7 @@ class _Snake:
         # of the tail.
         change_in_free_cells = self.grow(direction)
         popped_cell = self._tail.pop()
-        change_in_free_cells.new_occupied.append(popped_cell)
+        change_in_free_cells.add_new_free(popped_cell)
         return change_in_free_cells
 
     def grow(self, direction: Direction) -> ChangeInFreeCells:

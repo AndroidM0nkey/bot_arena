@@ -1,11 +1,17 @@
+import copy
+
 from bot_arena_server.game import (
     _Snake,
     _points_to_directions,
     _directions_to_points,
+    Field,
+    NoSuchSnakeError,
+    MoveResult,
+    ChangeInFreeCells,
 )
 
 import pytest
-from bot_arena_proto.data import Direction, Point, SnakeState
+from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object
 
 
 class TestSnake:
@@ -41,31 +47,31 @@ class TestSnake:
     def test_grow():
         snake = _Snake(head=Point(2, 4), tail=[])
 
-        snake.grow(Direction.UP())
+        assert snake.grow(Direction.UP()) == ChangeInFreeCells([], [Point(2, 5)])
         assert snake.get_state() == SnakeState(
             head = Point(2, 5),
             tail = [Direction.DOWN()],
         )
 
-        snake.grow(Direction.UP())
+        assert snake.grow(Direction.UP()) == ChangeInFreeCells([], [Point(2, 6)])
         assert snake.get_state() == SnakeState(
             head = Point(2, 6),
             tail = [Direction.DOWN(), Direction.DOWN()],
         )
 
-        snake.grow(Direction.LEFT())
+        assert snake.grow(Direction.LEFT()) == ChangeInFreeCells([], [Point(1, 6)])
         assert snake.get_state() == SnakeState(
             head = Point(1, 6),
             tail = [Direction.RIGHT(), Direction.DOWN(), Direction.DOWN()],
         )
 
-        snake.grow(Direction.DOWN())
+        assert snake.grow(Direction.DOWN()) == ChangeInFreeCells([], [Point(1, 5)])
         assert snake.get_state() == SnakeState(
             head = Point(1, 5),
             tail = [Direction.UP(), Direction.RIGHT(), Direction.DOWN(), Direction.DOWN()],
         )
 
-        snake.grow(Direction.RIGHT())
+        assert snake.grow(Direction.RIGHT()) == ChangeInFreeCells([], [Point(2, 5)])
         assert snake.get_state() == SnakeState(
             head = Point(2, 5),
             tail = [Direction.LEFT(), Direction.UP(), Direction.RIGHT(), Direction.DOWN(), Direction.DOWN()],
@@ -75,31 +81,31 @@ class TestSnake:
     def test_move():
         snake = _Snake(head=Point(2, 4), tail=[Direction.RIGHT(), Direction.DOWN(), Direction.LEFT()])
 
-        snake.move(Direction.UP())
+        assert snake.move(Direction.UP()) == ChangeInFreeCells([Point(2, 3)], [Point(2, 5)])
         assert snake.get_state() == SnakeState(
             head = Point(2, 5),
             tail = [Direction.DOWN(), Direction.RIGHT(), Direction.DOWN()],
         )
 
-        snake.move(Direction.UP())
+        assert snake.move(Direction.UP()) == ChangeInFreeCells([Point(3, 3)], [Point(2, 6)])
         assert snake.get_state() == SnakeState(
             head = Point(2, 6),
             tail = [Direction.DOWN(), Direction.DOWN(), Direction.RIGHT()],
         )
 
-        snake.move(Direction.LEFT())
+        assert snake.move(Direction.LEFT()) == ChangeInFreeCells([Point(3, 4)], [Point(1, 6)])
         assert snake.get_state() == SnakeState(
             head = Point(1, 6),
             tail = [Direction.RIGHT(), Direction.DOWN(), Direction.DOWN()],
         )
 
-        snake.move(Direction.DOWN())
+        assert snake.move(Direction.DOWN()) == ChangeInFreeCells([Point(2, 4)], [Point(1, 5)])
         assert snake.get_state() == SnakeState(
             head = Point(1, 5),
             tail = [Direction.UP(), Direction.RIGHT(), Direction.DOWN()],
         )
 
-        snake.move(Direction.RIGHT())
+        assert snake.move(Direction.RIGHT()) == ChangeInFreeCells([], [])
         assert snake.get_state() == SnakeState(
             head = Point(2, 5),
             tail = [Direction.LEFT(), Direction.UP(), Direction.RIGHT()],
@@ -168,3 +174,393 @@ def test_directions_to_points():
     p2 = [Point(10, 8), Point(10, 7), Point(9, 7), Point(9, 8), Point(10, 8)]
 
     assert _directions_to_points(h2, d2) == p2
+
+
+class TestField:
+    @staticmethod
+    def test_get_state():
+        bob = _Snake(head=Point(11, 63), tail=[Direction.LEFT(), Direction.UP()])
+        mike = _Snake(head=Point(14, 9), tail=[Direction.DOWN()])
+        width = 42
+        height = 87
+        snakes = {'Bob': bob, 'Mike': mike}
+        objects = [(Point(15, 8), Object.FOOD()), (Point(11, 11), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        state = field.get_state()
+        assert set(state.objects) == set(objects)
+        assert state.snakes == {name: snake.get_state() for name, snake in snakes.items()}
+
+    @staticmethod
+    def test_random_free_cell():
+        width = 5
+        height = 6
+        n = 5000
+        snakes = {
+            'A': _Snake(head=Point(2, 2), tail=[Direction.UP(), Direction.RIGHT()]),
+            'B': _Snake(head=Point(4, 4), tail=[]),
+        }
+        objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        occupied_cells = {Point(0, 0), Point(4, 2), Point(2, 2), Point(2, 3), Point(3, 3), Point(4, 4)}
+
+        obtained_cells = set()
+        for i in range(n):
+            cell = field.random_free_cell()
+            assert 0 <= cell.x < width
+            assert 0 <= cell.y < height
+            assert field.is_cell_completely_free(cell)
+            assert cell not in occupied_cells
+            obtained_cells.add(cell)
+
+        # P(false alarm) < 10^(-90)
+        assert len(obtained_cells) == width * height - len(occupied_cells)
+
+    @staticmethod
+    def test_move_snake():
+        width = 10
+        height = 6
+        snakes = {
+            'A': _Snake(head=Point(4, 2), tail=[Direction.DOWN()]),
+            'B': _Snake(head=Point(9, 5), tail=[Direction.LEFT(), Direction.LEFT()]),
+            'C': _Snake(head=Point(0, 0), tail=[]),
+            'D': _Snake(head=Point(0, 1), tail=[]),
+        }
+        objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        with pytest.raises(NoSuchSnakeError):
+            field.move_snake('E', Direction.RIGHT())
+
+        def check(field, cell_pattern, desired_state):
+            actual_state = field.get_state()
+            assert actual_state.snakes == desired_state.snakes
+            assert set(x[0] for x in actual_state.objects) == set(x[0] for x in desired_state.objects)
+            for yc, row in enumerate(cell_pattern):
+                y = height - yc - 1
+                for x, cell_state in enumerate(row):
+                    cell = Point(x, y)
+                    if cell_state == '.':
+                        assert field.is_cell_passable(cell)
+                        assert field.is_cell_completely_free(cell)
+                    elif cell_state == '=':
+                        assert field.is_cell_passable(cell)
+                        assert not field.is_cell_completely_free(cell)
+                    elif cell_state == '#':
+                        assert not field.is_cell_passable(cell)
+                        assert not field.is_cell_completely_free(cell)
+                    else:
+                        raise
+
+        cell_pattern = [
+            '.......###',
+            '....=....=',
+            '..........',
+            '....#.....',
+            '#...#.....',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 2), tail=[Direction.DOWN()]),
+                'B': SnakeState(head=Point(9, 5), tail=[Direction.LEFT(), Direction.LEFT()]),
+                'C': SnakeState(head=Point(0, 0), tail=[]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('A', Direction.UP()) == MoveResult.OK()
+        cell_pattern = [
+            '.......###',
+            '....=....=',
+            '....#.....',
+            '....#.....',
+            '#.........',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 3), tail=[Direction.DOWN()]),
+                'B': SnakeState(head=Point(9, 5), tail=[Direction.LEFT(), Direction.LEFT()]),
+                'C': SnakeState(head=Point(0, 0), tail=[]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('B', Direction.DOWN()) == MoveResult.OK()
+        cell_pattern = [
+            '.......###',
+            '....=....#',
+            '....#.....',
+            '....#.....',
+            '#.........',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 3), tail=[Direction.DOWN()]),
+                'B': SnakeState(head=Point(9, 4), tail=[Direction.UP(), Direction.LEFT(), Direction.LEFT()]),
+                'C': SnakeState(head=Point(0, 0), tail=[]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [(Point(4, 4), Object.FOOD())],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('B', Direction.UP()) == MoveResult.CRASH()
+        cell_pattern = [
+            '..........',
+            '....=.....',
+            '....#.....',
+            '....#.....',
+            '#.........',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 3), tail=[Direction.DOWN()]),
+                'C': SnakeState(head=Point(0, 0), tail=[]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [(Point(4, 4), Object.FOOD())],
+        )
+        check(field, cell_pattern, desired_state)
+
+        with pytest.raises(NoSuchSnakeError):
+            field.move_snake('B', Direction.LEFT())
+
+        assert field.move_snake('A', Direction.UP()) == MoveResult.OK()
+        cell_pattern = [
+            '..........',
+            '....#.....',
+            '....#.....',
+            '....#.....',
+            '#.........',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 4), tail=[Direction.DOWN(), Direction.DOWN()]),
+                'C': SnakeState(head=Point(0, 0), tail=[]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('C', Direction.UP()) == MoveResult.CRASH()
+        cell_pattern = [
+            '..........',
+            '....#.....',
+            '....#.....',
+            '....#.....',
+            '#.........',
+            '..........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 4), tail=[Direction.DOWN(), Direction.DOWN()]),
+                'D': SnakeState(head=Point(0, 1), tail=[]),
+            },
+            objects = [],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('D', Direction.DOWN()) == MoveResult.OK()
+        cell_pattern = [
+            '..........',
+            '....#.....',
+            '....#.....',
+            '....#.....',
+            '..........',
+            '#.........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 4), tail=[Direction.DOWN(), Direction.DOWN()]),
+                'D': SnakeState(head=Point(0, 0), tail=[]),
+            },
+            objects = [],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('D', Direction.DOWN()) == MoveResult.CRASH()
+        cell_pattern = [
+            '..........',
+            '....#.....',
+            '....#.....',
+            '....#.....',
+            '..........',
+            '..........',
+        ]
+        desired_state = FieldState(
+            snakes = {
+                'A': SnakeState(head=Point(4, 4), tail=[Direction.DOWN(), Direction.DOWN()]),
+            },
+            objects = [],
+        )
+        check(field, cell_pattern, desired_state)
+
+        assert field.move_snake('A', Direction.UP()) == MoveResult.OK()
+        assert field.move_snake('A', Direction.UP()) == MoveResult.CRASH()
+        cell_pattern = [
+            '..........',
+            '..........',
+            '..........',
+            '..........',
+            '..........',
+            '..........',
+        ]
+        desired_state = FieldState(
+            snakes = {},
+            objects = [],
+        )
+        check(field, cell_pattern, desired_state)
+
+    @staticmethod
+    def test_is_cell_passable():
+        width = 5
+        height = 6
+        n = 5000
+        snakes = {
+            'A': _Snake(head=Point(2, 2), tail=[Direction.UP(), Direction.RIGHT()]),
+            'B': _Snake(head=Point(4, 4), tail=[]),
+        }
+        objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        impassable_cells = {Point(2, 2), Point(2, 3), Point(3, 3), Point(4, 4)}
+
+        for x in range(width):
+            for y in range(height):
+                cell = Point(x, y)
+                assert field.is_cell_passable(cell) == (cell not in impassable_cells)
+
+        assert not field.is_cell_passable(Point(5, 6))
+        assert not field.is_cell_passable(Point(5, 5))
+        assert not field.is_cell_passable(Point(4, 6))
+        assert not field.is_cell_passable(Point(0, -1))
+        assert not field.is_cell_passable(Point(-1, 0))
+        assert not field.is_cell_passable(Point(-26, 1264))
+        assert field.is_cell_passable(Point(0, 0))
+
+    @staticmethod
+    def test_is_cell_completely_free():
+        width = 5
+        height = 6
+        snakes = {
+            'A': _Snake(head=Point(2, 2), tail=[Direction.UP(), Direction.RIGHT()]),
+            'B': _Snake(head=Point(4, 4), tail=[]),
+        }
+        objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        occupied_cells = {Point(0, 0), Point(4, 2), Point(2, 2), Point(2, 3), Point(3, 3), Point(4, 4)}
+
+        for x in range(width):
+            for y in range(height):
+                cell = Point(x, y)
+                assert field.is_cell_completely_free(cell) == (cell not in occupied_cells)
+
+        assert not field.is_cell_completely_free(Point(5, 6))
+        assert not field.is_cell_completely_free(Point(5, 5))
+        assert not field.is_cell_completely_free(Point(4, 6))
+        assert not field.is_cell_completely_free(Point(0, -1))
+        assert not field.is_cell_completely_free(Point(-1, 0))
+        assert not field.is_cell_completely_free(Point(-26, 1264))
+        assert field.is_cell_completely_free(Point(4, 5))
+
+        width = 5
+        height = 6
+        snakes = {
+            'A': _Snake(head=Point(0, 0), tail=[Direction.RIGHT()] * (width - 1)),
+        }
+        free_cells = {Point(4, 2), Point(3, 3), Point(0, 5)}
+        objects = [
+            (Point(x, y), Object.FOOD())
+            for x in range(width)
+            for y in range(1, height)
+            if Point(x, y) not in free_cells
+        ]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        for x in range(width):
+            for y in range(height):
+                cell = Point(x, y)
+                assert field.is_cell_completely_free(cell) == (cell in free_cells)
+
+    @staticmethod
+    def test_place_object_randomly():
+        width = 5
+        height = 6
+        n = 200
+        snakes = {
+            'A': _Snake(head=Point(0, 0), tail=[Direction.RIGHT()] * (width - 1)),
+        }
+        free_cells = {Point(4, 2), Point(3, 3), Point(0, 5)}
+        objects = [
+            (Point(x, y), Object.FOOD())
+            for x in range(width)
+            for y in range(1, height)
+            if Point(x, y) not in free_cells
+        ]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        initial_set = field._objects.keys()
+
+        for i in range(n):
+            field_copy = copy.deepcopy(field)
+            field_copy.place_object_randomly(Object.FOOD())
+            set_diff = set(field_copy._objects.keys()) - initial_set
+            assert len(set_diff) == 1
+            [new_cell] = set_diff
+            assert new_cell in free_cells
+            assert field.is_cell_completely_free(new_cell)
+            assert not field_copy.is_cell_completely_free(new_cell)
