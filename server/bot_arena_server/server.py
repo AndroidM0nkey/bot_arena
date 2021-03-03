@@ -6,7 +6,7 @@ import re
 from typing import Tuple, Callable, Coroutine, List
 
 import curio    # type: ignore
-from bot_arena_proto.session import ServerSession, ClientInfo
+from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
 from loguru import logger
 
 
@@ -48,8 +48,11 @@ class Server:
         host, port = peer_address
         logger.info('Connection from {}:{}', host, port)
         stream = socket.as_stream()
-        sess = ServerSession(stream)
+        await self._handle_client_with_stream(stream)
 
+
+    async def _handle_client_with_stream(self, stream: AsyncStream) -> None:
+        sess = ServerSession(stream)
         client_info = await sess.pre_initialize()
         if is_name_valid(client_info.name):
             logger.info('{} joined the party', client_info.name)
