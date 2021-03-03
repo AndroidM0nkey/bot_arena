@@ -8,6 +8,8 @@ from bot_arena_server.game import (
     NoSuchSnakeError,
     MoveResult,
     ChangeInFreeCells,
+    Game,
+    Action,
 )
 
 import pytest
@@ -564,3 +566,69 @@ class TestField:
             assert new_cell in free_cells
             assert field.is_cell_completely_free(new_cell)
             assert not field_copy.is_cell_completely_free(new_cell)
+
+
+class TestGame:
+    @staticmethod
+    def test_take_turn():
+        width = 20
+        height = 10
+        snakes = {
+            'A': _Snake(Point(8, 3), [Direction.RIGHT(), Direction.RIGHT(), Direction.UP()]),
+            'B': _Snake(Point(0, 0), []),
+        }
+        objects = [(Point(6, 3), Object.FOOD())]
+
+        field = Field(
+            width = width,
+            height = height,
+            snakes = snakes,
+            objects = objects,
+        )
+
+        game = Game(width, height, list(snakes.keys()))
+        game._field = field
+
+        assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
+        assert field.get_state() == FieldState(
+            snakes = {
+                'A': SnakeState(Point(7, 3), [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT()]),
+                'B': SnakeState(Point(0, 0), []),
+            },
+            objects = [(Point(6, 3), Object.FOOD())],
+        )
+
+        assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
+        assert field.get_state() == FieldState(
+            snakes = {
+                'A': SnakeState(
+                    Point(6, 3),
+                    [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT()]
+                ),
+                'B': SnakeState(Point(0, 0), []),
+            },
+            objects = [],
+        )
+
+        assert game.take_turn('B', Action.MOVE(Direction.DOWN())) == MoveResult.CRASH()
+        assert field.get_state() == FieldState(
+            snakes = {
+                'A': SnakeState(
+                    Point(6, 3),
+                    [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT()]
+                ),
+            },
+            objects = [],
+        )
+
+        with pytest.raises(NoSuchSnakeError):
+            game.take_turn('C', Action.MOVE(Direction.DOWN()))
+
+        with pytest.raises(NoSuchSnakeError):
+            game.take_turn('B', Action.MOVE(Direction.DOWN()))
+
+    @staticmethod
+    def test_snake_names():
+        for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
+            game = Game(10, 10, names)
+            assert set(game.snake_names()) == set(names)
