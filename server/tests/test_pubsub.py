@@ -32,6 +32,8 @@ async def test_pubsub_works():
         print('[Publisher] delay done')
         await ps.publish(value)
         print('[Publisher] value published')
+        assert num_received > 0
+        print('[Publisher] flag checked')
 
     num_received = 0
     tg = curio.TaskGroup(wait=all)
