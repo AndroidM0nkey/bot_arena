@@ -638,3 +638,151 @@ class TestGame:
     def test_info():
         game = Game(326, 16, ['A', 'B'])
         assert game.info() == GameInfo(field_width=326, field_height=16)
+
+
+def _points():
+    return (
+        Point(1, 1),
+        Point(2, 2),
+        Point(3, 3),
+        Point(4, 4),    # <--- D1   This coincidence is intentional
+        Point(4, 4),    # <--- D2
+        Point(5, 5),
+        Point(6, 6),
+        Point(7, 7),
+    )
+
+
+class TestChangeInFreeCells:
+    @staticmethod
+    def test_init():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        cf = ChangeInFreeCells([A, B, C], [E, F])
+        assert cf._new_free == {A, B, C}
+        assert cf._new_occupied == {E, F}
+
+        cf = ChangeInFreeCells([A, B, C], [C, E, F])
+        assert cf._new_free == {A, B}
+        assert cf._new_occupied == {E, F}
+
+        cf = ChangeInFreeCells([A, B], [B])
+        assert cf._new_free == {A}
+        assert cf._new_occupied == set()
+
+        cf = ChangeInFreeCells([A], [A, B])
+        assert cf._new_free == set()
+        assert cf._new_occupied == {B}
+
+        cf = ChangeInFreeCells([A, A], [])
+        assert cf._new_free == {A}
+        assert cf._new_occupied == set()
+
+        cf = ChangeInFreeCells([], [D1, D2])
+        assert cf._new_free == set()
+        assert cf._new_occupied == {D1} == {D2}
+
+        cf = ChangeInFreeCells([], [])
+        assert cf._new_free == set()
+        assert cf._new_occupied == set()
+
+        cf = ChangeInFreeCells([A, D1, F], [D2, E, F])
+        assert cf._new_free == {A}
+        assert cf._new_occupied == {E}
+
+    @staticmethod
+    def test_eq():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        assert ChangeInFreeCells([A], [B, C]) == ChangeInFreeCells([A], [B, C])
+        assert ChangeInFreeCells([], [B, C]) == ChangeInFreeCells([A], [A, B, C])
+        assert ChangeInFreeCells([A], [B, C]) != ChangeInFreeCells([], [B, C])
+        assert ChangeInFreeCells([], []) == ChangeInFreeCells([], [])
+        assert ChangeInFreeCells([D1], []) == ChangeInFreeCells([D2], [])
+        assert ChangeInFreeCells([D1], [D2]) == ChangeInFreeCells([], [])
+        assert ChangeInFreeCells([A], [B]) != ChangeInFreeCells([B], [A])
+        assert ChangeInFreeCells([A], []) != ChangeInFreeCells([], [A])
+        assert ChangeInFreeCells([A, B, C], [E, F, G]) == ChangeInFreeCells([A, B, C, D1], [D2, E, F, G])
+
+    @staticmethod
+    def test_add_new_free():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        cf = ChangeInFreeCells([A, B], [E, F, G])
+        cf.add_new_free(C)
+        assert cf == ChangeInFreeCells([A, B, C], [E, F, G])
+
+        cf = ChangeInFreeCells([A, B], [E, F, G])
+        cf.add_new_free(E)
+        assert cf == ChangeInFreeCells([A, B, E], [E, F, G]) == ChangeInFreeCells([A, B], [F, G])
+        cf.add_new_free(E)
+        assert cf == ChangeInFreeCells([A, B, E], [F, G]) != ChangeInFreeCells([A, B], [F, G])
+        cf.add_new_free(E)
+        assert cf == ChangeInFreeCells([A, B, E], [F, G])
+
+        cf = ChangeInFreeCells([], [A, B, C, D1, E, F, G])
+        cf.add_new_free(A)
+        assert cf._new_free == set()
+        assert cf._new_occupied == {B, C, D1, E, F, G}
+
+        cf = ChangeInFreeCells([A, B, C, D1, E, F, G], [])
+        cf.add_new_free(A)
+        assert cf._new_free == {A, B, C, D1, E, F, G}
+        assert cf._new_occupied == set()
+
+    @staticmethod
+    def test_add_new_occupied():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        cf = ChangeInFreeCells([A, B], [E, F, G])
+        cf.add_new_occupied(C)
+        assert cf == ChangeInFreeCells([A, B], [C, E, F, G])
+
+        cf = ChangeInFreeCells([A, B, E], [F, G])
+        cf.add_new_occupied(E)
+        assert cf == ChangeInFreeCells([A, B, E], [E, F, G]) == ChangeInFreeCells([A, B], [F, G])
+        cf.add_new_occupied(E)
+        assert cf == ChangeInFreeCells([A, B], [E, F, G]) != ChangeInFreeCells([A, B], [F, G])
+        cf.add_new_occupied(E)
+        assert cf == ChangeInFreeCells([A, B], [E, F, G])
+
+        cf = ChangeInFreeCells([], [A, B, C, D1, E, F, G])
+        cf.add_new_occupied(A)
+        assert cf._new_free == set()
+        assert cf._new_occupied == {A, B, C, D1, E, F, G}
+
+        cf = ChangeInFreeCells([A, B, C, D1, E, F, G], [])
+        cf.add_new_occupied(A)
+        assert cf._new_free == {B, C, D1, E, F, G}
+        assert cf._new_occupied == set()
+
+    @staticmethod
+    def test_accessors_work():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        cf = ChangeInFreeCells([A, B], [C, A, D1, D2, F])
+        assert cf.new_free() == {B} == cf._new_free
+        assert cf.new_occupied() == {C, D1, F} == cf._new_occupied
+
+        cf = ChangeInFreeCells([A, B], [A, B])
+        assert cf.new_free() == set() == cf._new_free
+        assert cf.new_occupied() == set() == cf._new_occupied
+
+        cf = ChangeInFreeCells([], [])
+        assert cf.new_free() == set() == cf._new_free
+        assert cf.new_occupied() == set() == cf._new_occupied
+
+    @staticmethod
+    def test_accessors_copy():
+        A, B, C, D1, D2, E, F, G = _points()
+
+        cf = ChangeInFreeCells([A], [F])
+        new_free = cf.new_free()
+        new_occupied = cf.new_occupied()
+        assert new_free is not cf._new_free
+        assert new_occupied is not cf._new_occupied
+
+        new_free.add(B)
+        new_occupied.add(E)
+        assert cf._new_free == {A} != new_free == {A, B}
+        assert cf._new_occupied == {F} != new_occupied == {E, F}
