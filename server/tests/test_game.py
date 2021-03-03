@@ -10,6 +10,7 @@ from bot_arena_server.game import (
     ChangeInFreeCells,
     Game,
     Action,
+    GameInfo,
 )
 
 import pytest
@@ -632,3 +633,8 @@ class TestGame:
         for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
             game = Game(10, 10, names)
             assert set(game.snake_names()) == set(names)
+
+    @staticmethod
+    def test_info():
+        game = Game(326, 16, ['A', 'B'])
+        assert game.info() == GameInfo(field_width=326, field_height=16)
