@@ -43,16 +43,11 @@ class GameRoom:
         if client_name not in self._clients:
             raise KeyError(f'No such client in the game room: `{client_name}`')
 
-        logger.debug('id(self) = {}', id(self))
-        logger.debug('A {}', client_name)
         queue = self._clients[client_name]
         if self._took_turn[client_name]:
-            logger.debug('B {}', client_name)
             await queue.task_done()
-        logger.debug('C {}', client_name)
         self._took_turn[client_name] = True
         await queue.get()
-        logger.debug('D {}', client_name)
 
     async def run_loop(self) -> None:
         logger.debug('Loop started')
@@ -64,7 +59,6 @@ class GameRoom:
                 logger.debug('{}\'s turn', client_name)
                 queue = self._clients[client_name]
                 await queue.put(None)
-                logger.debug('here')
                 await queue.join()
                 # TODO: recognize the end of the game
         logger.debug('Loop finished')
