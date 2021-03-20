@@ -38,6 +38,7 @@ class Server:
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
 
     def listen(self, host: str, port: int) -> None:
+        logger.info('Listening on {}:{}', host, port)
         curio.run(curio.tcp_server, host, port, self._handle_client)
 
     async def _handle_client(
