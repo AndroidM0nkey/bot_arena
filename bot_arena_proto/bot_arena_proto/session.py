@@ -1,10 +1,10 @@
-from bot_arena_proto.data import Action, FieldState
+from bot_arena_proto.data import Action, FieldState, RoomInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
 
 from dataclasses import dataclass
 from time import sleep
-from typing import Protocol, Tuple
+from typing import Protocol, Tuple, Any, List, Dict
 
 from adt import adt, Case
 
@@ -198,6 +198,14 @@ class ClientSession(Session):
                 event_happened = lambda ev: ClientNotification.EVENT(ev),
                 ok = lambda: None,
                 err = lambda text: ClientNotification.ERROR(text),
+                list_rooms = unexpected('ListRooms'),
+                enter_room = unexpected('EnterRoom'),
+                enter_any_room = unexpected('EnterAnyRoom'),
+                new_room = unexpected('NewRoom'),
+                get_room_properties = unexpected('GetRoomProperties'),
+                set_room_properties = unexpected('SetRoomProperties'),
+                room_list_available = unexpected('RoomListAvailable'),
+                room_properties_available = unexpected('RoomPropertiesAvailable'),
             )
             if result is not None:
                 return result
@@ -206,6 +214,61 @@ class ClientSession(Session):
         """Respond to a YOUR_TURN message with an Action."""
 
         await self.send_message(Message.ACT(action))
+        await self.expect_ok()
+
+    async def list_rooms(self) -> List[RoomInfo]:
+        """List the game rooms on the server."""
+
+        await self.send_message(Message.LIST_ROOMS())
+        return (await self.recv_message()).room_list_available()
+
+    async def enter_room(self, room_name: str) -> None:
+        """Enter a room with a specified name."""
+
+        await self.send_message(Message.ENTER_ROOM(room_name))
+        await self.expect_ok()
+
+    async def enter_any_room(self) -> None:
+        """Enter any room at the server's discretion."""
+
+        await self.send_message(Message.ENTER_ANY_ROOM())
+        await self.expect_ok()
+
+    async def new_room(self) -> None:
+        """Create a new room and become its only admin."""
+
+        await self.send_message(Message.NEW_ROOM())
+        await self.expect_ok()
+
+    async def get_room_properties(self) -> Dict[str, Any]:
+        """Request the properties of your current room."""
+
+        await self.send_message(Message.GET_ROOM_PROPERTIES())
+        return (await self.recv_message()).room_properties_available()
+
+    async def set_room_properties(self, properties: Dict[str, Any]) -> None:
+        """Change the values of some of the room's properties."""
+
+        await self.send_message(Message.SET_ROOM_PROPERTIES(properties))
+        await self.expect_ok()
+
+    async def expect_ok(self) -> None:
+        """Ensure that the server responds with an Ok."""
+
+        message = await self.recv_message()
+        try:
+            message.ok()
+            return
+        except AttributeError:
+            pass
+
+        try:
+            error_message = message.err()
+            raise Exception(error_message)
+        except AttributeError:
+            pass
+
+        raise Exception(f'Unexpected response from the server: {message}')
 
 
 class ServerSession(Session):

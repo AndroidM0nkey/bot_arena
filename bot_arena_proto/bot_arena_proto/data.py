@@ -186,3 +186,104 @@ class Action:
         if tag == 'm':
             return Action.MOVE(Direction.from_primitive(data[0]))
         raise DeserializationAdtTagError(Class, tag)
+
+
+@adt
+class FoodRespawnBehavior:
+    """Determines how the food is respawned."""
+    YES: Case
+    NO: Case
+    RANDOM: Case[float]
+
+    def to_primitive(self) -> Primitive:
+        return self.match(
+            yes = lambda: ['yes'],
+            no = lambda: ['no'],
+            random = lambda p: ['random', p],
+        ) # type: ignore
+
+    @classmethod
+    def from_primitive(Class: Type['FoodRespawnBehavior'], p: Primitive) -> 'FoodRespawnBehavior':
+        [tag, *data] = ensure_type(p, list)
+        tag = ensure_type(tag, str)
+        if tag == 'yes':
+            return FoodRespawnBehavior.YES()
+        if tag == 'no':
+            return FoodRespawnBehavior.NO()
+        if tag == 'random':
+            p_value = ensure_type(data[0], float)
+            if not 0.0 <= p_value <= 1.0:
+                raise ValueError(f'Invalid deserialized p: {p_value}')
+            return FoodRespawnBehavior.RANDOM(p_value)
+        raise DeserializationAdtTagError(Class, tag)
+
+
+@adt
+class RoomOpenness:
+    """Determines who can join a room."""
+    OPEN: Case
+    CLOSED: Case
+    WHITELIST: Case[List[str]]
+    PASSWORD: Case[str]
+
+    def to_primitive(self) -> Primitive:
+        return self.match(
+            open = lambda: ['open'],
+            closed = lambda: ['closed'],
+            whitelist = lambda whitelist: ['whitelist', whitelist],
+            password = lambda password: ['password', password],
+        ) # type: ignore
+
+    @classmethod
+    def from_primitive(Class: Type['RoomOpenness'], p: Primitive) -> 'RoomOpenness':
+        [tag, *data] = ensure_type(p, list)
+        tag = ensure_type(tag, str)
+        if tag == 'open':
+            return RoomOpenness.OPEN()
+        if tag == 'close':
+            return RoomOpenness.CLOSED()
+        if tag == 'whitelist':
+            players = ensure_type(data[0], list)
+            players_sanitized = [ensure_type(pl, str) for pl in players]
+            return RoomOpenness.WHITELIST(players_sanitized)
+        if tag == 'password':
+            password = ensure_type(data[0], str)
+            return RoomOpenness.PASSWORD(password)
+        raise DeserializationAdtTagError(Class, tag)
+
+
+@dataclass
+class RoomInfo:
+    id: str
+    name: str
+    players: List[str]
+    min_players: int
+    max_players: int
+    can_join: str
+
+    def to_primitive(self) -> Primitive:
+        return {
+            'id': self.id,
+            'name': self.name,
+            'players': self.players,
+            'min_players': self.min_players,
+            'max_players': self.max_players,
+            'can_join': self.can_join,
+        }
+
+    @classmethod
+    def from_primitive(Class: Type['RoomInfo'], p: Primitive) -> 'RoomInfo':
+        p = ensure_type(p, dict)
+        init_kwargs = {
+            'id': ensure_type(p['id'], str),
+            'name': ensure_type(p['name'], str),
+            'min_players': ensure_type(p['min_players'], int),
+            'max_players': ensure_type(p['max_players'], int),
+            'can_join': ensure_type(p['can_join'], str),
+        }
+
+        players = ensure_type(p['players'], list)
+        players_sanitized = [ensure_type(pl, str) for pl in players]
+        init_kwargs['players'] = players
+        return RoomInfo(**init_kwargs)  # type: ignore
+
