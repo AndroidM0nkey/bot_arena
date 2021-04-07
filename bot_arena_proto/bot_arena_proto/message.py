@@ -116,6 +116,8 @@ class Message(PrimitiveSerializable):
 
     - NEW_ROOM:         A client's request to create their own room.
 
+    - LEAVE_ROOM:       A client's request to leave the current room.
+
     - GET_ROOM_PROPERTIES:
                         A client's request to get all the properties (with values)
                         of the room they are currently in.
@@ -145,6 +147,7 @@ class Message(PrimitiveSerializable):
     ENTER_ROOM: Case[str]
     ENTER_ANY_ROOM: Case
     NEW_ROOM: Case
+    LEAVE_ROOM: Case
     GET_ROOM_PROPERTIES: Case
     SET_ROOM_PROPERTIES: Case[Dict[str, Any]]
     ROOM_LIST_AVAILABLE: Case[List[RoomInfo]]
@@ -167,6 +170,7 @@ class Message(PrimitiveSerializable):
                 enter_room = lambda name: ['EnterRoom', name],
                 enter_any_room = lambda: ['EnterAnyRoom'],
                 new_room = lambda: ['NewRoom'],
+                leave_room = lambda: ['LeaveRoom'],
                 get_room_properties = lambda: ['GetRoomProperties'],
                 set_room_properties = lambda props: [
                     'SetRoomProperties',
@@ -223,6 +227,8 @@ class Message(PrimitiveSerializable):
             return Message.ENTER_ANY_ROOM()
         if tag == 'NewRoom':
             return Message.NEW_ROOM()
+        if tag == 'LeaveRoom':
+            return Message.LEAVE_ROOM()
         if tag == 'GetRoomProperties':
             return Message.GET_ROOM_PROPERTIES()
         if tag == 'SetRoomProperties':

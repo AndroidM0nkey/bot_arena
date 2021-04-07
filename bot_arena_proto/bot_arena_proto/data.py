@@ -252,7 +252,7 @@ class RoomOpenness:
         raise DeserializationAdtTagError(Class, tag)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RoomInfo:
     id: str
     name: str
@@ -260,6 +260,11 @@ class RoomInfo:
     min_players: int
     max_players: int
     can_join: str
+
+    def __post_init__(self) -> None:
+        can_join_variants = {'yes', 'no', 'whitelist', 'password'}
+        if self.can_join not in can_join_variants:
+            raise ValueError(f'RoomInfo.can_join must be one of {can_join_variants}')
 
     def to_primitive(self) -> Primitive:
         return {
