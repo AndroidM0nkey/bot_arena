@@ -1,0 +1,4 @@
+algebraic-data-types==0.2.1
+bot-arena-proto==0.2.0
+cbor2==5.2.0
+pygame==2.0.1

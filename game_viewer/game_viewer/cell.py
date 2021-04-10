@@ -1,5 +1,5 @@
 from pygame.rect import Rect
-import game_viewer_files.config as c
+import game_viewer.config as c
 
 
 class Cell:
