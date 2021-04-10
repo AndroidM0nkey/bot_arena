@@ -1,7 +1,7 @@
 import pygame
 
-from cell import Cell
-import config as c
+from game_viewer_files.cell import Cell
+import game_viewer_files.config as c
 
 
 class Apple(Cell):

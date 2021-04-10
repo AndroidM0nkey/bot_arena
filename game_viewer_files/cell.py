@@ -1,9 +1,9 @@
 from pygame.rect import Rect
-import config as c
+import game_viewer_files.config as c
 
 
 class Cell:
-    def __init__(self, x, y, w=c.snake_body_peace_width, h=c.snake_body_peace_width):
+    def __init__(self, x, y, w=c.cell_width, h=c.cell_width):
         self.bounds = Rect(x, y, w, h)
 
     @property

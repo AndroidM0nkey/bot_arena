@@ -1,7 +1,6 @@
 import pygame
 
-from cell import Cell
-import config as c
+from game_viewer_files.cell import Cell
 
 
 class SnakeBodyPeace(Cell):
