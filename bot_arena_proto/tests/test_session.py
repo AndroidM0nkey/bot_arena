@@ -1,3 +1,5 @@
+import pytest
+
 from bot_arena_proto.session import ClientSession, ServerSession, ClientInfo, GameInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.data import FieldState, Direction, Point, SnakeState, Object, Action
@@ -122,10 +124,10 @@ async def client_session(endpoint):
 
     (await sess.wait_for_notification()).request()
     print_now('Client: got action request')
-    await sess.respond(Action.MOVE(Direction.LEFT()))
-    print_now('Client: move left')
-    assert (await sess.wait_for_notification()).error() == 'Illegal move'
-    print_now('Client: ok, this was wrong')
+
+    with pytest.raises(Exception, match = 'Illegal move'):
+        await sess.respond(Action.MOVE(Direction.LEFT()))
+        print_now('Client: move left')
 
     (await sess.wait_for_notification()).request()
     print_now('Client: my turn once again')
