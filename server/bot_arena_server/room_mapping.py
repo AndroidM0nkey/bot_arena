@@ -61,14 +61,11 @@ class RoomMapping:
         return room_name in self._rooms_to_players_map
 
     def add_room(self, room_name: str) -> None:
-        if self.room_exists(room_name):
-            raise RoomExistsError(room_name)
-
+        self.check_that_room_does_not_exist(room_name)
         self._rooms_to_players_map[room_name] = set()
 
     def remove_room(self, room_name: str) -> None:
-        if not self.room_exists(room_name):
-            raise RoomDoesNotExistError(room_name)
+        self.check_that_room_exists(room_name)
 
         for player in self._rooms_to_players_map[room_name]:
             self._players_to_rooms_map.pop(player, None)
@@ -76,15 +73,14 @@ class RoomMapping:
         self._rooms_to_players_map.pop(room_name)
 
     def add_player_to_room(self, room_name: str, player: str) -> None:
-        if not self.room_exists(room_name):
-            raise RoomDoesNotExistError(room_name)
+        self.check_that_room_exists(room_name)
+        self.check_that_player_is_in_hub(player)
 
-        self._check_that_player_is_in_hub(player)
         self._rooms_to_players_map[room_name].add(player)
         self._players_to_rooms_map[player] = room_name
 
     def remove_player_from_room(self, player: str) -> None:
-        self._check_that_player_is_not_in_hub(player)
+        self.check_that_player_is_not_in_hub(player)
         room_name = self._players_to_rooms_map.pop(player)
         self._rooms_to_players_map[room_name].remove(player)
 
@@ -92,19 +88,25 @@ class RoomMapping:
         return self._rooms_to_players_map.keys()
 
     def list_players_in_a_room(self, room_name: str) -> Iterable[str]:
-        if not self.room_exists(room_name):
-            raise RoomDoesNotExistError(room_name)
-
+        self.check_that_room_exists(room_name)
         return self._rooms_to_players_map[room_name]
 
     def get_room_with_player(self, player: str) -> str:
-        _check_that_player_is_not_in_hub(player)
+        self.check_that_player_is_not_in_hub(player)
         return self._players_to_rooms_map[player]
 
-    def _check_that_player_is_in_hub(self, player: str) -> None:
+    def check_that_player_is_in_hub(self, player: str) -> None:
         if player in self._players_to_rooms_map:
             raise PlayerInRoomError(self._players_to_rooms_map[player], player)
 
-    def _check_that_player_is_not_in_hub(self, player: str) -> None:
+    def check_that_player_is_not_in_hub(self, player: str) -> None:
         if player not in self._players_to_rooms_map:
             raise PlayerNotInRoomError(None, player)
+
+    def check_that_room_exists(self, room_name: str) -> None:
+        if not self.room_exists(room):
+            raise RoomDoesNotExistError(room_name)
+
+    def check_that_room_does_not_exist(self, room_name: str) -> None:
+        if self.room_exists(room):
+            raise RoomExistsError(room_name)
