@@ -33,18 +33,3 @@ def get_message_and_display(cur_state: FieldState, surface: pygame.display):
     apple.draw(surface)
     pygame.display.update()
     return
-
-
-pygame.init()
-main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
-pygame.display.set_caption('Pythons')
-# Test:
-test_snakes = {'Bob': SnakeState(Point(1, 2), [Direction.DOWN(), Direction.DOWN(), Direction.RIGHT(), Direction.RIGHT(),
-                                               Direction.UP()]),
-               'Alice': SnakeState(Point(2, 11), [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(), Direction.DOWN(),
-                                                  Direction.DOWN(), Direction.LEFT(), Direction.DOWN(), Direction.DOWN(),
-                                                  Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(),
-                                                  Direction.RIGHT(), Direction.UP()])}
-test_objects = [(Point(7, 11), Object.FOOD())]
-get_message_and_display(FieldState(test_snakes, test_objects), main_surface)
-pygame.time.wait(10000)

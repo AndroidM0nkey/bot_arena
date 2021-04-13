@@ -19,7 +19,7 @@ sess = None
 curField = None
 f_width = 0
 f_height = 0
-name = 'first'
+name = 'second'
 
 async def main():
     global sess
@@ -85,7 +85,7 @@ async def handle_new_field_state(state):
     pygame.display.set_caption('Pythons')
     get_message_and_display(curField, main_surface)
     #wait some time to actually show you an image
-    pygame.time.wait(10000)
+    pygame.time.wait(1000)
 
 async def handle_event(event):
     # Do something when an event happens.
