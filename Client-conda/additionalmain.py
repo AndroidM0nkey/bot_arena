@@ -5,6 +5,7 @@ from game_viewer_files.main_viewer import get_message_and_display
 from bot import Bot
 import pygame
 import game_viewer_files.config as c
+import time
 
 
 # A library that can run async functions.
@@ -85,7 +86,7 @@ async def handle_new_field_state(state):
     pygame.display.set_caption('Pythons')
     get_message_and_display(curField, main_surface)
     #wait some time to actually show you an image
-    pygame.time.wait(1000)
+    time.sleep(1000)
 
 async def handle_event(event):
     # Do something when an event happens.
