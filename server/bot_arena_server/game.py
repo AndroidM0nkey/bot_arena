@@ -260,6 +260,9 @@ class Field:
         if snake_name in self._snakes:
             raise KeyError(f'Snake `{snake_name}` is already present on the game field')
         self._snakes[snake_name] = snake
+        self._update_occupied_cells(
+            ChangeInFreeCells(new_free=[], new_occupied=snake.list_occupied_cells())
+        )
 
 
 def _directions_to_points(head: Point, tail: List[Direction]) -> List[Point]:

@@ -27,8 +27,8 @@ class GameRoom:
     def set_session(self, client_name: ClientName, session: ServerSession) -> None:
         if client_name in self._sessions:
             raise KeyError(f'Session already added for {client_name!r}')
-        if client_name not in self._players:
-            raise KeyError(f'No such client in the game room: {client_name!r}')
+        if client_name.is_player() and client_name not in self._players:
+            raise KeyError(f'No such player in the game room: {client_name!r}')
         self._sessions[client_name] = session
 
     async def report_death(self, client_name: ClientName) -> None:
@@ -79,4 +79,4 @@ class GameRoom:
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
         logger.debug(f'Broadcasting event: {event}')
-        self.broadcast(lambda sess: sess.send_event(event), filter_func)
+        await self.broadcast(lambda sess: sess.send_event(event), filter_func)
