@@ -1,5 +1,6 @@
 from bot_arena_server.game import Game, IllegalAction
 from bot_arena_server.game_room import GameRoom
+from bot_arena_server.client_name import RichClientInfo
 
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ServerSession, GameInfo, ClientInfo
@@ -13,7 +14,7 @@ __all__ = [
 
 async def run_game_loop(
     sess: ServerSession,
-    client_info: ClientInfo,
+    client_info: RichClientInfo,
     game: Game,
     game_room: GameRoom,
 ) -> None:
@@ -26,7 +27,7 @@ async def run_game_loop(
         logger.info('{} requested action: {}', client_info.name, action)
 
         try:
-            move_result = game.take_turn(name=client_info.name, action=action)
+            move_result = game.take_turn(name=str(client_info.name), action=action)
             crashed: bool = move_result.match(
                 OK = lambda: False,
                 CRASH = lambda: True,
@@ -48,7 +49,7 @@ async def run_game_loop(
             await sess.respond_err(text=str(e))
 
 
-async def on_crash(sess: ServerSession, client_info: ClientInfo, game_room: GameRoom) -> None:
-    logger.info('{} died', client_info.name)
+async def on_crash(sess: ServerSession, rich_client_info: RichClientInfo, game_room: GameRoom) -> None:
+    logger.info('{!r} died', rich_client_info.name)
     await sess.respond_ok()
-    await game_room.report_death(client_info.name)
+    await game_room.report_death(rich_client_info.name)

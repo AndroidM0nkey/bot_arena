@@ -1,9 +1,9 @@
+from bot_arena_server.client_name import ClientName, RichClientInfo
 from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
 
-import re
-from typing import Tuple, Callable, Coroutine, List
+from typing import Tuple, Callable, Coroutine, List, Optional
 
 import curio    # type: ignore
 from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
@@ -15,26 +15,26 @@ __all__ = [
 ]
 
 
-def is_name_valid(name):
-    return re.match(r'^[a-zA-Z0-9_-]+$', name) is not None
-
-
-def create_game(client_infos) -> Game:
+def create_game(client_infos: List[RichClientInfo]) -> Game:
     field_width = 30
     field_height = 20
-    return Game(field_width, field_height, [x.name for x in client_infos])
+    return Game(
+        field_width,
+        field_height,
+        [str(x.name) for x in client_infos if x.name.is_player()],
+    )
 
 
 class Server:
     def __init__(
         self,
         client_handler: Callable[
-            [ServerSession, ClientInfo, Game, GameRoom],
+            [ServerSession, RichClientInfo, Game, GameRoom],
             Coroutine[None, None, None],
         ],
     ) -> None:
         self._client_handler = client_handler
-        self._client_infos: List[ClientInfo] = []
+        self._client_rich_infos: List[RichClientInfo] = []
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
 
     def listen(self, host: str, port: int) -> None:
@@ -55,20 +55,25 @@ class Server:
     async def _handle_client_with_stream(self, stream: AsyncStream) -> None:
         sess = ServerSession(stream)
         client_info = await sess.pre_initialize()
-        if is_name_valid(client_info.name):
-            logger.info('{} joined the party', client_info.name)
+        try:
+            client_name = ClientName(client_info.name)
+            logger.info('{!r} joined the party', client_name)
             await sess.initialize_ok()
-        else:
-            await sess.initialize_err('Invalid or unacceptable player name')
+        except Exception as e:
+            await sess.initialize_err(str(e))
             return
 
-        self._client_infos.append(client_info)
-        if len(self._client_infos) >= self.CLIENTS_PER_GAME:
-            logger.info('Creating a game room for {}', ', '.join(x.name for x in self._client_infos))
-            client_infos = self._client_infos
-            self._client_infos = []
-            game = create_game(client_infos)
-            game_room = GameRoom(list(game.snake_names()))
+        client_rich_info = RichClientInfo(info=client_info, name=client_name)
+        self._client_rich_infos.append(client_rich_info)
+        if len(self._client_rich_infos) >= self.CLIENTS_PER_GAME:
+            logger.info(
+                'Creating a game room for {}',
+                ', '.join(repr(x.name) for x in self._client_rich_infos),
+            )
+            client_rich_infos = self._client_rich_infos
+            self._client_rich_infos = []
+            game = create_game(client_rich_infos)
+            game_room = GameRoom([info.name for info in client_rich_infos])
             await self._game_pubsub.publish((game, game_room))
             is_game_creator = True
         else:
@@ -80,12 +85,12 @@ class Server:
 
         await sess.wait_until_ready()
         await sess.start_game(game.info())
-        logger.info('Game with {} has started', client_info.name)
-        await self._client_handler(sess, client_info, game, game_room)
+        logger.info('Game with {!r} has started', client_name)
+        await self._client_handler(sess, client_rich_info, game, game_room)
 
     async def _wait_until_game_is_ready(self, sess: ServerSession) -> Tuple[Game, GameRoom]:
         # TODO: poll for messages from the client.
         return await self._game_pubsub.receive()
 
     # TODO: don't hardcode this.
-    CLIENTS_PER_GAME = 2
+    CLIENTS_PER_GAME = 3
