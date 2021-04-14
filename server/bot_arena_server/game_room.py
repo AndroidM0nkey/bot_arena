@@ -6,7 +6,7 @@ import curio    # type: ignore
 from adt import adt, Case
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ServerSession
-from loguru import logger
+from loguru import logger # type: ignore
 
 
 __all__ = [

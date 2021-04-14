@@ -134,7 +134,7 @@ class Game:
     def take_turn(self, name: str, action: Action) -> MoveResult:
         return action.match(
             move = lambda direction: self.field.move_snake(name, direction),
-        )
+        ) # type: ignore
 
     def info(self) -> GameInfo:
         return GameInfo(field_width=self._field.width, field_height=self._field.height)
@@ -193,7 +193,7 @@ class Field:
             obj = self._objects[destination]
             return obj.match(
                 food = lambda: self._consume_food(snake, direction)
-            )
+            ) # type: ignore
 
         # TODO: pick objects
         change_in_free_cells = snake.move(direction)

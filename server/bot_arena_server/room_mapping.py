@@ -1,4 +1,4 @@
-from typing import Dict, Set, Iterable
+from typing import Dict, Set, Iterable, Optional
 
 
 __all__ = [
@@ -104,9 +104,9 @@ class RoomMapping:
             raise PlayerNotInRoomError(None, player)
 
     def check_that_room_exists(self, room_name: str) -> None:
-        if not self.room_exists(room):
+        if not self.room_exists(room_name):
             raise RoomDoesNotExistError(room_name)
 
     def check_that_room_does_not_exist(self, room_name: str) -> None:
-        if self.room_exists(room):
+        if self.room_exists(room_name):
             raise RoomExistsError(room_name)

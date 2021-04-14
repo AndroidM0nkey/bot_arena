@@ -3,7 +3,7 @@ from bot_arena_server.game_room import GameRoom
 
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ServerSession, GameInfo, ClientInfo
-from loguru import logger
+from loguru import logger # type: ignore
 
 
 __all__ = [
@@ -27,10 +27,10 @@ async def run_game_loop(
 
         try:
             move_result = game.take_turn(name=client_info.name, action=action)
-            crashed = move_result.match(
+            crashed: bool = move_result.match(
                 OK = lambda: False,
                 CRASH = lambda: True,
-            )
+            ) # type: ignore
 
             if crashed:
                 await on_crash(sess, client_info, game_room),

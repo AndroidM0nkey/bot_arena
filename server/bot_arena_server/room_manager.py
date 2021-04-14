@@ -1,10 +1,12 @@
 from bot_arena_server.room_mapping import RoomMapping
-from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior
 
 import copy
 import secrets
 from dataclasses import dataclass
-from typing import Dict, Set
+from typing import Dict, Set, Any
+
+from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior
+from loguru import logger # type: ignore
 
 
 class PropertyAccessError(Exception):
@@ -59,7 +61,8 @@ class RoomDetails:
             closed = lambda: RoomOpenness.CLOSED(),
             whitelist = lambda whitelist: RoomOpenness.WHITELIST(whitelist),
             password = lambda password: RoomOpenness.PASSWORD(''),
-        )
+        ) # type: ignore
+        return result
 
 
 def generate_room_id() -> str:
@@ -69,7 +72,7 @@ def generate_room_id() -> str:
 class RoomManager:
     def __init__(self) -> None:
         self._mapping = RoomMapping()
-        self._alias_map: Dict[str, str] = []
+        self._alias_map: Dict[str, str] = {}
         self._rooms: Dict[str, RoomDetails] = {}
 
     def create_room(self, invoking_player: str) -> None:
@@ -89,7 +92,7 @@ class RoomManager:
         self._mapping.add_player_to_room(room_id, invoking_player)
         self._alias_map[room_id] = room_id
         self._rooms[room_id] = RoomDetails(
-            admins = {player},
+            admins = {invoking_player},
             name = room_id,
             min_players = 2,
             max_players = 2,
@@ -117,8 +120,8 @@ class RoomManager:
         remaining_players = self._mapping.list_players_in_a_room(room_id)
 
         # If nobody is left in the room, it should be deleted.
-        if len(remaining_players) == 0:
-            self._remove_room(room_id)
+        if len(list(remaining_players)) == 0:
+            self.remove_room(room_id)
             return
 
         # If the player was an admin, delete it from this list
@@ -175,7 +178,7 @@ class RoomManager:
 
         return {
             'name': room.name,
-            'players': list(self._mapping.list_players_in_a_room()),
+            'players': list(self._mapping.list_players_in_a_room(room_id)),
             'min_players': room.min_players,
             'max_players': room.max_players,
             'snake_len': room.snake_len,
@@ -190,7 +193,35 @@ class RoomManager:
         # Precondition: player must be in a room and a game must not have started there.
         self._mapping.check_that_player_is_not_in_hub(invoking_player)
         room_id = self._mapping.get_room_with_player(invoking_player)
-        # TODO
+        room = self._rooms[room_id]
+        if room.game_started:
+            raise Exception('The game in your room has already started')
+        
+        is_admin = invoking_player in room.admins
+        if not is_admin:
+            raise Exception('You must be an admin to change room properties')
+
+        for key, value in properties.items():
+            self._set_room_property(room, key, value)
+
+    def _set_room_property(self, room: RoomDetails, key: str, value: Any) -> None:
+        if key == 'name':
+            self._rename_room(room.name, value)
+        elif key == 'players':
+            raise Exception('Property "players" is read-only')
+        elif key in {
+                'min_players',
+                'max_players',
+                'snake_len',
+                'field_width',
+                'field_height',
+                'num_food_items',
+                'respawn_food',
+                'open',
+        }:
+            setattr(room, key, value)
+        else:
+            raise Exception(f'Invalid room property name: {key!r}')
 
 
 def check_that_room_name_is_valid(room_name: str) -> None:

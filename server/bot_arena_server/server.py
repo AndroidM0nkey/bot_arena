@@ -7,7 +7,7 @@ from typing import Tuple, Callable, Coroutine, List
 
 import curio    # type: ignore
 from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
-from loguru import logger
+from loguru import logger # type: ignore
 
 
 __all__ = [
