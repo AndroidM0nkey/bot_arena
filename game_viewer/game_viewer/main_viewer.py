@@ -5,6 +5,8 @@ from game_viewer.snake_body_peace import SnakeBodyPeace
 from game_viewer.snake import Snake
 import game_viewer.config as c
 import pygame
+from pygame_textinput import TextInput
+import pygame.locals as pl
 
 
 def get_message_and_display(cur_state: FieldState, surface: pygame.display):
@@ -35,11 +37,41 @@ def get_message_and_display(cur_state: FieldState, surface: pygame.display):
     return
 
 
+def get_user_input(initial_string: str, surface: pygame.display) -> str:
+    textinput = TextInput(initial_string=initial_string)
+    clock = pygame.time.Clock()
+    ans = ""
+    ended = False
+    while True:
+        surface.fill((225, 225, 225))
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.KEYDOWN and event.key == pl.K_RETURN:
+                ans = textinput.get_text()[len(initial_string):]
+                surface.fill((0, 0, 0))
+                pygame.display.update()
+                ended = True
+                break
+            if event.type == pygame.QUIT:
+                exit()
+        if ended:
+            break
+        textinput.update(events)
+        surface.blit(textinput.get_surface(), (10, 10))
+        pygame.display.update()
+        clock.tick(30)
+    return ans
+
+
 def main():
     pygame.init()
     main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
     pygame.display.set_caption('Pythons')
+    server = get_user_input("Введите адрес сервера: ", main_surface)
+    port = get_user_input("Введите порт: ", main_surface)
     # Test:
+    print(server)
+    print(port)
     test_snakes = {'Bob': SnakeState(Point(1, 2), [Direction.DOWN(), Direction.DOWN(), Direction.RIGHT(), Direction.RIGHT(),
                                                    Direction.UP()]),
                    'Alice': SnakeState(Point(2, 11), [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT(), Direction.DOWN(),
@@ -48,7 +80,7 @@ def main():
                                                       Direction.RIGHT(), Direction.UP()])}
     test_objects = [(Point(7, 11), Object.FOOD())]
     get_message_and_display(FieldState(test_snakes, test_objects), main_surface)
-    pygame.time.wait(10000)
+    pygame.time.wait(5000)
 
 
 if __name__ == '__main__':
