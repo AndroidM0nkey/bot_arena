@@ -48,7 +48,8 @@ async def run_game_loop(
             ) # type: ignore
 
             if crashed:
-                await on_crash(sess, client_info, game_room),
+                await on_crash(sess, client_info, game_room)
+                await game_room.finish_turn(client_info.name)
                 break
             else:
                 await sess.respond_ok()

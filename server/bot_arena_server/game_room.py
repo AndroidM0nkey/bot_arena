@@ -42,6 +42,17 @@ class GameRoom:
         await self.broadcast_event(Event.SNAKE_DIED(str(client_name)), lambda name: True)
         self._dead.add(client_name)
 
+    async def finish_turn(self, client_name: ClientName) -> None:
+        assert client_name.is_player()
+
+        if client_name not in self._players:
+            raise KeyError(f'No such player in the game room: {client_name!r}')
+
+        queue = self._players[client_name]
+        if self._took_turn[client_name]:
+            await queue.task_done()
+        self._took_turn[client_name] = True
+
     async def wait_for_turn(self, client_name: ClientName) -> None:
         assert client_name.is_player()
 
@@ -74,7 +85,7 @@ class GameRoom:
         filter_func: Callable[[ClientName], bool],
     ) -> None:
         for client_name, sess in self._sessions.items():
-            if filter_func(client_name):
+            if (client_name not in self._dead) and filter_func(client_name):
                 await action(sess)
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
