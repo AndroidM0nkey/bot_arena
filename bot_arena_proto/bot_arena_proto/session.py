@@ -150,26 +150,16 @@ class ClientSession(Session):
         the current game. See GameInfo for details.
         """
 
-        def err(e):
-            def inner(*args):
-                raise e
-            return inner
-
-        def unexpected(s):
-            return err(
-                ValueError(
-                    f'Unexpected event received from the server before the game has started: {s}'
-                )
-            )
 
         while True:
             event = (await self.wait_for_notification()).event()
-            result = event.match(
-                snake_died = unexpected('SnakeDied'),
-                game_finished = unexpected('GameFinished'),
-                game_started = lambda width, height: (width, height),
-            )
-            width, height = result
+
+            if event.name != 'GameStarted':
+                raise ValueError(
+                    f'Unexpected event received from the server before the game has started: {event}'
+                )
+            width = event.data['field_width']
+            height = event.data['field_height']
             return GameInfo(field_width=width, field_height=height)
 
     async def wait_for_notification(self) -> 'ClientNotification':
@@ -383,7 +373,13 @@ class ServerSession(Session):
 
         width = game_info.field_width
         height = game_info.field_height
-        await self.send_event(Event.GAME_STARTED(width, height))
+        await self.send_event(
+            Event(
+                name = 'GameStarted',
+                data = {'field_width': width, 'field_height': height},
+                must_know = True,
+            )
+        )
 
     async def wait_until_ready(self) -> None:
         """Wait unitl a client sends READY."""
