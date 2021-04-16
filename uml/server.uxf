@@ -29,7 +29,7 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>880</x>
+      <x>850</x>
       <y>110</y>
       <w>170</w>
       <h>60</h>
@@ -42,7 +42,7 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>400</x>
+      <x>370</x>
       <y>100</y>
       <w>250</w>
       <h>80</h>
@@ -58,7 +58,7 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>810</x>
+      <x>780</x>
       <y>260</y>
       <w>320</w>
       <h>80</h>
@@ -74,7 +74,7 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>130</x>
+      <x>100</x>
       <y>120</y>
       <w>100</w>
       <h>30</h>
@@ -86,7 +86,7 @@ lt=.</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>770</x>
+      <x>740</x>
       <y>400</y>
       <w>400</w>
       <h>210</h>
@@ -111,7 +111,7 @@ lt=.</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>700</x>
+      <x>670</x>
       <y>690</y>
       <w>280</w>
       <h>120</h>
@@ -130,19 +130,19 @@ lt=.</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1000</x>
+      <x>970</x>
       <y>690</y>
       <w>140</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>Object (proto)
+    <panel_attributes>Object 
 bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>960</x>
+      <x>930</x>
       <y>330</y>
       <w>40</w>
       <h>90</h>
@@ -155,7 +155,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>820</x>
+      <x>790</x>
       <y>600</y>
       <w>60</w>
       <h>110</h>
@@ -168,7 +168,7 @@ m2=2..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1060</x>
+      <x>1030</x>
       <y>600</y>
       <w>60</w>
       <h>110</h>
@@ -181,7 +181,7 @@ m2=0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>960</x>
+      <x>930</x>
       <y>160</y>
       <w>90</w>
       <h>120</h>
@@ -194,7 +194,7 @@ m2=1 or 0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>220</x>
+      <x>190</x>
       <y>110</y>
       <w>200</w>
       <h>50</h>
@@ -208,7 +208,7 @@ TCP connection</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>640</x>
+      <x>610</x>
       <y>130</y>
       <w>260</w>
       <h>40</h>
@@ -221,7 +221,7 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>400</x>
+      <x>370</x>
       <y>210</y>
       <w>1130</w>
       <h>630</h>
@@ -232,7 +232,7 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>370</x>
+      <x>340</x>
       <y>50</y>
       <w>1200</w>
       <h>820</h>
@@ -243,7 +243,7 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>410</x>
+      <x>380</x>
       <y>240</y>
       <w>150</w>
       <h>90</h>
@@ -258,19 +258,19 @@ functionalty</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>490</x>
+      <x>460</x>
       <y>440</y>
       <w>170</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>FieldState (proto)
+    <panel_attributes>FieldState
 bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>650</x>
+      <x>620</x>
       <y>440</y>
       <w>140</w>
       <h>40</h>
@@ -282,7 +282,7 @@ Produces</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>560</x>
+      <x>530</x>
       <y>170</y>
       <w>80</w>
       <h>290</h>
@@ -294,19 +294,19 @@ Sent by</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>490</x>
+      <x>460</x>
       <y>590</y>
       <w>170</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>SnakeState (proto)
+    <panel_attributes>SnakeState
 bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>560</x>
+      <x>530</x>
       <y>460</y>
       <w>40</w>
       <h>150</h>
@@ -319,7 +319,7 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>560</x>
+      <x>530</x>
       <y>610</y>
       <w>160</w>
       <h>150</h>
@@ -331,7 +331,7 @@ Produces</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>50</x>
+      <x>20</x>
       <y>290</y>
       <w>250</w>
       <h>60</h>
@@ -345,7 +345,7 @@ Produces</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>30</x>
+      <x>0</x>
       <y>190</y>
       <w>290</w>
       <h>190</h>
@@ -357,7 +357,7 @@ bg=orange</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>240</x>
+      <x>210</x>
       <y>340</y>
       <w>270</w>
       <h>140</h>
@@ -368,7 +368,7 @@ bg=orange</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>160</x>
+      <x>130</x>
       <y>340</y>
       <w>350</w>
       <h>290</h>
@@ -379,7 +379,7 @@ bg=orange</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>80</x>
+      <x>50</x>
       <y>340</y>
       <w>1010</w>
       <h>500</h>
@@ -390,9 +390,9 @@ bg=orange</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>130</x>
+      <x>90</x>
       <y>230</y>
-      <w>90</w>
+      <w>100</w>
       <h>30</h>
     </coordinates>
     <panel_attributes>Message
@@ -403,7 +403,7 @@ layer=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>210</x>
+      <x>180</x>
       <y>140</y>
       <w>210</w>
       <h>120</h>
@@ -415,7 +415,7 @@ Works with</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1260</x>
+      <x>1230</x>
       <y>250</y>
       <w>250</w>
       <h>120</h>
@@ -434,8 +434,8 @@ Works with</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1260</x>
-      <y>400</y>
+      <x>1230</x>
+      <y>460</y>
       <w>150</w>
       <h>60</h>
     </coordinates>
@@ -444,5 +444,54 @@ Works with</panel_attributes>
 Ok
 Crashed</panel_attributes>
     <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLNote</id>
+    <coordinates>
+      <x>30</x>
+      <y>30</y>
+      <w>140</w>
+      <h>70</h>
+    </coordinates>
+    <panel_attributes>*Note:*
+Orange means
+imported from
+bot_arena_proto</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>130</x>
+      <y>250</y>
+      <w>30</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
+    <additional_attributes>10.0;40.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1130</x>
+      <y>470</y>
+      <w>120</w>
+      <h>40</h>
+    </coordinates>
+    <panel_attributes>Used by
+lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;20.0;100.0;20.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1130</x>
+      <y>300</y>
+      <w>120</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>Used by
+lt=&lt;-</panel_attributes>
+    <additional_attributes>10.0;160.0;50.0;160.0;50.0;10.0;100.0;10.0</additional_attributes>
   </element>
 </diagram>
