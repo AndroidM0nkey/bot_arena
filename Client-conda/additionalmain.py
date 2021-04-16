@@ -80,13 +80,14 @@ async def main():
 async def handle_new_field_state(state):
     # Do something when a new field state arrives.
     # Let's update your current field
-    curField = state
-    pygame.init()
-    main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
-    pygame.display.set_caption('Pythons')
-    get_message_and_display(curField, main_surface)
+    #curField = state
+    #pygame.init()
+    #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
+    #pygame.display.set_caption('Pythons')
+    #get_message_and_display(curField, main_surface)
     #wait some time to actually show you an image
-    time.sleep(1000)
+    #time.sleep(1000)
+    pass
 
 async def handle_event(event):
     # Do something when an event happens.
@@ -94,6 +95,7 @@ async def handle_event(event):
     pass
 
 async def handle_error(description):
+    print(description)
     # Do something when an error happens.
     #print(f'Error: {description}')
     pass
@@ -105,7 +107,8 @@ async def take_turn():
 
     # We will always tell our snake to move right.
     curBot = Bot()
-    action = Action.MOVE(curBot.find_direction(curField), f_height, f_width, name)
+    action = Action.MOVE(Direction.UP())
+    #action = Action.MOVE(curBot.find_direction(curField), f_height, f_width, name)
 
     # Send our action to the server
     await sess.respond(action)  # May cause an ERR if the move is invalid.
