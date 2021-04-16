@@ -29,8 +29,8 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>980</x>
-      <y>260</y>
+      <x>880</x>
+      <y>110</y>
       <w>170</w>
       <h>60</h>
     </coordinates>
@@ -42,8 +42,8 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>500</x>
-      <y>250</y>
+      <x>400</x>
+      <y>100</y>
       <w>250</w>
       <h>80</h>
     </coordinates>
@@ -58,22 +58,24 @@ fontfamily=Monospaced
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>910</x>
-      <y>410</y>
+      <x>810</x>
+      <y>260</y>
       <w>320</w>
-      <h>60</h>
+      <h>80</h>
     </coordinates>
     <panel_attributes>Game
 --
 +field: Field
++info: GameInfo
+--
 +take_turn(player_name: str, action: Action)</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>230</x>
-      <y>270</y>
+      <x>130</x>
+      <y>120</y>
       <w>100</w>
       <h>30</h>
     </coordinates>
@@ -84,85 +86,64 @@ lt=.</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>870</x>
-      <y>530</y>
+      <x>770</x>
+      <y>400</y>
       <w>400</w>
-      <h>120</h>
+      <h>210</h>
     </coordinates>
     <panel_attributes>Field
 --
--width: int
--height: int
++width: int
++height: int
 -snakes: Dict[str, Snake]
--objects: List[Object]
+-objects: Dict[Point, Object]
+-occupied_cells: Set[Point]
 --
-+move_snake(name: str, direction: Direction) {can fail}
-+get_state(): GameState</panel_attributes>
++move_snake(name: str, direction: Direction)
++random_free_cell(): Point
++is_cell_passable(point: Point): bool
++is_cell_completely_free(point: Point): bool
++place_object_randomly(object: Object)
++get_state(): GameState
++add_snake(snake_name: str, snake: Snake)</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>850</x>
-      <y>730</y>
-      <w>210</w>
-      <h>110</h>
+      <x>700</x>
+      <y>690</y>
+      <w>280</w>
+      <h>120</h>
     </coordinates>
     <panel_attributes>Snake
 --
--head: Point
++head: Point
 -tail: List[Direction]
 --
-+get_state(): SnakeState
+~get_state(): SnakeState
 ~move(Direction)
-~grow(Direction)</panel_attributes>
+~grow(Direction)
+~get_occupied_cells(): Iterable[Point]</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>1100</x>
-      <y>710</y>
-      <w>200</w>
-      <h>50</h>
-    </coordinates>
-    <panel_attributes>/Object/
---
-/+on_consumed(by: Snake)/</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1150</x>
-      <y>810</y>
-      <w>100</w>
+      <x>1000</x>
+      <y>690</y>
+      <w>140</w>
       <h>30</h>
     </coordinates>
-    <panel_attributes>Food</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1070</x>
-      <y>110</y>
-      <w>110</w>
-      <h>90</h>
-    </coordinates>
-    <panel_attributes>enum Direction
---
-Up
-Down
-Left
-Right</panel_attributes>
+    <panel_attributes>Object (proto)
+bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1060</x>
-      <y>460</y>
+      <x>960</x>
+      <y>330</y>
       <w>40</w>
       <h>90</h>
     </coordinates>
@@ -174,70 +155,34 @@ m2=1</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1190</x>
-      <y>750</y>
-      <w>30</w>
-      <h>80</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>1200</x>
-      <y>130</y>
-      <w>80</w>
-      <h>60</h>
-    </coordinates>
-    <panel_attributes>Point
---
-+x: int
-+y: int</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>960</x>
-      <y>640</y>
-      <w>90</w>
+      <x>820</x>
+      <y>600</y>
+      <w>60</w>
       <h>110</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=1
-m2=2 or 2..*</panel_attributes>
+m2=2..*</panel_attributes>
     <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1190</x>
-      <y>640</y>
+      <x>1060</x>
+      <y>600</y>
       <w>60</w>
-      <h>90</h>
+      <h>110</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-
 m1=1
 m2=0..*</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;70.0</additional_attributes>
-  </element>
-  <element>
-    <id>UMLPackage</id>
-    <coordinates>
-      <x>910</x>
-      <y>70</y>
-      <w>390</w>
-      <h>150</h>
-    </coordinates>
-    <panel_attributes>Helper datatypes</panel_attributes>
-    <additional_attributes/>
+    <additional_attributes>10.0;10.0;10.0;90.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>1060</x>
-      <y>310</y>
+      <x>960</x>
+      <y>160</y>
       <w>90</w>
       <h>120</h>
     </coordinates>
@@ -249,8 +194,8 @@ m2=1 or 0..*</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>320</x>
-      <y>260</y>
+      <x>220</x>
+      <y>110</y>
       <w>200</w>
       <h>50</h>
     </coordinates>
@@ -263,8 +208,8 @@ TCP connection</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>740</x>
-      <y>280</y>
+      <x>640</x>
+      <y>130</y>
       <w>260</w>
       <h>40</h>
     </coordinates>
@@ -276,10 +221,10 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>500</x>
-      <y>360</y>
-      <w>820</w>
-      <h>500</h>
+      <x>400</x>
+      <y>210</y>
+      <w>1130</w>
+      <h>630</h>
     </coordinates>
     <panel_attributes>Game subpackage</panel_attributes>
     <additional_attributes/>
@@ -287,10 +232,10 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>470</x>
-      <y>20</y>
-      <w>880</w>
-      <h>870</h>
+      <x>370</x>
+      <y>50</y>
+      <w>1200</w>
+      <h>820</h>
     </coordinates>
     <panel_attributes>Server machine</panel_attributes>
     <additional_attributes/>
@@ -298,8 +243,8 @@ m2=1..*</panel_attributes>
   <element>
     <id>UMLNote</id>
     <coordinates>
-      <x>510</x>
-      <y>390</y>
+      <x>410</x>
+      <y>240</y>
       <w>150</w>
       <h>90</h>
     </coordinates>
@@ -313,99 +258,81 @@ functionalty</panel_attributes>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>580</x>
-      <y>540</y>
-      <w>190</w>
-      <h>90</h>
+      <x>490</x>
+      <y>440</y>
+      <w>170</w>
+      <h>30</h>
     </coordinates>
-    <panel_attributes>FieldState
---
-
-+snakes: List[SnakeState]
-+objects: List[Object]</panel_attributes>
+    <panel_attributes>FieldState (proto)
+bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>760</x>
-      <y>570</y>
-      <w>130</w>
+      <x>650</x>
+      <y>440</y>
+      <w>140</w>
       <h>40</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 Produces</panel_attributes>
-    <additional_attributes>10.0;20.0;110.0;20.0</additional_attributes>
+    <additional_attributes>10.0;20.0;120.0;20.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>660</x>
-      <y>320</y>
+      <x>560</x>
+      <y>170</y>
       <w>80</w>
-      <h>240</h>
+      <h>290</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 Sent by</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;220.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;270.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>590</x>
-      <y>730</y>
+      <x>490</x>
+      <y>590</y>
       <w>170</w>
-      <h>60</h>
+      <h>30</h>
     </coordinates>
-    <panel_attributes>SnakeState
---
-+head: Point
-+tail: List[Direction]</panel_attributes>
+    <panel_attributes>SnakeState (proto)
+bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>660</x>
-      <y>620</y>
+      <x>560</x>
+      <y>460</y>
       <w>40</w>
-      <h>130</h>
+      <h>150</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;&lt;&lt;-
 m1=1
 m2=1</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;110.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>750</x>
-      <y>740</y>
-      <w>120</w>
-      <h>40</h>
+      <x>560</x>
+      <y>610</y>
+      <w>160</w>
+      <h>150</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 Produces</panel_attributes>
-    <additional_attributes>10.0;20.0;100.0;20.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;130.0;140.0;130.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>930</x>
-      <y>130</y>
-      <w>120</w>
-      <h>50</h>
-    </coordinates>
-    <panel_attributes>enum Action
---
-Move(Direction)</panel_attributes>
-    <additional_attributes/>
-  </element>
-  <element>
-    <id>UMLClass</id>
-    <coordinates>
-      <x>150</x>
-      <y>440</y>
+      <x>50</x>
+      <y>290</y>
       <w>250</w>
       <h>60</h>
     </coordinates>
@@ -418,30 +345,31 @@ Move(Direction)</panel_attributes>
   <element>
     <id>UMLPackage</id>
     <coordinates>
-      <x>130</x>
-      <y>340</y>
+      <x>30</x>
+      <y>190</y>
       <w>290</w>
       <h>190</h>
     </coordinates>
-    <panel_attributes>Taken from protocol diagrams</panel_attributes>
+    <panel_attributes>Protocol &amp; Serialization
+bg=orange</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>340</x>
-      <y>490</y>
-      <w>260</w>
-      <h>120</h>
+      <x>240</x>
+      <y>340</y>
+      <w>270</w>
+      <h>140</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;.</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;100.0;240.0;100.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;120.0;250.0;120.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>260</x>
-      <y>490</y>
+      <x>160</x>
+      <y>340</y>
       <w>350</w>
       <h>290</h>
     </coordinates>
@@ -451,69 +379,70 @@ Move(Direction)</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>180</x>
-      <y>490</y>
-      <w>970</w>
-      <h>380</h>
+      <x>80</x>
+      <y>340</y>
+      <w>1010</w>
+      <h>500</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;.</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;360.0;950.0;360.0;950.0;270.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>90</x>
-      <y>180</y>
-      <w>1170</w>
-      <h>310</h>
-    </coordinates>
-    <panel_attributes>lt=&lt;&lt;.</panel_attributes>
-    <additional_attributes>60.0;290.0;10.0;290.0;10.0;60.0;1150.0;60.0;1150.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>1120</x>
-      <y>190</y>
-      <w>30</w>
-      <h>70</h>
-    </coordinates>
-    <panel_attributes>lt=.</panel_attributes>
-    <additional_attributes>10.0;50.0;10.0;10.0</additional_attributes>
-  </element>
-  <element>
-    <id>Relation</id>
-    <coordinates>
-      <x>980</x>
-      <y>170</y>
-      <w>30</w>
-      <h>90</h>
-    </coordinates>
-    <panel_attributes>lt=.</panel_attributes>
-    <additional_attributes>10.0;70.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;480.0;990.0;480.0;990.0;380.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
     <coordinates>
-      <x>230</x>
-      <y>380</y>
+      <x>130</x>
+      <y>230</y>
       <w>90</w>
       <h>30</h>
     </coordinates>
     <panel_attributes>Message
-</panel_attributes>
+
+layer=1</panel_attributes>
     <additional_attributes/>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>310</x>
-      <y>290</y>
+      <x>210</x>
+      <y>140</y>
       <w>210</w>
       <h>120</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 Works with</panel_attributes>
     <additional_attributes>10.0;100.0;60.0;100.0;60.0;10.0;190.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1260</x>
+      <y>250</y>
+      <w>250</w>
+      <h>120</h>
+    </coordinates>
+    <panel_attributes>ChangeInFreeCells
+--
+-new_free: Set[Point]
+-new_occupied: Set[Point]
+--
++add_new_free(point: Point)
++add_new_occupied(point: Point)
++new_free(): Set[Point]
++new_occupied(): Set[Point]</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1260</x>
+      <y>400</y>
+      <w>150</w>
+      <h>60</h>
+    </coordinates>
+    <panel_attributes>enum MoveResult
+--
+Ok
+Crashed</panel_attributes>
+    <additional_attributes/>
   </element>
 </diagram>
