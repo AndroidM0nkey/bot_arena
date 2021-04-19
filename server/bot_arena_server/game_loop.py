@@ -1,5 +1,5 @@
 from bot_arena_server.game import Game, IllegalAction
-from bot_arena_server.game_room import GameRoom
+from bot_arena_server.game_room import GameRoom, GameRoomExit
 from bot_arena_server.client_name import RichClientInfo
 
 from typing import NoReturn
@@ -15,11 +15,6 @@ __all__ = [
 ]
 
 
-async def wait_forever() -> NoReturn:
-    while True:
-        await curio.sleep(10000)
-
-
 async def run_game_loop(
     sess: ServerSession,
     client_info: RichClientInfo,
@@ -30,12 +25,15 @@ async def run_game_loop(
     await sess.send_new_field_state(game.field.get_state())
 
     if not client_info.name.is_player():
-        # TODO: wait for either the player's action or the end of the game.
-        await wait_forever()
+        await game_room.wait_until_game_ends()
         return
 
     while True:
-        await game_room.wait_for_turn(client_info.name)
+        try:
+            await game_room.wait_for_turn(client_info.name)
+        except GameRoomExit:
+            break
+
         logger.info('It is {}\'s turn', client_info.name)
         action = await sess.request_action()
         logger.info('{} requested action: {}', client_info.name, action)

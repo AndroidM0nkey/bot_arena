@@ -73,7 +73,7 @@ class Server:
             client_rich_infos = self._client_rich_infos
             self._client_rich_infos = []
             game = create_game(client_rich_infos)
-            game_room = GameRoom([info.name for info in client_rich_infos])
+            game_room = GameRoom([info.name for info in client_rich_infos], game)
             await self._game_pubsub.publish((game, game_room))
             is_game_creator = True
         else:
@@ -81,7 +81,7 @@ class Server:
             is_game_creator = False
 
         if is_game_creator:
-            await curio.spawn(game_room.run_loop)
+            await curio.spawn(game_room.run_loop, daemon=True)
 
         await sess.wait_until_ready()
         await sess.start_game(game.info())
