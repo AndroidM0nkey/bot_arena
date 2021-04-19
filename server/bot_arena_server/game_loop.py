@@ -6,6 +6,7 @@ from typing import NoReturn
 
 import curio # type: ignore
 from bot_arena_proto.event import Event
+from bot_arena_proto.message import Message
 from bot_arena_proto.session import ServerSession, GameInfo, ClientInfo
 from loguru import logger # type: ignore
 
@@ -30,7 +31,16 @@ async def run_game_loop(
 
     while True:
         try:
-            await game_room.wait_for_turn(client_info.name)
+            async with curio.TaskGroup(wait=any) as tg:
+                await tg.spawn(sess.recv_message())                         # Returns Message
+                await tg.spawn(game_room.wait_for_turn(client_info.name))   # Returns None
+            await tg.cancel_remaining()
+
+            if tg.result is not None:
+                logger.debug('Received an out of order message from {!r}', client_info.name)
+                assert isinstance(tg.result, Message)
+                await sess.respond_err('It is not your turn')
+                continue
         except GameRoomExit:
             break
 
