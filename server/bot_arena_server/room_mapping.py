@@ -17,6 +17,9 @@ class RoomExistsError(KeyError):
         super().__init__(room_name)
         self._room_name = room_name
 
+    def __str__(self) -> str:
+        return repr(self)
+
     def __repr__(self) -> str:
         return f'Room {self._room_name!r} already exists'
 
@@ -25,6 +28,9 @@ class RoomDoesNotExistError(KeyError):
     def __init__(self, room_name: str) -> None:
         super().__init__(room_name)
         self._room_name = room_name
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __repr__(self) -> str:
         return f'Room {self._room_name!r} does not exist'
@@ -36,6 +42,9 @@ class ClientInRoomError(KeyError):
         self._room_name = room_name
         self._client = client
 
+    def __str__(self) -> str:
+        return repr(self)
+
     def __repr__(self) -> str:
         return f'{self._client!r} is already in the room {self._room_name!r}'
 
@@ -45,6 +54,9 @@ class ClientNotInRoomError(KeyError):
         super().__init__(room_name)
         self._room_name = room_name
         self._client = client
+
+    def __str__(self) -> str:
+        return repr(self)
 
     def __repr__(self) -> str:
         return f'{self._client!r} is not in ' + (

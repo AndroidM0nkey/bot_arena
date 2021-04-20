@@ -162,6 +162,7 @@ class RoomManager:
             self._alias_map.pop(room_name)
 
         self._alias_map[new_name] = room_id
+        self._rooms[room_id].name = new_name
 
     def room_name_to_id(self, room_name: str) -> str:
         return self._alias_map[room_name]
@@ -176,7 +177,8 @@ class RoomManager:
         if room.game_started:
             raise Exception('The game in this room has already started')
 
-        logger.info('{!r} enters toom {!r}', invoking_client, room_name)
+        logger.info('{!r} enters room {!r}', invoking_client, room_name)
+        self._mapping.add_client_to_room(room_id, invoking_client)
 
     def get_room_properties(self, invoking_client: ClientName) -> Dict[str, Any]:
         # Precondition: client must be in a room and a game must not have started there.
@@ -276,15 +278,16 @@ class RoomManager:
         readiness_set.add(invoking_client)
 
         room_info = self._get_room_info_unchecked(invoking_client, room_id)
-        num_players = len(room_info.players)
+        clients = set(self._mapping.list_clients_in_a_room(room_id))
+        num_players = sum(1 for x in clients if x.is_player())
 
-        if num_players >= room_info.min_players and len(readiness_set) == num_players:
-            assert readiness_set == set(room_info.players)
+        if num_players >= room_info.min_players and len(readiness_set) == len(clients):
+            assert readiness_set == clients
 
             # Ready to start a game.
 
             # TODO: shuffle for fairness.
-            client_names = list(readiness_set)
+            client_names = list(clients)
 
             game = create_game(client_names)
             game_room = GameRoom(client_names, game)

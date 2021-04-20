@@ -59,7 +59,7 @@ async def run_game_loop(
                 )
             except IllegalAction as e:
                 logger.info('The action {} for {} is invalid: {}', action, client_info.name, e)
-                await sess.respond_err(text=str(e))
+                await sess.respond_err(str(e))
     except EOFError:
         logger.info('{!r} disconnected', client_info.name)
         await on_crash(sess, client_info, game_room, report_to_offender=False)

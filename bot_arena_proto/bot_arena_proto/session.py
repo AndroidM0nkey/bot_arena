@@ -131,7 +131,7 @@ class ClientSession(Session):
         """
 
         await self.send_message(Message.CLIENT_HELLO(self._info.name))
-        (await self.recv_message()).server_hello()
+        not_err(await self.recv_message()).server_hello()
 
     async def ready(self):
         """Signal to the server that you are ready to begin the game by
@@ -152,7 +152,7 @@ class ClientSession(Session):
 
 
         while True:
-            event = (await self.wait_for_notification()).event()
+            event = await self.wait_for_notification().event()
 
             if event.name != 'GameStarted':
                 raise ValueError(
@@ -211,7 +211,7 @@ class ClientSession(Session):
         """List the game rooms on the server."""
 
         await self.send_message(Message.LIST_ROOMS())
-        return (await self.recv_message()).room_list_available()
+        return not_err(await self.recv_message()).room_list_available()
 
     async def enter_room(self, room_name: str) -> None:
         """Enter a room with a specified name."""
@@ -235,7 +235,7 @@ class ClientSession(Session):
         """Request the properties of your current room."""
 
         await self.send_message(Message.GET_ROOM_PROPERTIES())
-        return (await self.recv_message()).room_properties_available()
+        return not_err(await self.recv_message()).room_properties_available()
 
     async def set_room_properties(self, properties: Dict[str, Any]) -> None:
         """Change the values of some of the room's properties."""
@@ -260,6 +260,12 @@ class ClientSession(Session):
             pass
 
         raise Exception(f'Unexpected response from the server: {message}')
+
+
+def not_err(msg: Message) -> Message:
+    if msg.kind() == 'Err':
+        raise Exception(f'Received Err({msg.err()!r})')
+    return msg
 
 
 class ServerSession(Session):
