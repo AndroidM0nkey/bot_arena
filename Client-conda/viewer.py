@@ -81,12 +81,14 @@ async def handle_new_field_state(state):
     # Do something when a new field state arrives.
     # Let's update your current field
     #
+    global curField
     curField = state
     #pygame.init()
     #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
     #pygame.display.set_caption('Pythons')
     #get_message_and_display(curField, main_surface)
     #time.sleep(1000)
+    
     
 
 async def handle_event(event):
@@ -104,6 +106,7 @@ async def handle_error(description):
 async def take_turn():
     # Tell the server what to do in your turn.
     global sess
+    global curField
 
     # We will always tell our snake to move right.
     curBot = Bot()
