@@ -50,12 +50,13 @@ class Bot:
 
         return point[0] > -1 and point[0] < m and point[1] > -1 and point[1] < n
 
-    def bfs(self, matrix, distances, n, m, start_point):
+    def bfs(self, matrix, distances, n, m, start_points):
         """Реализует алгоритм обхода в ширину, начиная со start_point."""
 
         """Добавляем стартовую вершину в очередь."""
         bfs_queue = deque()
-        bfs_queue.append((start_point.y, start_point.x))
+        for start_point in start_points:
+            bfs_queue.append((start_point.y, start_point.x))
         distances[start_point.y][start_point.x] = 0
 
         """Алгоритм продолжает работу, пока не кончились непосещенные вершины."""
@@ -88,8 +89,12 @@ class Bot:
         """Посчитаем расстояния от яблока до каждой свободной клетки поля."""
         matrix, distances = self.field_to_matrix(field_state, n, m)
         
-        apple = field_state.objects[0][0]
-        distances = self.bfs(matrix, distances, n, m, apple)
+        start_points = []
+        
+        for apple in field_state.objects:
+            start_points.append(apple[0])
+
+        distances = self.bfs(matrix, distances, n, m, start_points)
 
         snake_state = field_state.snakes[snake_name]
         x = snake_state.head.x
@@ -124,7 +129,5 @@ class Bot:
             return Direction.UP()
 
         """Возвращаем направление хода в сторону клетки, от которой минимальное расстояние до клетки с яблоком."""
-
-        print (min(ans, key=lambda i: i[0]))
 
         return min(ans, key=lambda i: i[0])[1]
