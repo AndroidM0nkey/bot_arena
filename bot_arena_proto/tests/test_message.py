@@ -27,7 +27,8 @@ def test_basic_soundness():
             )
         ),
         Message.ACT(Action.MOVE(Direction.LEFT())), Message.ACT(Action.MOVE(Direction.UP())),
-        Message.EVENT_HAPPENED(Event.GAME_FINISHED()), Message.EVENT_HAPPENED(Event.SNAKE_DIED('Bob')),
+        Message.EVENT_HAPPENED(Event(name='GameFinished', data=None, must_know=True)),
+        Message.EVENT_HAPPENED(Event(name='SnakeDied', data='Bob', must_know=False)),
         Message.OK(),
         Message.ERR('foo'),
         Message.ERR('bar'),
@@ -116,10 +117,10 @@ class TestBasicSerde:
 
     @staticmethod
     def test_event_happened():
-        m1 = Message.EVENT_HAPPENED(Event.GAME_FINISHED())
-        p1 = ['EventHappened', ['GameFinished']]
-        m2 = Message.EVENT_HAPPENED(Event.SNAKE_DIED('Abc'))
-        p2 = ['EventHappened', ['SnakeDied', {'name': 'Abc'}]]
+        m1 = Message.EVENT_HAPPENED(Event(name='GameFinished', data=None, must_know=True))
+        p1 = ['EventHappened', {'name': 'GameFinished', 'data': None, 'must_know': True}]
+        m2 = Message.EVENT_HAPPENED(Event(name='SnakeDied', data='Abc', must_know=False))
+        p2 = ['EventHappened', {'name': 'SnakeDied', 'data': 'Abc', 'must_know': False}]
 
         assert m1.to_primitive() == p1
         assert Message.from_primitive(p1) == m1

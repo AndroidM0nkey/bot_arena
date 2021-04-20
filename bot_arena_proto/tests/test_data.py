@@ -1,5 +1,7 @@
 from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object, Action
 
+import itertools
+
 import pytest
 
 
@@ -111,3 +113,51 @@ class TestBasicSerde:
     def test_action():
         assert Action.MOVE(Direction.LEFT()).to_primitive() == ['m', 'l']
         assert Action.from_primitive(['m', 'd']) == Action.MOVE(Direction.DOWN())
+
+
+class TestPoint:
+    @staticmethod
+    def test_that_shift_works():
+        origin = Point(4, 7)
+        left = origin.shift(Direction.LEFT())
+        right = origin.shift(Direction.RIGHT())
+        up = origin.shift(Direction.UP())
+        down = origin.shift(Direction.DOWN())
+        assert left == Point(3, 7)
+        assert right == Point(5, 7)
+        assert up == Point(4, 8)
+        assert down == Point(4, 6)
+
+    @staticmethod
+    def test_that_shift_does_not_mutate_self():
+        origin = Point(2, 8)
+        shifted = origin.shift(Direction.RIGHT())
+        assert origin != shifted
+        assert origin == Point(2, 8)
+
+    @staticmethod
+    def test_hash_consistency():
+        a = Point(42, 18)
+        b = Point(42, 18)
+        c = Point(43, 18)
+        d = Point(42, 17)
+
+        for i, j in itertools.product([a, b, c, d], repeat=2):
+            assert i != j or hash(i) == hash(j)
+
+
+class TestDirection:
+    @staticmethod
+    def test_hash_consistency():
+        a1 = Direction.UP()
+        b1 = Direction.DOWN()
+        c1 = Direction.LEFT()
+        d1 = Direction.RIGHT()
+        a2 = Direction.UP()
+        b2 = Direction.DOWN()
+        c2 = Direction.LEFT()
+        d2 = Direction.RIGHT()
+
+        for i, j in itertools.product([a1, b1, c1, d1, a2, b2, c2, d2], repeat=2):
+            assert i != j or hash(i) == hash(j)
+

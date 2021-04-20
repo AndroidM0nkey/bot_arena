@@ -1,0 +1,90 @@
+<diagram program="umletino" version="14.4.0-SNAPSHOT"><zoom_level>10</zoom_level><help_text>=&gt;&gt;&gt;&gt;-</help_text><element><id>UMLClass</id><coordinates><x>1070</x><y>390</y><w>180</w><h>280</h></coordinates><panel_attributes>Session
+--
+-curPlayer
+-curConnectionParametrs
+-curRoom
+--
+-listen(address, port)
+-action()
+-handle_new_field_state(state)
+-handle_event(event)
+-handle_error(desription)
+-take_turn()
+-request_bot)
+-update_field(state)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>200</x><y>650</y><w>270</w><h>60</h></coordinates><panel_attributes>Message
+--
+/to_bytes(Message): bytes/
+/from_bytes(bytes): Message/</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>0</x><y>910</y><w>140</w><h>50</h></coordinates><panel_attributes>ClientHello
+--
+player_name: str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>90</x><y>870</y><w>100</w><h>30</h></coordinates><panel_attributes>ServerHello</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>230</x><y>870</y><w>100</w><h>30</h></coordinates><panel_attributes>Ready</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>520</x><y>870</y><w>40</w><h>30</h></coordinates><panel_attributes>Ok</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>350</x><y>840</y><w>110</w><h>50</h></coordinates><panel_attributes>Err
+--
+text: str</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>40</x><y>700</y><w>190</w><h>230</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>170;10;10;210</additional_attributes></element><element><id>Relation</id><coordinates><x>130</x><y>700</y><w>130</w><h>190</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>110;10;10;170</additional_attributes></element><element><id>Relation</id><coordinates><x>270</x><y>700</y><w>50</w><h>190</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>30;10;10;170</additional_attributes></element><element><id>Relation</id><coordinates><x>320</x><y>700</y><w>40</w><h>230</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;20;210</additional_attributes></element><element><id>UMLClass</id><coordinates><x>270</x><y>910</y><w>160</w><h>50</h></coordinates><panel_attributes>NewFieldState
+--
+state: FieldState</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>440</x><y>910</y><w>120</w><h>50</h></coordinates><panel_attributes>Act
+--
+action: Action</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>150</x><y>920</y><w>100</w><h>30</h></coordinates><panel_attributes>YourTurn</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>190</x><y>700</y><w>100</w><h>240</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>80;10;10;220</additional_attributes></element><element><id>Relation</id><coordinates><x>350</x><y>700</y><w>60</w><h>160</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;40;140</additional_attributes></element><element><id>Relation</id><coordinates><x>380</x><y>700</y><w>140</w><h>230</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;120;210</additional_attributes></element><element><id>Relation</id><coordinates><x>410</x><y>700</y><w>150</w><h>190</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;130;170</additional_attributes></element><element><id>UMLClass</id><coordinates><x>580</x><y>910</y><w>130</w><h>50</h></coordinates><panel_attributes>EventHappened
+--
+event: Event</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>200</x><y>370</y><w>100</w><h>30</h></coordinates><panel_attributes>Event</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>20</x><y>520</y><w>140</w><h>40</h></coordinates><panel_attributes>SnakeDied
+--
+snake_name: str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>180</x><y>520</y><w>140</w><h>40</h></coordinates><panel_attributes>GameFinished</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>80</x><y>390</y><w>150</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>130;10;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>240</x><y>390</y><w>30</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>Relation</id><coordinates><x>440</x><y>700</y><w>220</w><h>230</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;200;210</additional_attributes></element><element><id>UMLClass</id><coordinates><x>340</x><y>520</y><w>140</w><h>40</h></coordinates><panel_attributes>GameStarted</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>280</x><y>390</y><w>150</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;.</panel_attributes><additional_attributes>10;10;130;130</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1200</x><y>180</y><w>210</w><h>70</h></coordinates><panel_attributes>Turn
+--
+-currentPlayer : Player
+-playerAction : Action</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLPackage</id><coordinates><x>930</x><y>0</y><w>860</w><h>300</h></coordinates><panel_attributes>Helper datatypes</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>950</x><y>60</y><w>120</w><h>50</h></coordinates><panel_attributes>enum Action
+--
+Move(Direction)</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1080</x><y>40</y><w>110</w><h>90</h></coordinates><panel_attributes>enum Direction
+--
+Up
+Down
+Left
+Right</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1200</x><y>40</y><w>170</w><h>60</h></coordinates><panel_attributes>enum Player
+--
+-playerName: str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1030</x><y>790</y><w>240</w><h>100</h></coordinates><panel_attributes>UserInterface
+--
+-botConfiguration
+--
+-choose_room()
+-change_player_name()
+-configure_bot
+
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>940</x><y>180</y><w>240</w><h>110</h></coordinates><panel_attributes>GameState
+--
+-ifStarted : bool
+-FoodPosition : Point
+-CurrentWInner : Player
+-StartingPoints[] : Point
+-SnakesHeadPosition[] : Point
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>690</x><y>510</y><w>140</w><h>30</h></coordinates><panel_attributes>/(Server)/
+lt=.</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>820</x><y>500</y><w>270</w><h>50</h></coordinates><panel_attributes>lt=-
+TCP connection
+</panel_attributes><additional_attributes>10;20;250;20</additional_attributes></element><element><id>Relation</id><coordinates><x>1130</x><y>880</y><w>120</w><h>110</h></coordinates><panel_attributes>lt=-
+ Direct connection
+
+</panel_attributes><additional_attributes>10;90;10;10</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1070</x><y>970</y><w>140</w><h>30</h></coordinates><panel_attributes>/(simple html interface)/
+lt=.</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1450</x><y>960</y><w>140</w><h>30</h></coordinates><panel_attributes>/(Bot)/
+lt=.</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1240</x><y>520</y><w>180</w><h>30</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-</panel_attributes><additional_attributes>160;10;10;10</additional_attributes></element><element><id>UMLPackage</id><coordinates><x>930</x><y>340</y><w>880</w><h>870</h></coordinates><panel_attributes>ClientApp
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLPackage</id><coordinates><x>930</x><y>340</y><w>880</w><h>870</h></coordinates><panel_attributes>ClientApp
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1390</x><y>40</y><w>160</w><h>70</h></coordinates><panel_attributes>ConnetionParamerts
+--
+-ip: str
+-port: str</panel_attributes><additional_attributes></additional_attributes></element><element><id>UMLClass</id><coordinates><x>1560</x><y>40</y><w>210</w><h>70</h></coordinates><panel_attributes>Room
+--
+-room_name: str
+-room_players: str[]
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1130</x><y>660</y><w>140</w><h>150</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-
+ Confirgures session</panel_attributes><additional_attributes>10;10;10;130</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1400</x><y>790</y><w>240</w><h>90</h></coordinates><panel_attributes>BotConnector
+--
+botCondition: struct
+--
+-callBot()
+-getReturnCodes()
+
+</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1510</x><y>870</y><w>90</w><h>110</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-
+ System call</panel_attributes><additional_attributes>10;90;10;10</additional_attributes></element><element><id>Relation</id><coordinates><x>1260</x><y>820</y><w>160</w><h>40</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-
+Configures  bot</panel_attributes><additional_attributes>140;20;10;20</additional_attributes></element><element><id>UMLClass</id><coordinates><x>1400</x><y>470</y><w>230</w><h>110</h></coordinates><panel_attributes>StreamEditor
+--
+-push_stream()
+-flush()
+-get_info_from_stream()
+-get_info_from_bot</panel_attributes><additional_attributes></additional_attributes></element><element><id>Relation</id><coordinates><x>1500</x><y>570</y><w>30</w><h>240</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-
+ </panel_attributes><additional_attributes>10;10;10;220</additional_attributes></element><element><id>Relation</id><coordinates><x>1500</x><y>530</y><w>30</w><h>280</h></coordinates><panel_attributes>lt=&lt;&lt;&lt;-
+</panel_attributes><additional_attributes>10;260;10;10</additional_attributes></element></diagram>

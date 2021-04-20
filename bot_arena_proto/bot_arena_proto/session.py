@@ -1,10 +1,10 @@
-from bot_arena_proto.data import Action, FieldState
+from bot_arena_proto.data import Action, FieldState, RoomInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
 
 from dataclasses import dataclass
 from time import sleep
-from typing import Protocol, Tuple
+from typing import Protocol, Tuple, Any, List, Dict
 
 from adt import adt, Case
 
@@ -150,26 +150,16 @@ class ClientSession(Session):
         the current game. See GameInfo for details.
         """
 
-        def err(e):
-            def inner(*args):
-                raise e
-            return inner
-
-        def unexpected(s):
-            return err(
-                ValueError(
-                    f'Unexpected event received from the server before the game has started: {s}'
-                )
-            )
 
         while True:
             event = (await self.wait_for_notification()).event()
-            result = event.match(
-                snake_died = unexpected('SnakeDied'),
-                game_finished = unexpected('GameFinished'),
-                game_started = lambda width, height: (width, height),
-            )
-            width, height = result
+
+            if event.name != 'GameStarted':
+                raise ValueError(
+                    f'Unexpected event received from the server before the game has started: {event}'
+                )
+            width = event.data['field_width']
+            height = event.data['field_height']
             return GameInfo(field_width=width, field_height=height)
 
     async def wait_for_notification(self) -> 'ClientNotification':
@@ -198,6 +188,15 @@ class ClientSession(Session):
                 event_happened = lambda ev: ClientNotification.EVENT(ev),
                 ok = lambda: None,
                 err = lambda text: ClientNotification.ERROR(text),
+                list_rooms = unexpected('ListRooms'),
+                enter_room = unexpected('EnterRoom'),
+                enter_any_room = unexpected('EnterAnyRoom'),
+                leave_room = unexpected('LeaveRoom'),
+                new_room = unexpected('NewRoom'),
+                get_room_properties = unexpected('GetRoomProperties'),
+                set_room_properties = unexpected('SetRoomProperties'),
+                room_list_available = unexpected('RoomListAvailable'),
+                room_properties_available = unexpected('RoomPropertiesAvailable'),
             )
             if result is not None:
                 return result
@@ -206,6 +205,61 @@ class ClientSession(Session):
         """Respond to a YOUR_TURN message with an Action."""
 
         await self.send_message(Message.ACT(action))
+        await self.expect_ok()
+
+    async def list_rooms(self) -> List[RoomInfo]:
+        """List the game rooms on the server."""
+
+        await self.send_message(Message.LIST_ROOMS())
+        return (await self.recv_message()).room_list_available()
+
+    async def enter_room(self, room_name: str) -> None:
+        """Enter a room with a specified name."""
+
+        await self.send_message(Message.ENTER_ROOM(room_name))
+        await self.expect_ok()
+
+    async def enter_any_room(self) -> None:
+        """Enter any room at the server's discretion."""
+
+        await self.send_message(Message.ENTER_ANY_ROOM())
+        await self.expect_ok()
+
+    async def new_room(self) -> None:
+        """Create a new room and become its only admin."""
+
+        await self.send_message(Message.NEW_ROOM())
+        await self.expect_ok()
+
+    async def get_room_properties(self) -> Dict[str, Any]:
+        """Request the properties of your current room."""
+
+        await self.send_message(Message.GET_ROOM_PROPERTIES())
+        return (await self.recv_message()).room_properties_available()
+
+    async def set_room_properties(self, properties: Dict[str, Any]) -> None:
+        """Change the values of some of the room's properties."""
+
+        await self.send_message(Message.SET_ROOM_PROPERTIES(properties))
+        await self.expect_ok()
+
+    async def expect_ok(self) -> None:
+        """Ensure that the server responds with an Ok."""
+
+        message = await self.recv_message()
+        try:
+            message.ok()
+            return
+        except AttributeError:
+            pass
+
+        try:
+            error_message = message.err()
+            raise Exception(error_message)
+        except AttributeError:
+            pass
+
+        raise Exception(f'Unexpected response from the server: {message}')
 
 
 class ServerSession(Session):
@@ -228,6 +282,88 @@ class ServerSession(Session):
 
         await self.send_message(Message.ERR(text))
 
+    async def wait_for_hub_action(self) -> Message:
+        """Wait until a player in the hub asks for an appropriate action.
+
+        The player must be in the hub, not in a game or a game room.
+        """
+
+        ok = lambda *args: True
+        fail = lambda *args: False
+
+        while True:
+            message = await self.recv_message()
+            success = message.match(
+                act                         = fail,
+                client_hello                = fail,
+                enter_any_room              = ok,
+                enter_room                  = ok,
+                err                         = fail,
+                event_happened              = fail,
+                get_room_properties         = fail,
+                leave_room                  = fail,
+                list_rooms                  = ok,
+                new_field_state             = fail,
+                new_room                    = ok,
+                ok                          = fail,
+                ready                       = fail,
+                room_list_available         = fail,
+                room_properties_available   = fail,
+                server_hello                = fail,
+                set_room_properties         = fail,
+                your_turn                   = fail,
+            )
+
+            if success:
+                return message
+            else:
+                self.respond_err("This message is invalid in the hub")
+
+    async def wait_for_room_action(self) -> Message:
+        """Wait until a player in a game room asks for an appropriate action.
+
+        The player must be in the game room, but not in a game.
+        """
+
+        ok = lambda *args: True
+        fail = lambda *args: False
+
+        while True:
+            message = await self.recv_message()
+            success = message.match(
+                act                         = fail,
+                client_hello                = fail,
+                enter_any_room              = fail,
+                enter_room                  = fail,
+                err                         = fail,
+                event_happened              = fail,
+                get_room_properties         = ok,
+                leave_room                  = ok,
+                list_rooms                  = fail,
+                new_field_state             = fail,
+                new_room                    = fail,
+                ok                          = fail,
+                ready                       = ok,
+                room_list_available         = fail,
+                room_properties_available   = fail,
+                server_hello                = fail,
+                set_room_properties         = ok,
+                your_turn                   = fail,
+            )
+
+            if success:
+                return message
+            else:
+                self.respond_err("This message is invalid in a game room")
+
+    async def respond_with_room_list(self, rooms: List[RoomInfo]) -> None:
+        """Send the list of RoomInfo objects describing the rooms currently available."""
+        await self.send_message(Message.ROOM_LIST_AVAILABLE(rooms))
+
+    async def respond_with_room_properties(self, properties: Dict[str, Any]) -> None:
+        """Send the properties of the current game room."""
+        await self.send_message(Message.ROOM_PROPERTIES_AVAILABLE(properties))
+
     async def start_game(self, game_info: 'GameInfo') -> None:
         """Start a game.
 
@@ -237,7 +373,13 @@ class ServerSession(Session):
 
         width = game_info.field_width
         height = game_info.field_height
-        await self.send_event(Event.GAME_STARTED(width, height))
+        await self.send_event(
+            Event(
+                name = 'GameStarted',
+                data = {'field_width': width, 'field_height': height},
+                must_know = True,
+            )
+        )
 
     async def wait_until_ready(self) -> None:
         """Wait unitl a client sends READY."""
