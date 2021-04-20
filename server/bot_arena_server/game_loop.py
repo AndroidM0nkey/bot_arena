@@ -14,6 +14,7 @@ __all__ = [
     'run_game_loop',
 ]
 
+
 async def run_game_loop(
     sess: ServerSession,
     client_info: RichClientInfo,
@@ -21,17 +22,20 @@ async def run_game_loop(
     game_room: GameRoom,
 ) -> None:
     game_room.set_session(client_info.name, sess)
+    await sess.send_event(Event(name='GameStarted', data=None, must_know=True))
     await sess.send_new_field_state(game.field.get_state())
 
-    if not client_info.name.is_player():
-        await game_room.wait_until_game_ends()
-        return
-
     try:
+        if not client_info.name.is_player():
+            await game_room.wait_until_game_ends()
+            await sess.send_event(Event(name='GameFinished', data=None, must_know=True))
+            return
+
         while True:
             try:
                 await game_room.wait_for_turn(client_info.name)
             except GameRoomExit:
+                await sess.send_event(Event(name='GameFinished', data=None, must_know=True))
                 break
 
             logger.info('It is {}\'s turn', client_info.name)

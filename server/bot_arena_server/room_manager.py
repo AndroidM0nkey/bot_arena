@@ -7,7 +7,7 @@ from bot_arena_server.room_mapping import RoomMapping
 import copy
 import secrets
 from dataclasses import dataclass
-from typing import Dict, Set, Any, Tuple, List
+from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable
 
 import curio # type: ignore
 from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior, RoomInfo
@@ -261,7 +261,10 @@ class RoomManager:
         clients = self._mapping.list_clients_in_a_room(room_id)
         return [str(x) for x in clients if x.is_player()]
 
-    async def wait_until_game_starts(self, invoking_client: ClientName):
+    async def wait_until_game_starts(
+        self,
+        invoking_client: ClientName,
+    ) -> Tuple[Game, GameRoom]:
         # Precondition: client must be in a room, a game must not have started there,
         # and it is the first time this client reports being ready.
         self._mapping.check_that_client_is_not_in_hub(invoking_client)
@@ -301,6 +304,9 @@ class RoomManager:
 
         return game, game_room
 
+    def list_room_infos(self, invoking_client: ClientName) -> Iterable[RoomInfo]:
+        for room_id in self._rooms.keys():
+            yield self._get_room_info_unchecked(invoking_client, room_id)
 
     def _get_room_info_unchecked(self, invoking_client: ClientName, room_id: str) -> RoomInfo:
         room = self._rooms[room_id]

@@ -26,21 +26,21 @@ class ClientWorkerState:
 
 
 class ClientWorker:
-    def __init__(self, client_info: RichClientInfo, server: 'Server', sess: ServerSession):
+    def __init__(self, client_info: RichClientInfo, server: 'Server', sess: ServerSession) -> None:
         self._client_info = client_info
         self._server = server
         self._sess = sess
         self._state = ClientWorkerState.HUB()
         self._should_terminate = False
 
-    async def run(self):
+    async def run(self) -> None:
         while self.should_run():
             await self.run_step()
 
-    def should_run(self):
+    def should_run(self) -> bool:
         return not self._should_terminate
 
-    async def run_step(self):
+    async def run_step(self) -> None:
         try:
             await self._state.match(
                 hub = self.run_hub_step,
@@ -51,14 +51,14 @@ class ClientWorker:
         except EOFError:
             self._should_terminate = True
 
-    async def run_hub_step(self):
+    async def run_hub_step(self) -> None:
         msg = await self._sess.wait_for_hub_action()
         msg_type = msg.kind()
         client_name = self._client_info.name
 
         try:
             if msg_type == 'ListRooms':
-                room_infos = self._server._room_manager.list_room_infos()
+                room_infos = list(self._server._room_manager.list_room_infos(client_name))
                 await self._sess.respond_with_room_list(room_infos)
             elif msg_type == 'EnterRoom':
                 room_name = msg.enter_room()
@@ -76,14 +76,14 @@ class ClientWorker:
         except Exception as e:
             await self._sess.respond_err(str(e))
 
-    async def run_room_step(self):
+    async def run_room_step(self) -> None:
         msg = await self._sess.wait_for_room_action()
         msg_type = msg.kind()
         client_name = self._client_info.name
 
         try:
             if msg_type == 'LeaveRoom':
-                await self._server._room_manager.handle_room_quit(client_name)
+                self._server._room_manager.handle_room_quit(client_name)
                 self._state = ClientWorkerState.HUB()
                 await self._sess.respond_ok()
             elif msg_type == 'GetRoomProperties':
@@ -101,12 +101,12 @@ class ClientWorker:
         except Exception as e:
             await self._sess.respond_err(str(e))
 
-    async def run_ready_step(self):
+    async def run_ready_step(self) -> None:
         client_name = self._client_info.name
         game, game_room = await self._server._room_manager.wait_until_game_starts(client_name)
         self._state = ClientWorkerState.GAME(game, game_room)
 
-    async def run_game_step(self, game: Game, game_room: GameRoom):
+    async def run_game_step(self, game: Game, game_room: GameRoom) -> None:
         await self._server._client_handler(self._sess, self._client_info, game, game_room)
         self._state = ClientWorkerState.HUB()
 
