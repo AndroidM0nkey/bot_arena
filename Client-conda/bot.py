@@ -19,12 +19,14 @@ class Bot:
         матрицу такого же размера, как и поле, составленную из +inf - в нее
         мы будем записывать расстояния."""
 
-        matrix = [[0 for i in range(n)] for j in range(m)]
-        distances = [[Bot.inf for i in range(n)] for j in range(m)]
-
+        matrix = [[0 for i in range(m)] for j in range(n)]
+        distances = [[Bot.inf for i in range(m)] for j in range(n)]
         apple = field_state.objects[0][0]
         """Координаты яблока."""
-
+        print(n)
+        print(m)
+        print(apple.x)
+        print(apple.y)
         matrix[apple.x][apple.y] = -1
 
         for snake_state in field_state.snakes.values():

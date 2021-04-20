@@ -24,6 +24,10 @@ name = '@viewer'
 
 async def main():
     global sess
+    global curField
+    global f_height
+    global f_width
+    global name
 
     # Connect to the server, assuming it is listening on 127.0.0.1:1234.
     socket = await curio.open_connection(host='0.0.0.0', port=23456)
@@ -81,12 +85,16 @@ async def handle_new_field_state(state):
     # Do something when a new field state arrives.
     # Let's update your current field
     #
+    global sess
     global curField
+    global f_height
+    global f_width
+    global name
     curField = state
-    #pygame.init()
-    #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
-    #pygame.display.set_caption('Pythons')
-    #get_message_and_display(curField, main_surface)
+    pygame.init()
+    main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
+    pygame.display.set_caption('Pythons')
+    get_message_and_display(curField, main_surface)
     #time.sleep(1000)
     
     
@@ -107,6 +115,9 @@ async def take_turn():
     # Tell the server what to do in your turn.
     global sess
     global curField
+    global f_height
+    global f_width
+    global name
 
     # We will always tell our snake to move right.
     curBot = Bot()
