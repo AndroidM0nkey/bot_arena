@@ -317,7 +317,7 @@ class ServerSession(Session):
             if success:
                 return message
             else:
-                self.respond_err("This message is invalid in the hub")
+                await self.respond_err("This message is invalid in the hub")
 
     async def wait_for_room_action(self) -> Message:
         """Wait until a player in a game room asks for an appropriate action.
@@ -354,7 +354,7 @@ class ServerSession(Session):
             if success:
                 return message
             else:
-                self.respond_err("This message is invalid in a game room")
+                await self.respond_err("This message is invalid in a game room")
 
     async def respond_with_room_list(self, rooms: List[RoomInfo]) -> None:
         """Send the list of RoomInfo objects describing the rooms currently available."""

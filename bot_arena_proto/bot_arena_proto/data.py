@@ -240,7 +240,7 @@ class RoomOpenness:
         tag = ensure_type(tag, str)
         if tag == 'open':
             return RoomOpenness.OPEN()
-        if tag == 'close':
+        if tag == 'closed':
             return RoomOpenness.CLOSED()
         if tag == 'whitelist':
             players = ensure_type(data[0], list)

@@ -18,7 +18,7 @@ __all__ = ['Message']
 
 
 def prop_to_primitive(name: str, value: Any) -> Primitive:
-    if name == 'players':
+    if name == 'players' or name == 'admins':
         value = ensure_type(value, list)
         value = [ensure_type(s, str) for s in value]
         return value
@@ -41,7 +41,7 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
 
 
 def prop_from_primitive(name: str, p: Primitive) -> Any:
-    if name == 'players':
+    if name == 'players' or name == 'admins':
         p = ensure_type(p, list)
         p = [ensure_type(s, str) for s in p]
         return p
@@ -252,3 +252,5 @@ class Message(PrimitiveSerializable):
 
         raise DeserializationAdtTagError(Message, tag)
 
+    def kind(self) -> str:
+        return cast(List[str], self.to_primitive())[0]

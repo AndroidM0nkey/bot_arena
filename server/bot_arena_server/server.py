@@ -4,9 +4,10 @@ from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_manager import RoomManager
 
-from typing import Tuple, Callable, Coroutine, List, Optional
+from typing import Tuple, Callable, Coroutine, List, Optional, cast, Dict
 
 import curio    # type: ignore
+from adt import adt, Case
 from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
 from loguru import logger # type: ignore
 
@@ -16,14 +17,98 @@ __all__ = [
 ]
 
 
-def create_game(client_infos: List[RichClientInfo]) -> Game:
-    field_width = 20
-    field_height = 20
-    return Game(
-        field_width,
-        field_height,
-        [str(x.name) for x in client_infos if x.name.is_player()],
-    )
+@adt
+class ClientWorkerState:
+    HUB: Case
+    ROOM: Case
+    READY: Case
+    GAME: Case[Game, GameRoom]
+
+
+class ClientWorker:
+    def __init__(self, client_info: RichClientInfo, server: 'Server', sess: ServerSession):
+        self._client_info = client_info
+        self._server = server
+        self._sess = sess
+        self._state = ClientWorkerState.HUB()
+        self._should_terminate = False
+
+    async def run(self):
+        while self.should_run():
+            await self.run_step()
+
+    def should_run(self):
+        return not self._should_terminate
+
+    async def run_step(self):
+        try:
+            await self._state.match(
+                hub = self.run_hub_step,
+                room = self.run_room_step,
+                ready = self.run_ready_step,
+                game = self.run_game_step,
+            )
+        except EOFError:
+            self._should_terminate = True
+
+    async def run_hub_step(self):
+        msg = await self._sess.wait_for_hub_action()
+        msg_type = msg.kind()
+        client_name = self._client_info.name
+
+        try:
+            if msg_type == 'ListRooms':
+                room_infos = self._server._room_manager.list_room_infos()
+                await self._sess.respond_with_room_list(room_infos)
+            elif msg_type == 'EnterRoom':
+                room_name = msg.enter_room()
+                self._server._room_manager.handle_room_entry(client_name, room_name)
+                self._state = ClientWorkerState.ROOM()
+                await self._sess.respond_ok()
+            elif msg_type == 'NewRoom':
+                self._server._room_manager.create_room(client_name)
+                self._state = ClientWorkerState.ROOM()
+                await self._sess.respond_ok()
+            elif msg_type == 'EnterAnyRoom':
+                raise NotImplementedError('EnterAnyRoom is not implemented yet')
+            else:
+                raise Exception(f'Invalid hub action: {msg!r}')
+        except Exception as e:
+            await self._sess.respond_err(str(e))
+
+    async def run_room_step(self):
+        msg = await self._sess.wait_for_room_action()
+        msg_type = msg.kind()
+        client_name = self._client_info.name
+
+        try:
+            if msg_type == 'LeaveRoom':
+                await self._server._room_manager.handle_room_quit(client_name)
+                self._state = ClientWorkerState.HUB()
+                await self._sess.respond_ok()
+            elif msg_type == 'GetRoomProperties':
+                props = self._server._room_manager.get_room_properties(client_name)
+                await self._sess.respond_with_room_properties(props)
+            elif msg_type == 'SetRoomProperties':
+                props = msg.set_room_properties()
+                self._server._room_manager.set_room_properties(client_name, props)
+                await self._sess.respond_ok()
+            elif msg_type == 'Ready':
+                self._state = ClientWorkerState.READY()
+                await self._sess.respond_ok()
+            else:
+                raise Exception(f'Invalid room action: {msg!r}')
+        except Exception as e:
+            await self._sess.respond_err(str(e))
+
+    async def run_ready_step(self):
+        client_name = self._client_info.name
+        game, game_room = await self._server._room_manager.wait_until_game_starts(client_name)
+        self._state = ClientWorkerState.GAME(game, game_room)
+
+    async def run_game_step(self, game: Game, game_room: GameRoom):
+        await self._server._client_handler(self._sess, self._client_info, game, game_room)
+        self._state = ClientWorkerState.HUB()
 
 
 class Server:
@@ -35,7 +120,7 @@ class Server:
         ],
     ) -> None:
         self._client_handler = client_handler
-        self._client_rich_infos: List[RichClientInfo] = []
+        self._client_infos: Dict[ClientName, RichClientInfo] = {}
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
         self._room_manager = RoomManager()
 
@@ -65,47 +150,16 @@ class Server:
             await sess.initialize_err(str(e))
             return
 
-        while True:
-            msg = await sess.wait_for_hub_action()
-            # TODO: make a normal api for matching with default.
-            # What we have here now is just a dirty hack.
-            msg_type = msg.to_primitive()[0]
-
-            try:
-                if msg_type == 'ListRooms':
-                    room_infos = self._room_manager.list_room_infos()
-                    await sess.respond_with_room_list(room_infos)
-                if msg_type == 'EnterRoom':
-                    room_name = msg.enter_room()
-                    self._room_manager.handle_room_entry(client_name, room_name)
-            except Exception as e:
-                await sess.respond_err(str(e))
-
-
         client_rich_info = RichClientInfo(info=client_info, name=client_name)
-        self._client_rich_infos.append(client_rich_info)
-        if len(self._client_rich_infos) >= self.CLIENTS_PER_GAME:
-            logger.info(
-                'Creating a game room for {}',
-                ', '.join(repr(x.name) for x in self._client_rich_infos),
-            )
-            client_rich_infos = self._client_rich_infos
-            self._client_rich_infos = []
-            game = create_game(client_rich_infos)
-            game_room = GameRoom([info.name for info in client_rich_infos], game)
-            await self._game_pubsub.publish((game, game_room))
-            is_game_creator = True
-        else:
-            game, game_room = await self._wait_until_game_is_ready(sess)
-            is_game_creator = False
+        assert client_name not in self._client_infos
+        self._client_infos[client_name] = client_rich_info
 
-        if is_game_creator:
-            await curio.spawn(game_room.run_loop, daemon=True)
+        try:
+            worker = ClientWorker(client_rich_info, self, sess)
+            await worker.run()
 
-        await sess.wait_until_ready()
-        await sess.start_game(game.info())
-        logger.info('Game with {!r} has started', client_name)
-        await self._client_handler(sess, client_rich_info, game, game_room)
+        finally:
+            self._client_infos.pop(client_name)
 
     async def _wait_until_game_is_ready(self, sess: ServerSession) -> Tuple[Game, GameRoom]:
         # TODO: poll for messages from the client.

@@ -1,12 +1,16 @@
 from bot_arena_server.client_name import ClientName
+from bot_arena_server.game import Game
+from bot_arena_server.game_room import GameRoom
+from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_mapping import RoomMapping
 
 import copy
 import secrets
 from dataclasses import dataclass
-from typing import Dict, Set, Any
+from typing import Dict, Set, Any, Tuple, List
 
-from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior
+import curio # type: ignore
+from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior, RoomInfo
 from loguru import logger # type: ignore
 
 
@@ -70,11 +74,18 @@ def generate_room_id() -> str:
     return secrets.token_hex(8)
 
 
+class RoomSyncObject:
+    def __init__(self):
+        self.readiness_set: Set[ClientName] = set()
+        self.pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
+
+
 class RoomManager:
     def __init__(self) -> None:
         self._mapping = RoomMapping()
         self._alias_map: Dict[str, str] = {}
         self._rooms: Dict[str, RoomDetails] = {}
+        self._room_sync: Dict[str, RoomSyncObject] = {}
 
     def create_room(self, invoking_client: ClientName) -> None:
         room_id = generate_room_id()
@@ -105,6 +116,7 @@ class RoomManager:
             open = RoomOpenness.CLOSED(),
             game_started = False,
         )
+        self._room_sync[room_id] = RoomSyncObject()
 
     def handle_room_quit(self, invoking_client: ClientName) -> None:
         # Precondition: client is in a room, where a game has not yet started.
@@ -118,6 +130,7 @@ class RoomManager:
         # TODO: maybe add a check to ensure that at least one admin
         # is always in the room.
         self._mapping.remove_client_from_room(invoking_client)
+        self._room_sync[room_id].readiness_set.remove(invoking_client)
         remaining_clients = self._mapping.list_clients_in_a_room(room_id)
 
         # If nobody is left in the room, it should be deleted.
@@ -138,6 +151,7 @@ class RoomManager:
         room = self._rooms[room_id]
         self._alias_map.pop(room.name)
         self._alias_map.pop(room_id, None)
+        self._room_sync.pop(room_id)
 
     def _rename_room(self, room_name: str, new_name: str) -> None:
         check_that_room_name_is_valid(new_name)
@@ -184,6 +198,7 @@ class RoomManager:
                 for name in self._mapping.list_clients_in_a_room(room_id)
                 if name.is_player()
             ],
+            'admins': list(room.admins),
             'min_players': room.min_players,
             'max_players': room.max_players,
             'snake_len': room.snake_len,
@@ -202,7 +217,7 @@ class RoomManager:
         if room.game_started:
             raise Exception('The game in your room has already started')
 
-        is_admin = invoking_client in room.admins
+        is_admin = invoking_client.is_player() and str(invoking_client) in room.admins
         if not is_admin:
             raise Exception('You must be an admin to change room properties')
 
@@ -214,6 +229,17 @@ class RoomManager:
             self._rename_room(room.name, value)
         elif key == 'players':
             raise Exception('Property "players" is read-only')
+        elif key == 'admins':
+            players = set(self.list_players_in_a_room(room.name))
+            admins = value
+            for player_name in admins:
+                if player_name not in players:
+                    raise Exception(f'{player_name!r} is not in this room')
+
+            if len(admins) == 0:
+                raise Exception(f'List of admins must be non-empty')
+
+            room.admins = set(admins)
         elif key in {
                 'min_players',
                 'max_players',
@@ -227,6 +253,84 @@ class RoomManager:
             setattr(room, key, value)
         else:
             raise Exception(f'Invalid room property name: {key!r}')
+
+    def list_players_in_a_room(self, room_name: str):
+        room_id = self._alias_map[room_name]
+        clients = self._mapping.list_clients_in_a_room(room_id)
+        return [str(x) for x in clients if x.is_player()]
+
+    async def wait_until_game_starts(self, invoking_client: ClientName):
+        # Precondition: client must be in a room, a game must not have started there,
+        # and it is the first time this client reports being ready.
+        self._mapping.check_that_client_is_not_in_hub(invoking_client)
+        room_id = self._mapping.get_room_with_client(invoking_client)
+        room = self._rooms[room_id]
+        if room.game_started:
+            raise Exception('The game in your room has already started')
+
+        sync_object = self._room_sync[room_id]
+        readiness_set = sync_object.readiness_set
+        if invoking_client in readiness_set:
+            raise Exception('You have already declared being ready')
+
+        readiness_set.add(invoking_client)
+
+        room_info = self._get_room_info_unchecked(invoking_client, room_id)
+        num_players = len(room_info.players)
+
+        if num_players >= room_info.min_players and len(readiness_set) == num_players:
+            assert readiness_set == set(room_info.players)
+
+            # Ready to start a game.
+
+            # TODO: shuffle for fairness.
+            client_names = list(readiness_set)
+
+            game = create_game(client_names)
+            game_room = GameRoom(client_names, game)
+
+            await sync_object.pubsub.publish((game, game_room))
+            logger.info('The game in the room {!r} is starting', room.name)
+            await curio.spawn(game_room.run_loop, daemon=True)
+        else:
+            # Subscribe to receive the game and game_room objects when the game begins.
+            game, game_room = await sync_object.pubsub.receive()
+
+        return game, game_room
+
+
+    def _get_room_info_unchecked(self, invoking_client: ClientName, room_id: str) -> RoomInfo:
+        room = self._rooms[room_id]
+
+        return RoomInfo(
+            id = room_id,
+            name = room.name,
+            min_players = room.min_players,
+            max_players = room.max_players,
+            players = [
+                str(x)
+                for x in self._mapping.list_clients_in_a_room(room_id)
+                if x.is_player()
+            ],
+            can_join = room.open.match(
+                open = lambda: 'yes',
+                closed = lambda: 'no',
+                whitelist = lambda whitelist: {False: 'no', True: 'yes'}[
+                    invoking_client.is_player() and (str(invoking_client) in whitelist)
+                ],
+                password = lambda _: 'password',
+            ), # type: ignore
+        )
+
+
+def create_game(client_names: List[ClientName]) -> Game:
+    field_width = 20
+    field_height = 20
+    return Game(
+        field_width,
+        field_height,
+        [str(x) for x in client_names if x.is_player()],
+    )
 
 
 def check_that_room_name_is_valid(room_name: str) -> None:
