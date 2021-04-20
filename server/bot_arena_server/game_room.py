@@ -52,7 +52,10 @@ class GameRoom:
         if client_name not in self._players:
             raise KeyError(f'No such player in the game room: {client_name!r}')
 
-        await self.broadcast_event(Event.SNAKE_DIED(str(client_name)), lambda name: True)
+        await self.broadcast_event(
+            Event(name='SnakeDied', data=str(client_name), must_know=False),
+            lambda name: True,
+        )
 
     async def finish_turn(self, client_name: ClientName) -> None:
         assert client_name.is_player()
