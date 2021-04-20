@@ -121,7 +121,7 @@ async def take_turn():
 
     # We will always tell our snake to move right.
     curBot = Bot()
-    action = Action.MOVE(curBot.find_direction(curField, f_height, f_width, name))
+    action = Action.MOVE(curBot.find_direction(curField, f_width, f_height, name))
     #action = Action.MOVE(Direction.UP())
     # Send our action to the server
     await sess.respond(action)  # May cause an ERR if the move is invalid.

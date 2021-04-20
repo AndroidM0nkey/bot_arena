@@ -21,12 +21,10 @@ class Bot:
 
         matrix = [[0 for i in range(m)] for j in range(n)]
         distances = [[Bot.inf for i in range(m)] for j in range(n)]
+
         apple = field_state.objects[0][0]
         """Координаты яблока."""
-        print(n)
-        print(m)
-        print(apple.x)
-        print(apple.y)
+
         matrix[apple.x][apple.y] = -1
 
         for snake_state in field_state.snakes.values():
@@ -38,9 +36,9 @@ class Bot:
 
             for snake_cell in snake_state.tail:
                 if snake_cell == Direction.UP():
-                    x -= 1
-                if snake_cell == Direction.DOWN():
                     x += 1
+                if snake_cell == Direction.DOWN():
+                    x -= 1
                 if snake_cell == Direction.LEFT():
                     y -= 1
                 if snake_cell == Direction.RIGHT():
@@ -127,4 +125,3 @@ class Bot:
         """Возвращаем направление хода в сторону клетки, от которой минимальное расстояние до клетки с яблоком."""
 
         return min(ans, key=lambda i: i[0])[1]
-
