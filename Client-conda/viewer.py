@@ -100,6 +100,8 @@ async def handle_new_field_state(state):
     
 
 async def handle_event(event):
+    if event.name == 'SnakeDied':
+        time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
     pass
