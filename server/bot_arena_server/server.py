@@ -16,7 +16,7 @@ __all__ = [
 
 
 def create_game(client_infos: List[RichClientInfo]) -> Game:
-    field_width = 30
+    field_width = 20
     field_height = 20
     return Game(
         field_width,
