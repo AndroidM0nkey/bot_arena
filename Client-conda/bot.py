@@ -77,7 +77,7 @@ class Bot:
                 if self.is_cell_correct(next_cell, n, m):
                     if matrix[next_y][next_x] == 0:
                         if distances[next_y][next_x] == Bot.inf:
-                            distances[next_y][next_x] = distances[x][y] + 1
+                            distances[next_y][next_x] = distances[y][x] + 1
                             bfs_queue.append((next_y, next_x))
 
         return distances
@@ -87,8 +87,6 @@ class Bot:
 
         """Посчитаем расстояния от яблока до каждой свободной клетки поля."""
         matrix, distances = self.field_to_matrix(field_state, n, m)
-        for st in matrix:
-            print(st)
         
         apple = field_state.objects[0][0]
         distances = self.bfs(matrix, distances, n, m, apple)
