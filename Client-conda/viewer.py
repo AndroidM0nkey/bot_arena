@@ -20,7 +20,7 @@ sess = None
 curField = None
 f_width = 0
 f_height = 0
-name = 'first'
+name = '@viewer'
 
 async def main():
     global sess
