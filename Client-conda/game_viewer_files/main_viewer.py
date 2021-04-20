@@ -29,7 +29,8 @@ def get_message_and_display(cur_state: FieldState, surface: pygame.display):
             snake_peaces.append(SnakeBodyPeace(cur_x, cur_y, player_colors[colors_cnt]))
         cur_snake = Snake(snake_peaces)
         cur_snake.draw(surface)
-    apple = Apple(cur_state.objects[0][0].x * c.cell_width, cur_state.objects[0][0].y * c.cell_width)
-    apple.draw(surface)
+    for i in range(len(cur_state.objects)):
+        apple = Apple(cur_state.objects[i][0].x * c.cell_width, cur_state.objects[i][0].y * c.cell_width)
+        apple.draw(surface)
     pygame.display.update()
     return
