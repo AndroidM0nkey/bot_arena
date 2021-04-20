@@ -142,6 +142,10 @@ class Game:
     def snake_names(self) -> Iterable[str]:
         return self.field._snakes.keys()
 
+    def is_finish_condition_satisfied(self) -> bool:
+        # TODO: make the finish condition configurable.
+        return self.field.count_alive_players() <= 1
+
 
 class Field:
     def __init__(
@@ -170,6 +174,9 @@ class Field:
         y = random.randrange(0, self.height)
         point = Point(x, y)
         return point if self.is_cell_completely_free(point) else None
+
+    def count_alive_players(self) -> int:
+        return len(self._snakes)
 
     def move_snake(self, name: str, direction: Direction) -> MoveResult:
         if name not in self._snakes:
