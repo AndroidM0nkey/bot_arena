@@ -1,11 +1,13 @@
+from bot_arena_server.client_name import ClientName
+
 from typing import Dict, Set, Iterable, Optional
 
 
 __all__ = [
     'RoomExistsError',
     'RoomDoesNotExistError',
-    'PlayerInRoomError',
-    'PlayerNotInRoomError',
+    'ClientInRoomError',
+    'ClientNotInRoomError',
     'RoomMapping',
 ]
 
@@ -16,7 +18,7 @@ class RoomExistsError(KeyError):
         self._room_name = room_name
 
     def __repr__(self) -> str:
-        return f'Room "{self._room_name}" already exists'
+        return f'Room {self._room_name!r} already exists'
 
 
 class RoomDoesNotExistError(KeyError):
@@ -25,83 +27,83 @@ class RoomDoesNotExistError(KeyError):
         self._room_name = room_name
 
     def __repr__(self) -> str:
-        return f'Room "{self._room_name}" does not exist'
+        return f'Room {self._room_name!r} does not exist'
 
 
-class PlayerInRoomError(KeyError):
-    def __init__(self, room_name: str, player: str) -> None:
+class ClientInRoomError(KeyError):
+    def __init__(self, room_name: str, client: ClientName) -> None:
         super().__init__(room_name)
         self._room_name = room_name
-        self._player = player
+        self._client = client
 
     def __repr__(self) -> str:
-        return f'Player "{self._player}" is already in the room "{self._room_name}"'
+        return f'{self._client!r} is already in the room {self._room_name!r}'
 
 
-class PlayerNotInRoomError(KeyError):
-    def __init__(self, room_name: Optional[str], player: str) -> None:
+class ClientNotInRoomError(KeyError):
+    def __init__(self, room_name: Optional[str], client: ClientName) -> None:
         super().__init__(room_name)
         self._room_name = room_name
-        self._player = player
+        self._client = client
 
     def __repr__(self) -> str:
-        return f'Player "{self._player}" is not in ' + (
+        return f'{self._client!r} is not in ' + (
             'a room'
             if self._room_name is None else
-            f'the room {self._room_name}'
+            f'the room {self._room_name!r}'
         )
 
 
 class RoomMapping:
     def __init__(self) -> None:
-        self._players_to_rooms_map: Dict[str, str] = {}
-        self._rooms_to_players_map: Dict[str, Set[str]] = {}
+        self._clients_to_rooms_map: Dict[ClientName, str] = {}
+        self._rooms_to_clients_map: Dict[str, Set[ClientName]] = {}
 
     def room_exists(self, room_name: str) -> bool:
-        return room_name in self._rooms_to_players_map
+        return room_name in self._rooms_to_clients_map
 
     def add_room(self, room_name: str) -> None:
         self.check_that_room_does_not_exist(room_name)
-        self._rooms_to_players_map[room_name] = set()
+        self._rooms_to_clients_map[room_name] = set()
 
     def remove_room(self, room_name: str) -> None:
         self.check_that_room_exists(room_name)
 
-        for player in self._rooms_to_players_map[room_name]:
-            self._players_to_rooms_map.pop(player, None)
+        for client in self._rooms_to_clients_map[room_name]:
+            self._clients_to_rooms_map.pop(client, None)
 
-        self._rooms_to_players_map.pop(room_name)
+        self._rooms_to_clients_map.pop(room_name)
 
-    def add_player_to_room(self, room_name: str, player: str) -> None:
+    def add_client_to_room(self, room_name: str, client: ClientName) -> None:
         self.check_that_room_exists(room_name)
-        self.check_that_player_is_in_hub(player)
+        self.check_that_client_is_in_hub(client)
 
-        self._rooms_to_players_map[room_name].add(player)
-        self._players_to_rooms_map[player] = room_name
+        self._rooms_to_clients_map[room_name].add(client)
+        self._clients_to_rooms_map[client] = room_name
 
-    def remove_player_from_room(self, player: str) -> None:
-        self.check_that_player_is_not_in_hub(player)
-        room_name = self._players_to_rooms_map.pop(player)
-        self._rooms_to_players_map[room_name].remove(player)
+    def remove_client_from_room(self, client: ClientName) -> None:
+        self.check_that_client_is_not_in_hub(client)
+        room_name = self._clients_to_rooms_map.pop(client)
+        self._rooms_to_clients_map[room_name].remove(client)
 
     def list_rooms(self) -> Iterable[str]:
-        return self._rooms_to_players_map.keys()
+        return self._rooms_to_clients_map.keys()
 
-    def list_players_in_a_room(self, room_name: str) -> Iterable[str]:
+    def list_clients_in_a_room(self, room_name: str) -> Iterable[ClientName]:
         self.check_that_room_exists(room_name)
-        return self._rooms_to_players_map[room_name]
+        return self._rooms_to_clients_map[room_name]
 
-    def get_room_with_player(self, player: str) -> str:
-        self.check_that_player_is_not_in_hub(player)
-        return self._players_to_rooms_map[player]
+    def get_room_with_client(self, client: ClientName) -> str:
+        self.check_that_client_is_not_in_hub(client)
+        return self._clients_to_rooms_map[client]
 
-    def check_that_player_is_in_hub(self, player: str) -> None:
-        if player in self._players_to_rooms_map:
-            raise PlayerInRoomError(self._players_to_rooms_map[player], player)
+    def check_that_client_is_in_hub(self, client: ClientName) -> None:
+        if client in self._clients_to_rooms_map:
+            raise ClientInRoomError(self._clients_to_rooms_map[client], client)
 
-    def check_that_player_is_not_in_hub(self, player: str) -> None:
-        if player not in self._players_to_rooms_map:
-            raise PlayerNotInRoomError(None, player)
+    def check_that_client_is_not_in_hub(self, client: ClientName) -> None:
+        if client not in self._clients_to_rooms_map:
+            raise ClientNotInRoomError(None, client)
 
     def check_that_room_exists(self, room_name: str) -> None:
         if not self.room_exists(room_name):

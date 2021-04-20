@@ -2,6 +2,7 @@ from bot_arena_server.client_name import ClientName, RichClientInfo
 from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
+from bot_arena_server.room_manager import RoomManager
 
 from typing import Tuple, Callable, Coroutine, List, Optional
 
@@ -36,6 +37,7 @@ class Server:
         self._client_handler = client_handler
         self._client_rich_infos: List[RichClientInfo] = []
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
+        self._room_manager = RoomManager()
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)
@@ -62,6 +64,23 @@ class Server:
         except Exception as e:
             await sess.initialize_err(str(e))
             return
+
+        while True:
+            msg = await sess.wait_for_hub_action()
+            # TODO: make a normal api for matching with default.
+            # What we have here now is just a dirty hack.
+            msg_type = msg.to_primitive()[0]
+
+            try:
+                if msg_type == 'ListRooms':
+                    room_infos = self._room_manager.list_room_infos()
+                    await sess.respond_with_room_list(room_infos)
+                if msg_type == 'EnterRoom':
+                    room_name = msg.enter_room()
+                    self._room_manager.handle_room_entry(client_name, room_name)
+            except Exception as e:
+                await sess.respond_err(str(e))
+
 
         client_rich_info = RichClientInfo(info=client_info, name=client_name)
         self._client_rich_infos.append(client_rich_info)

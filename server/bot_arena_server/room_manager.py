@@ -1,3 +1,4 @@
+from bot_arena_server.client_name import ClientName
 from bot_arena_server.room_mapping import RoomMapping
 
 import copy
@@ -75,24 +76,24 @@ class RoomManager:
         self._alias_map: Dict[str, str] = {}
         self._rooms: Dict[str, RoomDetails] = {}
 
-    def create_room(self, invoking_player: str) -> None:
+    def create_room(self, invoking_client: ClientName) -> None:
         room_id = generate_room_id()
 
         # Precondition: room must not exist (always holds unless there is an unlikely id collision
-        # or a bug) and the player must be in the hub.
+        # or a bug) and the client must be in the hub.
         # TODO: maybe handle id collisions gracefully.
-        self._mapping.check_that_player_is_in_hub(invoking_player)
+        self._mapping.check_that_client_is_in_hub(invoking_client)
         self._mapping.check_that_room_does_not_exist(room_id)
         assert room_id not in self._alias_map
 
         # We have checked all the necessary preconditions and may now proceed.
 
-        logger.info('{} creates a room {!r}', invoking_player, room_id)
+        logger.info('{} creates a room {!r}', invoking_client, room_id)
         self._mapping.add_room(room_id)
-        self._mapping.add_player_to_room(room_id, invoking_player)
+        self._mapping.add_client_to_room(room_id, invoking_client)
         self._alias_map[room_id] = room_id
         self._rooms[room_id] = RoomDetails(
-            admins = {invoking_player},
+            admins = {str(invoking_client)},    # TODO: maybe change this behavior for viewers
             name = room_id,
             min_players = 2,
             max_players = 2,
@@ -105,27 +106,27 @@ class RoomManager:
             game_started = False,
         )
 
-    def handle_room_quit(self, invoking_player: str) -> None:
-        # Precondition: player is in a room, where a game has not yet started.
-        room_id = self._mapping.get_room_with_player(invoking_player)
+    def handle_room_quit(self, invoking_client: ClientName) -> None:
+        # Precondition: client is in a room, where a game has not yet started.
+        room_id = self._mapping.get_room_with_client(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
             raise Exception('The game in your room has already started')
 
-        logger.info('{} leaves the room {!r}', invoking_player, room.name)
+        logger.info('{} leaves the room {!r}', invoking_client, room.name)
 
         # TODO: maybe add a check to ensure that at least one admin
         # is always in the room.
-        self._mapping.remove_player_from_room(invoking_player)
-        remaining_players = self._mapping.list_players_in_a_room(room_id)
+        self._mapping.remove_client_from_room(invoking_client)
+        remaining_clients = self._mapping.list_clients_in_a_room(room_id)
 
         # If nobody is left in the room, it should be deleted.
-        if len(list(remaining_players)) == 0:
+        if len(list(remaining_clients)) == 0:
             self.remove_room(room_id)
             return
 
-        # If the player was an admin, delete it from this list
-        room.admins.discard(invoking_player)
+        # If the client was an admin, delete it from this list
+        room.admins.discard(str(invoking_client))
 
     def remove_room(self, room_name: str) -> None:
         # Precondition: room must exist.
@@ -151,34 +152,38 @@ class RoomManager:
     def room_name_to_id(self, room_name: str) -> str:
         return self._alias_map[room_name]
 
-    def handle_room_entry(self, invoking_player: str, room_name: str) -> None:
-        # Precondition: room must exist, the player must be able to enter it,
-        # the player must be in the hub, and the game must not have started.
+    def handle_room_entry(self, invoking_client: ClientName, room_name: str) -> None:
+        # Precondition: room must exist, the client must be able to enter it,
+        # the client must be in the hub, and the game must not have started.
         room_id = self.room_name_to_id(room_name)
         self._mapping.check_that_room_exists(room_id)
-        self._mapping.check_that_player_is_in_hub(invoking_player)
+        self._mapping.check_that_client_is_in_hub(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
             raise Exception('The game in this room has already started')
 
-        logger.info('Player {} enters toom {!r}', invoking_player, room_name)
+        logger.info('{!r} enters toom {!r}', invoking_client, room_name)
 
-    def get_room_properties(self, invoking_player: str) -> Dict[str, Any]:
-        # Precondition: player must be in a room and a game must not have started there.
-        self._mapping.check_that_player_is_not_in_hub(invoking_player)
-        room_id = self._mapping.get_room_with_player(invoking_player)
+    def get_room_properties(self, invoking_client: ClientName) -> Dict[str, Any]:
+        # Precondition: client must be in a room and a game must not have started there.
+        self._mapping.check_that_client_is_not_in_hub(invoking_client)
+        room_id = self._mapping.get_room_with_client(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
             raise Exception('The game in your room has already started')
 
-        is_admin = invoking_player in room.admins
+        is_admin = invoking_client in room.admins
 
         if not is_admin:
             room = room.strip_private_info()
 
         return {
             'name': room.name,
-            'players': list(self._mapping.list_players_in_a_room(room_id)),
+            'players': [
+                str(name)
+                for name in self._mapping.list_clients_in_a_room(room_id)
+                if name.is_player()
+            ],
             'min_players': room.min_players,
             'max_players': room.max_players,
             'snake_len': room.snake_len,
@@ -189,15 +194,15 @@ class RoomManager:
             'open': room.open,
         }
 
-    def set_room_properties(self, invoking_player: str, properties: Dict[str, Any]) -> None:
-        # Precondition: player must be in a room and a game must not have started there.
-        self._mapping.check_that_player_is_not_in_hub(invoking_player)
-        room_id = self._mapping.get_room_with_player(invoking_player)
+    def set_room_properties(self, invoking_client: ClientName, properties: Dict[str, Any]) -> None:
+        # Precondition: client must be in a room and a game must not have started there.
+        self._mapping.check_that_client_is_not_in_hub(invoking_client)
+        room_id = self._mapping.get_room_with_client(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
             raise Exception('The game in your room has already started')
-        
-        is_admin = invoking_player in room.admins
+
+        is_admin = invoking_client in room.admins
         if not is_admin:
             raise Exception('You must be an admin to change room properties')
 
