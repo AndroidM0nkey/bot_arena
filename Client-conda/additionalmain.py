@@ -81,13 +81,13 @@ async def handle_new_field_state(state):
     # Do something when a new field state arrives.
     # Let's update your current field
     #
-    #curField = state
+    curField = state
     #pygame.init()
     #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
     #pygame.display.set_caption('Pythons')
     #get_message_and_display(curField, main_surface)
     #time.sleep(1000)
-    pass
+    
     
 
 async def handle_event(event):
