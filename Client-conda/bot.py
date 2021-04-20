@@ -22,8 +22,6 @@ class Bot:
         matrix = [[0 for i in range(m)] for j in range(n)]
         distances = [[Bot.inf for i in range(m)] for j in range(n)]
 
-        apple = field_state.objects[0][0]
-        """Координаты яблока."""
 
         for snake_state in field_state.snakes.values():
             x = snake_state.head.x
