@@ -88,7 +88,20 @@ class ClientWorker:
                 self._state = ClientWorkerState.ROOM()
                 await self._sess.respond_ok()
             elif msg_type == 'EnterAnyRoom':
-                raise NotImplementedError('EnterAnyRoom is not implemented yet')
+                room_infos = list(self._server._room_manager.list_room_infos(client_name))
+
+                joined = False
+                for info in room_infos:
+                    if info.can_join == 'yes':
+                        self._server._room_manager.handle_room_entry(client_name, info.name)
+                        joined = True
+
+                if not joined:
+                    self._server._room_manager.create_room(client_name)
+                
+                self._state = ClientWorkerState.ROOM()
+                await self._sess.respond_ok()
+
             else:
                 raise Exception(f'Invalid hub action: {msg!r}')
         except Exception as e:
