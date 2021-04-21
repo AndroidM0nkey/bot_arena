@@ -243,6 +243,12 @@ class ClientSession(Session):
         await self.send_message(Message.SET_ROOM_PROPERTIES(properties))
         await self.expect_ok()
 
+    async def leave_room(self) -> None:
+        """Leave the current room."""
+
+        await self.send_message(Message.LEAVE_ROOM())
+        await self.expect_ok()
+
     async def expect_ok(self) -> None:
         """Ensure that the server responds with an Ok."""
 

@@ -16,8 +16,11 @@ __all__ = [
     'Action',
     'Direction',
     'FieldState',
+    'FoodRespawnBehavior',
     'Object',
     'Point',
+    'RoomInfo',
+    'RoomOpenness',
     'SnakeState',
 ]
 
