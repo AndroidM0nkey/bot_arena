@@ -55,7 +55,7 @@ class Bot:
         bfs_queue = deque()
         for start_point in start_points:
             bfs_queue.append((start_point.y, start_point.x))
-        distances[start_point.y][start_point.x] = 0
+            distances[start_point.y][start_point.x] = 0
 
         """Алгоритм продолжает работу, пока не кончились непосещенные вершины."""
 
@@ -107,7 +107,7 @@ class Bot:
             next_y = next_cell[0]
             next_x = next_cell[1]
             if self.is_cell_correct(next_cell, n, m):
-                if matrix[next_y][next_x] == 0 and distances[next_y][next_x] != Bot.inf:
+                if matrix[next_y][next_x] == 0:
 
                     """Если клетка внутри таблица и свободна, 
                         положим в список расстояние от нее до яблока и нужное 
