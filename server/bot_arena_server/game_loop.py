@@ -67,7 +67,7 @@ async def run_game_loop(
     except EOFError:
         logger.info('{!r} disconnected', client_info.name)
         await on_crash(sess, client_info, game_room, report_to_offender=False)
-        return
+        raise
 
 
 async def on_crash(

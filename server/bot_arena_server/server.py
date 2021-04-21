@@ -49,7 +49,25 @@ class ClientWorker:
                 game = self.run_game_step,
             )
         except EOFError:
+            self._state.match(
+                hub = self.on_disconnect_from_hub,
+                room = self.on_disconnect_from_room,
+                ready = self.on_disconnect_from_ready,
+                game = self.on_disconnect_from_game,
+            )
             self._should_terminate = True
+
+    def on_disconnect_from_hub(self) -> None:
+        pass
+
+    def on_disconnect_from_room(self) -> None:
+        self._server._room_manager.handle_room_quit(self._client_info.name)
+    
+    def on_disconnect_from_ready(self) -> None:
+        self._server._room_manager.handle_room_quit(self._client_info.name)
+
+    def on_disconnect_from_game(self, *args) -> None:
+        pass
 
     async def run_hub_step(self) -> None:
         msg = await self._sess.wait_for_hub_action()

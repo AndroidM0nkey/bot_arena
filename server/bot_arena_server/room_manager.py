@@ -130,7 +130,7 @@ class RoomManager:
         # TODO: maybe add a check to ensure that at least one admin
         # is always in the room.
         self._mapping.remove_client_from_room(invoking_client)
-        self._room_sync[room_id].readiness_set.remove(invoking_client)
+        self._room_sync[room_id].readiness_set.discard(invoking_client)
         remaining_clients = self._mapping.list_clients_in_a_room(room_id)
 
         # If nobody is left in the room, it should be deleted.
@@ -152,6 +152,7 @@ class RoomManager:
         self._alias_map.pop(room.name)
         self._alias_map.pop(room_id, None)
         self._room_sync.pop(room_id)
+        self._rooms.pop(room_id)
 
     def _rename_room(self, room_name: str, new_name: str) -> None:
         check_that_room_name_is_valid(new_name)
