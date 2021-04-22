@@ -6,7 +6,7 @@ import game_viewer_files.config as c
 
 class Apple(Cell):
     def __init__(self, x, y, r=c.apple_radius, color=c.apple_color):
-        Cell.__init__(self, x, y)
+        Cell.__init__(self, x, y, 2 * r, 2 * r)
         self.radius = r
         self.color = color
 
