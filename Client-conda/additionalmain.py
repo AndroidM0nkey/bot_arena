@@ -108,9 +108,9 @@ async def handle_new_field_state(state):
 
 
 async def handle_event(event):
-    # Do something when an event happens.
-    #print(f'Event happened: {event}')
-    pass
+    # TODO: replace it with something that can be handled by the calling code.
+    if event.name == 'GameFinished':
+        exit()
 
 async def handle_error(description):
     print(description)

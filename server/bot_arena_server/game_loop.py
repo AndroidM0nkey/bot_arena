@@ -35,6 +35,7 @@ async def run_game_loop(
             try:
                 await game_room.wait_for_turn(client_info.name)
             except GameRoomExit:
+                logger.debug('{!r} leaves the room because of their death', client_info.name)
                 await sess.send_event(Event(name='GameFinished', data=None, must_know=True))
                 break
 
@@ -64,7 +65,7 @@ async def run_game_loop(
             except IllegalAction as e:
                 logger.info('The action {} for {} is invalid: {}', action, client_info.name, e)
                 await sess.respond_err(str(e))
-    except EOFError:
+    except Exception:
         logger.info('{!r} disconnected', client_info.name)
         await on_crash(sess, client_info, game_room, report_to_offender=False)
         raise
@@ -77,11 +78,19 @@ async def on_crash(
     report_to_offender: bool = True,
 ) -> None:
     if report_to_offender:
+        logger.debug('1a, {}', client_info.name)
         await sess.respond_ok()
+        logger.debug('2a, {}', client_info.name)
         await game_room.report_death(client_info.name)
+        logger.debug('3a, {}', client_info.name)
         game_room.mark_snake_dead(client_info.name)
+        logger.debug('4a, {}', client_info.name)
     else:
+        logger.debug('1, {}', client_info.name)
         game_room.mark_snake_dead(client_info.name)
+        logger.debug('2, {}', client_info.name)
         await game_room.report_death(client_info.name)
+        logger.debug('3, {}', client_info.name)
 
     await game_room.finish_turn(client_info.name)
+    logger.debug('4, {}', client_info.name)

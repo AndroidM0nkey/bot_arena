@@ -117,8 +117,10 @@ class GameRoom:
 
     async def terminate_session_for(self, client_name: ClientName) -> None:
         assert client_name.is_player()
+        logger.debug('Terminating session for {!r}', client_name)
         queue = self._players[client_name]
         await queue.put('exit')
+        await queue.put(None)
 
     async def broadcast(
         self,
@@ -126,7 +128,7 @@ class GameRoom:
         filter_func: Callable[[ClientName], bool],
     ) -> None:
         for client_name, sess in self._sessions.items():
-            if (client_name not in self._dead) and filter_func(client_name):
+            if filter_func(client_name):
                 await action(sess)
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
