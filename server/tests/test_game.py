@@ -254,17 +254,24 @@ class TestField:
         with pytest.raises(NoSuchSnakeError):
             field.move_snake('E', Direction.RIGHT())
 
-        def check(field, cell_pattern, desired_state):
+        def check(field, cell_pattern, desired_state, min_num_respawned):
             actual_state = field.get_state()
             assert actual_state.snakes == desired_state.snakes
-            assert set(x[0] for x in actual_state.objects) == set(x[0] for x in desired_state.objects)
+
+            # XXX: food respawning is accounted for here.
+            assert equal_modulo_respawn(
+                set(x[0] for x in actual_state.objects),
+                set(x[0] for x in desired_state.objects),
+                min_num_respawned = min_num_respawned,
+            )
             for yc, row in enumerate(cell_pattern):
                 y = height - yc - 1
                 for x, cell_state in enumerate(row):
                     cell = Point(x, y)
                     if cell_state == '.':
                         assert field.is_cell_passable(cell)
-                        assert field.is_cell_completely_free(cell)
+                        # TODO: accomodate object respawning in this test.
+                        #assert field.is_cell_completely_free(cell)
                     elif cell_state == '=':
                         assert field.is_cell_passable(cell)
                         assert not field.is_cell_completely_free(cell)
@@ -291,7 +298,7 @@ class TestField:
             },
             objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 0)
 
         assert field.move_snake('A', Direction.UP()) == MoveResult.OK()
         cell_pattern = [
@@ -311,7 +318,7 @@ class TestField:
             },
             objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 0)
 
         assert field.move_snake('B', Direction.DOWN()) == MoveResult.OK()
         cell_pattern = [
@@ -331,7 +338,7 @@ class TestField:
             },
             objects = [(Point(4, 4), Object.FOOD())],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 1)
 
         assert field.move_snake('B', Direction.UP()) == MoveResult.CRASH()
         cell_pattern = [
@@ -350,7 +357,7 @@ class TestField:
             },
             objects = [(Point(4, 4), Object.FOOD())],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 1)
 
         with pytest.raises(NoSuchSnakeError):
             field.move_snake('B', Direction.LEFT())
@@ -372,7 +379,7 @@ class TestField:
             },
             objects = [],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 2)
 
         assert field.move_snake('C', Direction.UP()) == MoveResult.CRASH()
         cell_pattern = [
@@ -390,7 +397,7 @@ class TestField:
             },
             objects = [],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 2)
 
         assert field.move_snake('D', Direction.DOWN()) == MoveResult.OK()
         cell_pattern = [
@@ -408,7 +415,7 @@ class TestField:
             },
             objects = [],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 2)
 
         assert field.move_snake('D', Direction.DOWN()) == MoveResult.CRASH()
         cell_pattern = [
@@ -425,7 +432,7 @@ class TestField:
             },
             objects = [],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 2)
 
         assert field.move_snake('A', Direction.UP()) == MoveResult.OK()
         assert field.move_snake('A', Direction.UP()) == MoveResult.CRASH()
@@ -441,7 +448,7 @@ class TestField:
             snakes = {},
             objects = [],
         )
-        check(field, cell_pattern, desired_state)
+        check(field, cell_pattern, desired_state, 2)
 
     @staticmethod
     def test_is_cell_passable():
@@ -591,16 +598,16 @@ class TestGame:
         game._field = field
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
-        assert field.get_state() == FieldState(
+        assert fs_equal_modulo_respawn(field.get_state(), FieldState(
             snakes = {
                 'A': SnakeState(Point(7, 3), [Direction.RIGHT(), Direction.RIGHT(), Direction.RIGHT()]),
                 'B': SnakeState(Point(0, 0), []),
             },
             objects = [(Point(6, 3), Object.FOOD())],
-        )
+        ), 0)
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
-        assert field.get_state() == FieldState(
+        assert fs_equal_modulo_respawn(field.get_state(), FieldState(
             snakes = {
                 'A': SnakeState(
                     Point(6, 3),
@@ -609,10 +616,10 @@ class TestGame:
                 'B': SnakeState(Point(0, 0), []),
             },
             objects = [],
-        )
+        ), 1)
 
         assert game.take_turn('B', Action.MOVE(Direction.DOWN())) == MoveResult.CRASH()
-        assert field.get_state() == FieldState(
+        assert fs_equal_modulo_respawn(field.get_state(), FieldState(
             snakes = {
                 'A': SnakeState(
                     Point(6, 3),
@@ -620,7 +627,7 @@ class TestGame:
                 ),
             },
             objects = [],
-        )
+        ), 1)
 
         with pytest.raises(NoSuchSnakeError):
             game.take_turn('C', Action.MOVE(Direction.DOWN()))
@@ -786,3 +793,10 @@ class TestChangeInFreeCells:
         new_occupied.add(E)
         assert cf._new_free == {A} != new_free == {A, B}
         assert cf._new_occupied == {F} != new_occupied == {E, F}
+
+
+def equal_modulo_respawn(set1, set2, min_num_respawned):
+    return len(set1) >= len(set2) + min_num_respawned and all(x in set1 for x in set2)
+
+def fs_equal_modulo_respawn(fs1, fs2, min_num_respawned):
+    return fs1.snakes == fs2.snakes and equal_modulo_respawn(fs1.objects, fs2.objects, min_num_respawned)
