@@ -1,6 +1,7 @@
 from bot_arena_proto.data import Action, FieldState, RoomInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
+from bot_arena_proto.serialization import ensure_type
 
 from dataclasses import dataclass
 from time import sleep
@@ -158,8 +159,9 @@ class ClientSession(Session):
                 raise ValueError(
                     f'Unexpected event received from the server before the game has started: {event}'
                 )
-            width = event.data['field_width']
-            height = event.data['field_height']
+            data = ensure_type(event.data, dict)
+            width = ensure_type(data['field_width'], int)
+            height = ensure_type(data['field_height'], int)
             return GameInfo(field_width=width, field_height=height)
 
     async def wait_for_notification(self) -> 'ClientNotification':
