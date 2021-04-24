@@ -226,6 +226,10 @@ class Field:
     def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
         self._update_occupied_cells(snake.grow(direction))
         self._objects.pop(snake.head)
+
+        # TODO: make this behavior configurable.
+        self.place_object_randomly(Object.FOOD())
+
         return MoveResult.OK()
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:

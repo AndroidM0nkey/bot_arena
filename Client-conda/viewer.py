@@ -92,9 +92,8 @@ async def handle_new_field_state(state):
     global name
     curField = state
     pygame.init()
-    main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
     pygame.display.set_caption('Pythons')
-    get_message_and_display(curField, main_surface)
+    get_message_and_display(curField, f_height, f_width)
     #time.sleep(1000)
     
     

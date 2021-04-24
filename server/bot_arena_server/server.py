@@ -4,7 +4,7 @@ from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_manager import RoomManager
 
-from typing import Tuple, Callable, Coroutine, List, Optional, cast, Dict
+from typing import Tuple, Callable, Coroutine, List, Optional, cast, Dict, Set
 
 import curio    # type: ignore
 from adt import adt, Case
@@ -154,6 +154,7 @@ class Server:
         self._client_infos: Dict[ClientName, RichClientInfo] = {}
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
         self._room_manager = RoomManager()
+        self._clients: Set[ClientName] = set()
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)
@@ -175,13 +176,17 @@ class Server:
         client_info = await sess.pre_initialize()
         try:
             client_name = ClientName(client_info.name)
+            if client_name in self._clients:
+                raise Exception(f'Client {client_name} is already connected')
             logger.info('{!r} joined the party', client_name)
             await sess.initialize_ok()
         except Exception as e:
             await sess.initialize_err(str(e))
             return
 
-        client_rich_info = RichClientInfo(info=client_info, name=client_name)
+        self._clients.add(client_name)
+        try:
+            client_rich_info = RichClientInfo(info=client_info, name=client_name)
         assert client_name not in self._client_infos
         self._client_infos[client_name] = client_rich_info
 
