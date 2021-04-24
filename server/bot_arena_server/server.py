@@ -62,7 +62,7 @@ class ClientWorker:
 
     def on_disconnect_from_room(self) -> None:
         self._server._room_manager.handle_room_quit(self._client_info.name)
-    
+
     def on_disconnect_from_ready(self) -> None:
         self._server._room_manager.handle_room_quit(self._client_info.name)
 
@@ -98,7 +98,7 @@ class ClientWorker:
 
                 if not joined:
                     self._server._room_manager.create_room(client_name)
-                
+
                 self._state = ClientWorkerState.ROOM()
                 await self._sess.respond_ok()
 
@@ -154,7 +154,6 @@ class Server:
         self._client_infos: Dict[ClientName, RichClientInfo] = {}
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
         self._room_manager = RoomManager()
-        self._clients: Set[ClientName] = set()
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)
@@ -176,7 +175,7 @@ class Server:
         client_info = await sess.pre_initialize()
         try:
             client_name = ClientName(client_info.name)
-            if client_name in self._clients:
+            if client_name in self._client_infos:
                 raise Exception(f'Client {client_name} is already connected')
             logger.info('{!r} joined the party', client_name)
             await sess.initialize_ok()
@@ -184,9 +183,7 @@ class Server:
             await sess.initialize_err(str(e))
             return
 
-        self._clients.add(client_name)
-        try:
-            client_rich_info = RichClientInfo(info=client_info, name=client_name)
+        client_rich_info = RichClientInfo(info=client_info, name=client_name)
         assert client_name not in self._client_infos
         self._client_infos[client_name] = client_rich_info
 
