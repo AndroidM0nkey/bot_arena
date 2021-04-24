@@ -9,7 +9,7 @@ setup(
     # Enable type hints in the installed package
     package_data = {'bot_arena_server': ['py.typed']},
 
-    install_requires = ['bot-arena-proto', 'curio'],
+    install_requires = ['bot-arena-proto', 'curio', 'loguru'],
 
     entry_points = {
         'console_scripts': ['bot-arena-server=bot_arena_server.__main__:main'],

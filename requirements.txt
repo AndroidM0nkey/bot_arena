@@ -1,0 +1,7 @@
+algebraic-data-types==0.2.1
+./bot_arena_proto
+./server
+cbor2==5.2.0
+curio==1.5
+loguru==0.5.3
+pygame==2.0.1
