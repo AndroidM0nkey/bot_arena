@@ -48,7 +48,8 @@ class ClientWorker:
                 ready = self.run_ready_step,
                 game = self.run_game_step,
             )
-        except EOFError:
+        except (EOFError, ConnectionResetError) as _:
+            logger.info('{!r} disconnected', self._client_info.name)
             self._state.match(
                 hub = self.on_disconnect_from_hub,
                 room = self.on_disconnect_from_room,

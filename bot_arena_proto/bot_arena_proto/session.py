@@ -1,10 +1,11 @@
 from bot_arena_proto.data import Action, FieldState, RoomInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
+from bot_arena_proto.serialization import ensure_type, Primitive
 
 from dataclasses import dataclass
 from time import sleep
-from typing import Protocol, Tuple, Any, List, Dict
+from typing import Protocol, Tuple, Any, List, Dict, Type
 
 from adt import adt, Case
 
@@ -150,17 +151,14 @@ class ClientSession(Session):
         the current game. See GameInfo for details.
         """
 
-
         while True:
-            event = await self.wait_for_notification().event()
+            event = (await self.wait_for_notification()).event()
 
             if event.name != 'GameStarted':
                 raise ValueError(
                     f'Unexpected event received from the server before the game has started: {event}'
                 )
-            width = event.data['field_width']
-            height = event.data['field_height']
-            return GameInfo(field_width=width, field_height=height)
+            return GameInfo.from_primitive(event.data)
 
     async def wait_for_notification(self) -> 'ClientNotification':
         """Wait until the server notifies you about something.
@@ -437,6 +435,19 @@ class GameInfo:
 
     field_width: int
     field_height: int
+
+    def to_primitive(self) -> Primitive:
+        return {
+            'field_width': self.field_width,
+            'field_height': self.field_height,
+        }
+
+    @classmethod
+    def from_primitive(Class: Type['GameInfo'], p: Primitive) -> 'GameInfo':
+        p = ensure_type(p, dict)
+        field_width = ensure_type(p['field_width'], int)
+        field_height = ensure_type(p['field_height'], int)
+        return Class(field_width=field_width, field_height=field_height)
 
 
 @dataclass

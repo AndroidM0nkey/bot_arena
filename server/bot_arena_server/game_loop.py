@@ -22,7 +22,7 @@ async def run_game_loop(
     game_room: GameRoom,
 ) -> None:
     game_room.set_session(client_info.name, sess)
-    await sess.send_event(Event(name='GameStarted', data=None, must_know=True))
+    await sess.send_event(Event(name='GameStarted', data=game.info().to_primitive(), must_know=True))
     await sess.send_new_field_state(game.field.get_state())
 
     try:
