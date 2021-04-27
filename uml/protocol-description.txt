@@ -10,15 +10,20 @@ Client1                       Server                     Client2
    #    <-------- Ok --------   #                           #
    #                            #                           #
    #    <-- EventHappened ---   #                           #
-   #      GameStarted(40,40)    #                           #
+   #      GameInfo(             #                           #
+   #          width=40,         #                           #
+   #          height=40,        #                           #
+   #      )                     #                           #
    #                            #                           #
    #             ...            #                           #
    #                            #                           #
    #    <-- NewFieldState ---   #                           #
+   #       FieldState(...)      #                           #
+   #                            #                           #
    #    <----- YourTurn -----   #   <--- ClientHello ----   #
    #                            #   player_name = "Bot 1"   #
    #    --------- Act ------>   #                           #
-   #      action = Move::Up     #   -------- Err ------->   #
+   #      action = Move(Up)     #   -------- Err ------->   #
    #                            #   "Name already taken"    #
    #             ...            #    (connection closed)    #
    #                            #                           #
@@ -28,10 +33,12 @@ Client1                       Server                     Client2
    #             ...            #                           #
    #                            #                           #
    #    <-- NewFieldState ---   #                           #
+   #       FieldState(...)      #                           #
+   #                            #                           #
    #    <----- YourTurn -----   #                           #
    #                            #                           #
    #    --------- Act ------>   #                           #
-   #    action = Move::Right    #                           #
+   #    action = Move(Right)    #                           #
    #                            #                           #
    #            ...             #                           #
    #                            #                           #
