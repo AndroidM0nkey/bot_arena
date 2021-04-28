@@ -6,7 +6,7 @@
     <coordinates>
       <x>680</x>
       <y>190</y>
-      <w>210</w>
+      <w>230</w>
       <h>220</h>
     </coordinates>
     <panel_attributes>Cell
@@ -30,7 +30,7 @@
     <coordinates>
       <x>1050</x>
       <y>260</y>
-      <w>210</w>
+      <w>230</w>
       <h>90</h>
     </coordinates>
     <panel_attributes>Apple
@@ -46,7 +46,7 @@
     <coordinates>
       <x>340</x>
       <y>260</y>
-      <w>210</w>
+      <w>230</w>
       <h>90</h>
     </coordinates>
     <panel_attributes>SnakeBodyPeace
@@ -59,24 +59,24 @@
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>880</x>
+      <x>900</x>
       <y>300</y>
-      <w>190</w>
+      <w>170</w>
       <h>30</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;170.0;10.0</additional_attributes>
+    <additional_attributes>10.0;10.0;150.0;10.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>540</x>
+      <x>560</x>
       <y>300</y>
-      <w>160</w>
+      <w>140</w>
       <h>30</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>140.0;10.0;10.0;10.0</additional_attributes>
+    <additional_attributes>120.0;10.0;10.0;10.0</additional_attributes>
   </element>
   <element>
     <id>UMLClass</id>
@@ -111,7 +111,7 @@ bg=white</panel_attributes>
     <coordinates>
       <x>350</x>
       <y>700</y>
-      <w>180</w>
+      <w>220</w>
       <h>100</h>
     </coordinates>
     <panel_attributes>Session
@@ -142,7 +142,7 @@ bg=white</panel_attributes>
       <x>150</x>
       <y>730</y>
       <w>220</w>
-      <h>50</h>
+      <h>40</h>
     </coordinates>
     <panel_attributes>lt=-
 TCP connection
@@ -164,13 +164,13 @@ lt=.</panel_attributes>
   <element>
     <id>Relation</id>
     <coordinates>
-      <x>520</x>
+      <x>560</x>
       <y>620</y>
-      <w>620</w>
+      <w>580</w>
       <h>150</h>
     </coordinates>
     <panel_attributes>lt=&lt;-
 Displaying current game state using FieldState object</panel_attributes>
-    <additional_attributes>10.0;130.0;600.0;130.0;600.0;10.0</additional_attributes>
+    <additional_attributes>10.0;130.0;560.0;130.0;560.0;10.0</additional_attributes>
   </element>
 </diagram>
