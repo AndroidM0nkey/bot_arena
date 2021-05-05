@@ -294,7 +294,7 @@ class RoomManager:
             client_names = list(clients)
 
             game = create_game(client_names)
-            game_room = GameRoom(client_names, game)
+            game_room = GameRoom(client_names, game, room_info.name)
 
             await sync_object.pubsub.publish((game, game_room))
             logger.info('The game in the room {!r} is starting', room.name)

@@ -2,7 +2,8 @@ from bot_arena_server.client_name import ClientName
 from bot_arena_server.game import Game
 from bot_arena_server.pubsub import PublishSubscribeService
 
-from typing import List, Dict, Callable, Coroutine, Any, Set
+from dataclasses import dataclass
+from typing import List, Dict, Callable, Coroutine, Any, Set, Optional
 
 import curio    # type: ignore
 from adt import adt, Case
@@ -13,6 +14,7 @@ from loguru import logger # type: ignore
 
 __all__ = [
     'GameRoom',
+    'GameRoomError',
     'GameRoomExit',
 ]
 
@@ -21,63 +23,89 @@ class GameRoomExit(BaseException):
     pass
 
 
+class GameRoomError(Exception):
+    pass
+
+
 class GameRoom:
-    def __init__(self, client_names: List[ClientName], game: Game) -> None:
-        # TODO: maybe transform this kind of storage into a dict of structures
-        self._players = {name: curio.Queue(maxsize=1) for name in client_names if name.is_player()}
+    def __init__(self, client_names: List[ClientName], game: Game, name: str) -> None:
+        self._pending_clients = {name: make_pending_client_context(name) for name in client_names}
+        self._clients: Dict[ClientName, ClientContext] = {}
         self._client_names = client_names
-        self._took_turn = {name: False for name in client_names}
-        self._sessions: Dict[ClientName, ServerSession] = {}
-        self._dead: Set[ClientName] = set()
         self._game = game
         self._game_end_pubsub: PublishSubscribeService[None] = PublishSubscribeService()
+        self._name = name
 
     def set_session(self, client_name: ClientName, session: ServerSession) -> None:
-        if client_name in self._sessions:
-            raise KeyError(f'Session already added for {client_name!r}')
-        if client_name.is_player() and client_name not in self._players:
-            raise KeyError(f'No such player in the game room: {client_name!r}')
-        self._sessions[client_name] = session
+        if client_name in self._clients:
+            raise GameRoomError(f'Session already added for {client_name!r}')
+        if client_name not in self._pending_clients:
+            raise GameRoomError(f'No such client in the game room: {client_name!r}')
+        pending_context = self._pending_clients.pop(client_name)
+        context = ClientContext(
+            sync_queue = pending_context.sync_queue,
+            session = session,
+            category = pending_context.category,
+        )
+        self._clients[client_name] = context
 
     def mark_snake_dead(self, client_name: ClientName) -> None:
         assert client_name.is_player()
-        if client_name in self._dead:
-            raise KeyError(f'Snake {client_name!r} somehow managed to die twice')
-        self._dead.add(client_name)
+        self._check_for_client(client_name)
+        context = self._clients[client_name]
+
+        if context.category == ClientCategory.DEAD_PLAYER():
+            raise GameRoomError(f'Snake {client_name!r} somehow managed to die twice')
+
+        context.category = ClientCategory.DEAD_PLAYER()
         self._game.kill_snake_off(str(client_name))
+
+    def mark_client_disconnected(self, client_name: ClientName) -> None:
+        self._check_for_client(client_name)
+        context = self._clients[client_name]
+
+        if context.category == ClientCategory.DISCONNECTED():
+            raise GameRoomError(f'Client {client_name!r} somehow managed to disconnect twice')
+
+        if context.category == ClientCategory.ALIVE_PLAYER():
+            self._game.kill_snake_off(str(client_name))
+
+        context.category = ClientCategory.DISCONNECTED()
 
     async def report_death(self, client_name: ClientName) -> None:
         assert client_name.is_player()
-
-        if client_name not in self._players:
-            raise KeyError(f'No such player in the game room: {client_name!r}')
+        self._check_for_client(client_name)
 
         await self.broadcast_event(
             Event(name='SnakeDied', data=str(client_name), must_know=False),
             lambda name: True,
         )
 
+    async def report_disconnect(self, client_name: ClientName) -> None:
+        # We do not have a client-recognizable naming scheme for viewers,
+        # so we do not tell clients anything about them.
+        assert client_name.is_player()
+        self._check_for_client(client_name)
+
+        await self.broadcast_event(
+            Event(name='ClientDisconnected', data=str(client_name), must_know=False),
+            lambda name: True,
+        )
+
     async def finish_turn(self, client_name: ClientName) -> None:
         assert client_name.is_player()
+        self._check_for_client(client_name)
 
-        if client_name not in self._players:
-            raise KeyError(f'No such player in the game room: {client_name!r}')
-
-        queue = self._players[client_name]
-        if self._took_turn[client_name]:
-            await queue.task_done()
-        self._took_turn[client_name] = True
+        queue = self._clients[client_name].sync_queue
+        assert queue is not None
+        await queue.task_done()
 
     async def wait_for_turn(self, client_name: ClientName) -> None:
         assert client_name.is_player()
+        self._check_for_client(client_name)
 
-        if client_name not in self._players:
-            raise KeyError(f'No such player in the game room: {client_name!r}')
-
-        queue = self._players[client_name]
-        if self._took_turn[client_name]:
-            await queue.task_done()
-        self._took_turn[client_name] = True
+        queue = self._clients[client_name].sync_queue
+        assert queue is not None
         msg = await queue.get()
 
         if msg == 'continue':
@@ -96,16 +124,17 @@ class GameRoom:
             for client_name in self._client_names:
                 if self._game.is_finish_condition_satisfied():
                     logger.debug('Loop finished')
-                    logger.info('Game between {} has finished', ', '.join(map(repr, self._players.keys())))
+                    logger.info('Game in the room {!r} has finished', self.name)
                     await self.terminate_all_sessions()
                     await self._game_end_pubsub.publish(None)
                     return
 
-                if client_name in self._dead or not client_name.is_player():
+                if self._clients[client_name].category != ClientCategory.ALIVE_PLAYER():
                     continue
 
                 logger.debug('{!r}\'s turn', client_name)
-                queue = self._players[client_name]
+                queue = self._clients[client_name].sync_queue
+                assert queue is not None
                 await queue.put('continue')
                 await queue.join()
 
@@ -118,7 +147,8 @@ class GameRoom:
     async def terminate_session_for(self, client_name: ClientName) -> None:
         assert client_name.is_player()
         logger.debug('Terminating session for {!r}', client_name)
-        queue = self._players[client_name]
+        queue = self._clients[client_name].sync_queue
+        assert queue is not None
         await queue.put('exit')
         await queue.put(None)
 
@@ -127,20 +157,59 @@ class GameRoom:
         action: Callable[[ServerSession], Coroutine[Any, None, None]],
         filter_func: Callable[[ClientName], bool],
     ) -> None:
-        for client_name, sess in self._sessions.items():
-            if filter_func(client_name):
-                await action(sess)
+        for client_name, context in self._clients.items():
+            if context.category != ClientCategory.DISCONNECTED and filter_func(client_name):
+                await action(context.session)
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
         logger.debug(f'Broadcasting event: {event}')
 
         async def callback(sess: ServerSession):
-            try:
-                await sess.send_event(event)
-            except BrokenPipeError:
-                logger.warning('Broken pipe error')
+            await sess.send_event(event)
 
         await self.broadcast(callback, filter_func)
 
     async def wait_until_game_ends(self) -> None:
         await self._game_end_pubsub.receive()
+
+    def _check_for_client(self, client_name: ClientName) -> None:
+        if client_name not in self._clients:
+            raise GameRoomError(f'No such client in the game room: {client_name!r}')
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+
+@adt
+class ClientCategory:
+    ALIVE_PLAYER: Case
+    DEAD_PLAYER: Case
+    VIEWER: Case
+    DISCONNECTED: Case
+
+
+@dataclass
+class PendingClientContext:
+    sync_queue: Optional[curio.Queue]
+    category: ClientCategory
+
+
+@dataclass
+class ClientContext:
+    sync_queue: Optional[curio.Queue]
+    session: ServerSession
+    category: ClientCategory
+
+
+def make_pending_client_context(client_name: ClientName):
+    if client_name.is_player():
+        return PendingClientContext(
+            sync_queue = curio.Queue(maxsize=1),
+            category = ClientCategory.ALIVE_PLAYER(),
+        )
+    else:
+        return PendingClientContext(
+            sync_queue = None,
+            category = ClientCategory.VIEWER(),
+        )
