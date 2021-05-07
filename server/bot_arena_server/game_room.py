@@ -106,7 +106,10 @@ class GameRoom:
 
         queue = self._clients[client_name].sync_queue
         assert queue is not None
+        logger.debug('Waiting for a queue message ({!r})', client_name)
         msg = await queue.get()
+        logger.debug('Got {!r} from queue ({!r})', msg, client_name)
+
 
         if msg == 'continue':
             # Return the control to the player coroutine.
@@ -145,9 +148,14 @@ class GameRoom:
                 await self.terminate_session_for(client_name)
 
     async def terminate_session_for(self, client_name: ClientName) -> None:
+        context = self._clients[client_name]
+        if context.category == ClientCategory.DISCONNECTED():
+            logger.debug('Session for {!r} is already dead', client_name)
+            return
+
         assert client_name.is_player()
         logger.debug('Terminating session for {!r}', client_name)
-        queue = self._clients[client_name].sync_queue
+        queue = context.sync_queue
         assert queue is not None
         await queue.put('exit')
         await queue.put(None)
@@ -158,7 +166,8 @@ class GameRoom:
         filter_func: Callable[[ClientName], bool],
     ) -> None:
         for client_name, context in self._clients.items():
-            if context.category != ClientCategory.DISCONNECTED and filter_func(client_name):
+            if context.category != ClientCategory.DISCONNECTED() and filter_func(client_name):
+                logger.debug('Broadcast: {!r}, context = {!r}', client_name, context)
                 await action(context.session)
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
