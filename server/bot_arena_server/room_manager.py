@@ -7,7 +7,7 @@ from bot_arena_server.room_mapping import RoomMapping
 import copy
 import secrets
 from dataclasses import dataclass
-from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable
+from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable, cast
 
 import curio # type: ignore
 from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior, RoomInfo
@@ -298,7 +298,14 @@ class RoomManager:
 
             await sync_object.pubsub.publish((game, game_room))
             logger.info('The game in the room {!r} is starting', room.name)
-            await curio.spawn(game_room.run_loop, daemon=True)
+
+            room.game_started = True
+
+            async def coro() -> None:
+                await game_room.run_loop()
+                self.remove_room(room_info.name)
+
+            await curio.spawn(coro, daemon=True)
         else:
             # Subscribe to receive the game and game_room objects when the game begins.
             game, game_room = await sync_object.pubsub.receive()
@@ -312,6 +319,21 @@ class RoomManager:
     def _get_room_info_unchecked(self, invoking_client: ClientName, room_id: str) -> RoomInfo:
         room = self._rooms[room_id]
 
+        if room.game_started:
+            # TODO: maybe make an exception for viewers?
+            can_join = 'no'
+        else:
+            can_join = room.open.match(
+                open = lambda: 'yes',
+                closed = lambda: 'no',
+                whitelist = lambda whitelist: {False: 'no', True: 'yes'}[
+                    invoking_client.is_player() and (str(invoking_client) in whitelist)
+                ],
+                password = lambda _: 'password',
+            ) # type: ignore
+
+        can_join = cast(str, can_join)
+
         return RoomInfo(
             id = room_id,
             name = room.name,
@@ -322,14 +344,7 @@ class RoomManager:
                 for x in self._mapping.list_clients_in_a_room(room_id)
                 if x.is_player()
             ],
-            can_join = room.open.match(
-                open = lambda: 'yes',
-                closed = lambda: 'no',
-                whitelist = lambda whitelist: {False: 'no', True: 'yes'}[
-                    invoking_client.is_player() and (str(invoking_client) in whitelist)
-                ],
-                password = lambda _: 'password',
-            ), # type: ignore
+            can_join = can_join,
         )
 
 

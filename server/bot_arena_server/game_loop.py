@@ -78,7 +78,6 @@ class GameLoop:
 
                 if crashed:
                     await self.on_crash()
-                    break
 
                 await self.sess.respond_ok()
                 new_field_state = self.game.field.get_state()
