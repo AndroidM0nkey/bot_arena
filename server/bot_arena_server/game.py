@@ -9,12 +9,13 @@ from bot_arena_proto.session import GameInfo
 
 
 __all__ = [
-    'Game',
     'Field',
+    'Game',
+    'GameScore',
     'IllegalAction',
     'InvalidMoveError',
-    'NoSuchSnakeError',
     'MoveResult',
+    'NoSuchSnakeError',
 ]
 
 
@@ -127,6 +128,9 @@ class Game:
         for i in range(5):
             self._field.place_object_randomly(Object.FOOD())
 
+    def get_score(self) -> 'GameScore':
+        return self._field.get_score()
+
     @property
     def field(self) -> 'Field':
         return self._field
@@ -151,6 +155,21 @@ class Game:
             self.field.kill_snake(snake_name)
 
 
+@dataclass
+class GameScore:
+    score: Dict[str, int]
+
+    @staticmethod
+    def from_snake_names(names: Iterable[str]) -> 'GameScore':
+        return GameScore(score={name: 0 for name in names})
+
+    def update(self, name: str, new_score: int) -> None:
+        self.score[name] = new_score
+
+    def copy(self) -> 'GameScore':
+        return GameScore(copy(self.score))
+
+
 class Field:
     def __init__(
         self,
@@ -164,8 +183,14 @@ class Field:
         self._snakes = snakes
         self._objects: Dict[Point, Object] = dict(objects)
         self._occupied_cells: Set[Point] = set()
+        self._game_score = GameScore.from_snake_names(self._snakes.keys())
         for snake in snakes.values():
             self._occupied_cells.update(snake.list_occupied_cells())
+
+    def get_score(self) -> GameScore:
+        for name, snake in self._snakes.items():
+            self._game_score.update(name, snake.score)
+        return self._game_score.copy()
 
     def random_free_cell(self) -> Point:
         while True:
@@ -226,6 +251,7 @@ class Field:
     def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
         self._update_occupied_cells(snake.grow(direction))
         self._objects.pop(snake.head)
+        snake.change_score_by(1)
 
         # TODO: make this behavior configurable.
         self.place_object_randomly(Object.FOOD())
@@ -324,9 +350,17 @@ def _points_to_directions(head: Point, tail: List[Point]) -> List[Direction]:
 
 
 class _Snake:
-    def __init__(self, head: Point, tail: List[Direction]):
+    def __init__(self, head: Point, tail: List[Direction]) -> None:
         self._head = head
         self._tail = _directions_to_points(head, tail)
+        self._score = 0
+
+    @property
+    def score(self) -> int:
+        return self._score
+
+    def change_score_by(self, score_delta: int) -> None:
+        self._score += score_delta
 
     @staticmethod
     def from_raw_parts(head: Point, tail: List[Point]) -> '_Snake':

@@ -11,6 +11,7 @@ from bot_arena_server.game import (
     Game,
     Action,
     GameInfo,
+    GameScore,
 )
 
 import pytest
@@ -575,6 +576,51 @@ class TestField:
             assert field.is_cell_completely_free(new_cell)
             assert not field_copy.is_cell_completely_free(new_cell)
 
+    @staticmethod
+    def test_score():
+        snake_a = _Snake(head=Point(2, 4), tail=[Direction.LEFT()])
+        snake_b = _Snake(head=Point(7, 3), tail=[Direction.DOWN(), Direction.DOWN()])
+
+        objects = [
+            (Point(3, 4), Object.FOOD()),
+        ]
+
+        field = Field(width=10, height=10, snakes={'A': snake_a}, objects=objects)
+
+        score1 = field.get_score()
+        score2 = field.get_score()
+        assert score1 is not score2
+        assert score1.score is not score2.score
+        score1.update('A', 999)
+        assert score1 != score2
+
+        field.add_snake('B', snake_b)
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('B', Direction.UP())
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('B', Direction.UP())
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('A', Direction.RIGHT())
+        assert snake_a.head == Point(3, 4)
+        assert snake_a.score == 1
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 1, 'B': 0})
+
+        assert field.count_alive_players() == 2
+        field.move_snake('A', Direction.LEFT())
+        assert snake_a.score == 1
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 1, 'B': 0})
+        assert field.count_alive_players() == 1
 
 class TestGame:
     @staticmethod

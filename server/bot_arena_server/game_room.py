@@ -1,5 +1,5 @@
 from bot_arena_server.client_name import ClientName
-from bot_arena_server.game import Game
+from bot_arena_server.game import Game, GameScore
 from bot_arena_server.pubsub import PublishSubscribeService
 
 from dataclasses import dataclass
@@ -35,6 +35,9 @@ class GameRoom:
         self._game = game
         self._game_end_pubsub: PublishSubscribeService[None] = PublishSubscribeService()
         self._name = name
+
+    def get_score(self) -> GameScore:
+        return self._game.get_score()
 
     def set_session(self, client_name: ClientName, session: ServerSession) -> None:
         if client_name in self._clients:
@@ -121,6 +124,12 @@ class GameRoom:
             raise Exception(f'Internal error: unknown synchronization message: {msg!r}')
 
     async def run_loop(self) -> None:
+        last_game_score = self.get_score()
+        await self.broadcast_event(
+            Event(name='GameScoreChanged', data=last_game_score.score, must_know=False),
+            lambda _: True,
+        )
+
         logger.debug('Loop started')
         while True:
             logger.debug('New round')
@@ -140,6 +149,17 @@ class GameRoom:
                 assert queue is not None
                 await queue.put('continue')
                 await queue.join()
+
+                current_game_score = self.get_score()
+                logger.debug('Game score check: {} vs {}', last_game_score, current_game_score)
+                if current_game_score != last_game_score:
+                    logger.debug('New game score: {}', current_game_score)
+                    await self.broadcast_event(
+                        Event(name='GameScoreChanged', data=current_game_score.score, must_know=False),
+                        lambda _: True,
+                    )
+                    last_game_score = current_game_score
+
 
     async def terminate_all_sessions(self) -> None:
         logger.debug('Terminating all game sessions in this game room')
