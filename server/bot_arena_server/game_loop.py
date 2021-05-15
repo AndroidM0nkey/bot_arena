@@ -53,7 +53,12 @@ class GameLoop:
 
     async def run_for_non_player(self) -> None:
         await self.game_room.wait_until_game_ends(self.client_info.name)
-        await self.sess.send_event(Event(name='GameFinished', data=None, must_know=True))
+        winners = self.game.get_winners()
+        await self.sess.send_event(Event(
+            name = 'GameFinished',
+            data = {'winners': winners},
+            must_know = True,
+        ))
 
     async def run_for_player(self) -> None:
         client_name = self.client_info.name
@@ -62,8 +67,12 @@ class GameLoop:
             try:
                 await self.game_room.wait_for_turn(client_name)
             except GameRoomExit:
-                logger.debug('{!r} leaves the room', client_name)
-                await self.sess.send_event(Event(name='GameFinished', data=None, must_know=True))
+                winners = self.game.get_winners()
+                await self.sess.send_event(Event(
+                    name = 'GameFinished',
+                    data = {'winners': winners},
+                    must_know = True,
+                ))
                 break
 
             try:

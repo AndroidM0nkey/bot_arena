@@ -7,7 +7,7 @@ from bot_arena_server.room_mapping import RoomMapping
 import copy
 import secrets
 from dataclasses import dataclass
-from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable, cast
+from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable, cast, Optional
 
 import curio # type: ignore
 from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior, RoomInfo
@@ -57,6 +57,7 @@ class RoomDetails:
     num_food_items: int
     respawn_food: FoodRespawnBehavior
     open: RoomOpenness
+    max_turns: Optional[int]
     game_started: bool
 
     def strip_private_info(self) -> 'RoomDetails':
@@ -114,6 +115,7 @@ class RoomManager:
             num_food_items = 3,
             respawn_food = FoodRespawnBehavior.YES(),
             open = RoomOpenness.CLOSED(),
+            max_turns = 1000,
             game_started = False,
         )
         self._room_sync[room_id] = RoomSyncObject()
@@ -351,10 +353,12 @@ class RoomManager:
 def create_game(client_names: List[ClientName]) -> Game:
     field_width = 20
     field_height = 20
+    max_turns = 500
     return Game(
         field_width,
         field_height,
         [str(x) for x in client_names if x.is_player()],
+        max_turns,
     )
 
 

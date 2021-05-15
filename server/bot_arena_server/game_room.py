@@ -141,7 +141,11 @@ class GameRoom:
             for client_name in self._client_names:
                 if self._game.is_finish_condition_satisfied():
                     logger.debug('Loop finished')
-                    logger.info('Game in the room {!r} has finished', self.name)
+                    logger.info(
+                        'Game in the room {!r} has finished (winners: {!r})',
+                        self.name,
+                        self._game.get_winners(),
+                    )
                     await self.terminate_all_sessions()
 
                     return
@@ -164,6 +168,7 @@ class GameRoom:
                         lambda _: True,
                     )
                     last_game_score = current_game_score
+            self._game.finish_turn()
 
 
     async def terminate_all_sessions(self) -> None:

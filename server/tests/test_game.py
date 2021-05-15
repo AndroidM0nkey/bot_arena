@@ -640,7 +640,7 @@ class TestGame:
             objects = objects,
         )
 
-        game = Game(width, height, list(snakes.keys()))
+        game = Game(width, height, list(snakes.keys()), None)
         game._field = field
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
@@ -684,12 +684,12 @@ class TestGame:
     @staticmethod
     def test_snake_names():
         for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
-            game = Game(10, 10, names)
+            game = Game(10, 10, names, None)
             assert set(game.snake_names()) == set(names)
 
     @staticmethod
     def test_info():
-        game = Game(326, 16, ['A', 'B'])
+        game = Game(326, 16, ['A', 'B'], None)
         assert game.info() == GameInfo(field_width=326, field_height=16)
 
 
@@ -839,6 +839,20 @@ class TestChangeInFreeCells:
         new_occupied.add(E)
         assert cf._new_free == {A} != new_free == {A, B}
         assert cf._new_occupied == {F} != new_occupied == {E, F}
+
+
+class TestScore:
+    @staticmethod
+    def test_get_winners():
+        assert GameScore({}).get_winners(lambda _: True) == []
+        assert GameScore({'A': 5, 'B': 7, 'C': 3, 'D': 5}).get_winners(lambda _: True) == ['B']
+        assert set(GameScore({'A': 5, 'B': 7, 'C': 3, 'D': 7}).get_winners(lambda _: True)) == {'B', 'D'}
+        assert set(GameScore.from_snake_names(['a', 'b', 'c']).get_winners(lambda _: True)) == {'a', 'b', 'c'}
+        assert set(
+            GameScore
+                .from_snake_names({'a': 3, 'b': 3, 'c': 5})
+                .get_winners(lambda name: name < 'c')
+        ) == {'a', 'b'}
 
 
 def equal_modulo_respawn(set1, set2, min_num_respawned):

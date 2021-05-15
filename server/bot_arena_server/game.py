@@ -111,7 +111,9 @@ def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
 
 
 class Game:
-    def __init__(self, field_width: int, field_height: int, snake_names: List[str]):
+    def __init__(self, field_width: int, field_height: int, snake_names: List[str], max_turns: Optional[int]):
+        self._turns_counter = 0
+        self._max_turns = max_turns
         self._field = Field(
             width = field_width,
             height = field_height,
@@ -127,6 +129,9 @@ class Game:
         # TODO: make the number of objects configurable
         for i in range(5):
             self._field.place_object_randomly(Object.FOOD())
+
+    def finish_turn(self) -> None:
+        self._turns_counter += 1
 
     def get_score(self) -> 'GameScore':
         return self._field.get_score()
@@ -146,9 +151,18 @@ class Game:
     def snake_names(self) -> Iterable[str]:
         return self.field._snakes.keys()
 
+    def turn_limit_exceeded(self) -> bool:
+        return (self._max_turns is not None) and (self._turns_counter >= self._max_turns)
+
     def is_finish_condition_satisfied(self) -> bool:
         # TODO: make the finish condition configurable.
-        return self.field.count_alive_players() <= 1
+        return self.field.count_alive_players() <= 1 or self.turn_limit_exceeded()
+
+    def get_winners(self) -> Optional[List[str]]:
+        if not self.is_finish_condition_satisfied():
+            return None
+
+        return self.get_score().get_winners(lambda name: name in self.field._snakes)
 
     def kill_snake_off(self, snake_name: str):
         if snake_name in set(self.snake_names()):
@@ -168,6 +182,14 @@ class GameScore:
 
     def copy(self) -> 'GameScore':
         return GameScore(copy(self.score))
+
+    def get_winners(self, candidate_checker: Callable[[str], bool]) -> List[str]:
+        score_dict = {name: value for name, value in self.score.items() if candidate_checker(name)}
+        if len(score_dict) == 0:
+            return []
+
+        max_score = max(value for value in score_dict.values())
+        return list(name for name, value in score_dict.items() if value == max_score)
 
 
 class Field:

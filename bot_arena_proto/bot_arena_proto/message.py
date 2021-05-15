@@ -33,6 +33,11 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
     }:
         return ensure_type(value, int)
 
+    if name == 'max_turns':
+        if value is None:
+            return None
+        return ensure_type(value, int)
+
     if name in {'respawn_food', 'open'}:
         return value.to_primitive()
 
@@ -54,6 +59,11 @@ def prop_from_primitive(name: str, p: Primitive) -> Any:
         'field_height',
         'num_food_items',
     }:
+        return ensure_type(p, int)
+
+    if name == 'max_turns':
+        if p is None:
+            return None
         return ensure_type(p, int)
 
     if name == 'respawn_food':
