@@ -1,4 +1,5 @@
 from bot_arena_server.client_name import ClientName
+from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game
 from bot_arena_server.pubsub import PublishSubscribeService
 
@@ -33,7 +34,6 @@ class GameRoom:
         self._clients: Dict[ClientName, ClientContext] = {}
         self._client_names = client_names
         self._game = game
-        self._game_end_pubsub: PublishSubscribeService[None] = PublishSubscribeService()
         self._name = name
 
     def set_session(self, client_name: ClientName, session: ServerSession) -> None:
@@ -97,7 +97,6 @@ class GameRoom:
         self._check_for_client(client_name)
 
         queue = self._clients[client_name].sync_queue
-        assert queue is not None
         await queue.task_done()
 
     async def wait_for_turn(self, client_name: ClientName) -> None:
@@ -105,7 +104,6 @@ class GameRoom:
         self._check_for_client(client_name)
 
         queue = self._clients[client_name].sync_queue
-        assert queue is not None
         logger.debug('Waiting for a queue message ({!r})', client_name)
         msg = await queue.get()
         logger.debug('Got {!r} from queue ({!r})', msg, client_name)
@@ -117,6 +115,9 @@ class GameRoom:
         elif msg == 'exit':
             # Raise a corresponding exception in the player coroutine.
             raise GameRoomExit()
+        elif msg == 'disconnect':
+            # Ensure that the client disconnects immediately
+            raise EnsureDisconnect()
         else:
             raise Exception(f'Internal error: unknown synchronization message: {msg!r}')
 
@@ -129,7 +130,6 @@ class GameRoom:
                     logger.debug('Loop finished')
                     logger.info('Game in the room {!r} has finished', self.name)
                     await self.terminate_all_sessions()
-                    await self._game_end_pubsub.publish(None)
                     return
 
                 if self._clients[client_name].category != ClientCategory.ALIVE_PLAYER():
@@ -137,15 +137,13 @@ class GameRoom:
 
                 logger.debug('{!r}\'s turn', client_name)
                 queue = self._clients[client_name].sync_queue
-                assert queue is not None
                 await queue.put('continue')
                 await queue.join()
 
     async def terminate_all_sessions(self) -> None:
         logger.debug('Terminating all game sessions in this game room')
         for client_name in self._client_names:
-            if client_name.is_player():
-                await self.terminate_session_for(client_name)
+            await self.terminate_session_for(client_name)
 
     async def terminate_session_for(self, client_name: ClientName) -> None:
         context = self._clients[client_name]
@@ -153,10 +151,8 @@ class GameRoom:
             logger.debug('Session for {!r} is already dead', client_name)
             return
 
-        assert client_name.is_player()
         logger.debug('Terminating session for {!r}', client_name)
         queue = context.sync_queue
-        assert queue is not None
         await queue.put('exit')
         await queue.put(None)
 
@@ -168,7 +164,17 @@ class GameRoom:
         for client_name, context in self._clients.items():
             if context.category != ClientCategory.DISCONNECTED() and filter_func(client_name):
                 logger.debug('Broadcast: {!r}, context = {!r}', client_name, context)
-                await action(context.session)
+                try:
+                    await action(context.session)
+                except (IOError, EOFError) as e:
+                    logger.debug('Broadcast failed: endpoint disconnected')
+                    await self.ensure_disconnect(client_name)
+
+    async def ensure_disconnect(self, client_name: ClientName) -> None:
+        logger.debug('Ensuring that {!r} is disconnected', client_name)
+        queue = self._clients[client_name].sync_queue
+        await queue.put('disconnect')
+        await queue.put(None)
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
         logger.debug(f'Broadcasting event: {event}')
@@ -178,8 +184,31 @@ class GameRoom:
 
         await self.broadcast(callback, filter_func)
 
-    async def wait_until_game_ends(self) -> None:
-        await self._game_end_pubsub.receive()
+    async def wait_until_game_ends(self, client_name: ClientName) -> None:
+        if client_name.is_player():
+            raise NotImplementedError('GameRoom.wait_until_game_starts is only implemented for viewers')
+
+        def raise_ensure_disconnect():
+            raise EnsureDisconnect()
+
+        def nop():
+            pass
+
+        notification = await self.wait_for_viewer_notification(client_name)
+        notification.match(
+            game_finished = nop,
+            ensure_disconnect = raise_ensure_disconnect,
+        )
+
+    async def wait_for_viewer_notification(self, client_name: ClientName) -> 'ViewerNotification':
+        queue = self._clients[client_name].sync_queue
+        msg = await queue.get()
+        if msg == 'exit':
+            return ViewerNotification.GAME_FINISHED()
+        if msg == 'disconnect':
+            return ViewerNotification.ENSURE_DISCONNECT()
+
+        raise Exception(f'Internal error: invalid viewer sync_queue message: {msg!r}')
 
     def _check_for_client(self, client_name: ClientName) -> None:
         if client_name not in self._clients:
@@ -188,6 +217,12 @@ class GameRoom:
     @property
     def name(self) -> str:
         return self._name
+
+
+@adt
+class ViewerNotification:
+    GAME_FINISHED: Case
+    ENSURE_DISCONNECT: Case
 
 
 @adt
@@ -200,18 +235,18 @@ class ClientCategory:
 
 @dataclass
 class PendingClientContext:
-    sync_queue: Optional[curio.Queue]
+    sync_queue: curio.Queue
     category: ClientCategory
 
 
 @dataclass
 class ClientContext:
-    sync_queue: Optional[curio.Queue]
+    sync_queue: curio.Queue
     session: ServerSession
     category: ClientCategory
 
 
-def make_pending_client_context(client_name: ClientName):
+def make_pending_client_context(client_name: ClientName) -> PendingClientContext:
     if client_name.is_player():
         return PendingClientContext(
             sync_queue = curio.Queue(maxsize=1),
@@ -219,6 +254,6 @@ def make_pending_client_context(client_name: ClientName):
         )
     else:
         return PendingClientContext(
-            sync_queue = None,
+            sync_queue = curio.Queue(maxsize=1),
             category = ClientCategory.VIEWER(),
         )

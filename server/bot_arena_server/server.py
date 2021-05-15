@@ -1,4 +1,5 @@
 from bot_arena_server.client_name import ClientName, RichClientInfo
+from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
@@ -191,7 +192,8 @@ class Server:
         try:
             worker = ClientWorker(client_rich_info, self, sess)
             await worker.run()
-
+        except EnsureDisconnect:
+            return
         finally:
             self._client_infos.pop(client_name)
 

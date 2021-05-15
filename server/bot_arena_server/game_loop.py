@@ -1,6 +1,7 @@
+from bot_arena_server.client_name import RichClientInfo
+from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game, IllegalAction
 from bot_arena_server.game_room import GameRoom, GameRoomExit
-from bot_arena_server.client_name import RichClientInfo
 
 from dataclasses import dataclass
 from typing import NoReturn
@@ -45,13 +46,13 @@ class GameLoop:
                 await self.run_for_player()
             else:
                 await self.run_for_non_player()
-        except (IOError, EOFError) as _:
+        except BaseException as e:
             logger.info('{!r} disconnected', self.client_info.name)
             await self.on_disconnect()
-            raise
+            raise EnsureDisconnect(e)
 
     async def run_for_non_player(self) -> None:
-        await self.game_room.wait_until_game_ends()
+        await self.game_room.wait_until_game_ends(self.client_info.name)
         await self.sess.send_event(Event(name='GameFinished', data=None, must_know=True))
 
     async def run_for_player(self) -> None:
