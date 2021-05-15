@@ -1,6 +1,7 @@
 from bot_arena_server.client_name import ClientName
 from bot_arena_server.control_flow import EnsureDisconnect
-from bot_arena_server.game import Game
+from bot_arena_server.game import Game, GameScore
+
 from bot_arena_server.pubsub import PublishSubscribeService
 
 from dataclasses import dataclass
@@ -34,7 +35,11 @@ class GameRoom:
         self._clients: Dict[ClientName, ClientContext] = {}
         self._client_names = client_names
         self._game = game
+
         self._name = name
+
+    def get_score(self) -> GameScore:
+        return self._game.get_score()
 
     def set_session(self, client_name: ClientName, session: ServerSession) -> None:
         if client_name in self._clients:
@@ -97,6 +102,7 @@ class GameRoom:
         self._check_for_client(client_name)
 
         queue = self._clients[client_name].sync_queue
+
         await queue.task_done()
 
     async def wait_for_turn(self, client_name: ClientName) -> None:
@@ -104,6 +110,7 @@ class GameRoom:
         self._check_for_client(client_name)
 
         queue = self._clients[client_name].sync_queue
+
         logger.debug('Waiting for a queue message ({!r})', client_name)
         msg = await queue.get()
         logger.debug('Got {!r} from queue ({!r})', msg, client_name)
@@ -122,6 +129,12 @@ class GameRoom:
             raise Exception(f'Internal error: unknown synchronization message: {msg!r}')
 
     async def run_loop(self) -> None:
+        last_game_score = self.get_score()
+        await self.broadcast_event(
+            Event(name='GameScoreChanged', data=last_game_score.score, must_know=False),
+            lambda _: True,
+        )
+
         logger.debug('Loop started')
         while True:
             logger.debug('New round')
@@ -130,6 +143,7 @@ class GameRoom:
                     logger.debug('Loop finished')
                     logger.info('Game in the room {!r} has finished', self.name)
                     await self.terminate_all_sessions()
+
                     return
 
                 if self._clients[client_name].category != ClientCategory.ALIVE_PLAYER():
@@ -137,12 +151,25 @@ class GameRoom:
 
                 logger.debug('{!r}\'s turn', client_name)
                 queue = self._clients[client_name].sync_queue
+
                 await queue.put('continue')
                 await queue.join()
+
+                current_game_score = self.get_score()
+                logger.debug('Game score check: {} vs {}', last_game_score, current_game_score)
+                if current_game_score != last_game_score:
+                    logger.debug('New game score: {}', current_game_score)
+                    await self.broadcast_event(
+                        Event(name='GameScoreChanged', data=current_game_score.score, must_know=False),
+                        lambda _: True,
+                    )
+                    last_game_score = current_game_score
+
 
     async def terminate_all_sessions(self) -> None:
         logger.debug('Terminating all game sessions in this game room')
         for client_name in self._client_names:
+
             await self.terminate_session_for(client_name)
 
     async def terminate_session_for(self, client_name: ClientName) -> None:
@@ -151,8 +178,10 @@ class GameRoom:
             logger.debug('Session for {!r} is already dead', client_name)
             return
 
+
         logger.debug('Terminating session for {!r}', client_name)
         queue = context.sync_queue
+
         await queue.put('exit')
         await queue.put(None)
 
