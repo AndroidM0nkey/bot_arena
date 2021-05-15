@@ -1,0 +1,10 @@
+[Unit]
+Description=The server for the 'Pythons' game
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env bot-arena-server
+
+[Install]
+WantedBy=multi-user.target
