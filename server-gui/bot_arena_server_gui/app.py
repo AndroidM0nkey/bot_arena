@@ -2,7 +2,7 @@ import asyncio
 from dataclasses import dataclass
 from subprocess import PIPE
 from threading import Thread, Lock
-from typing import Iterable
+from typing import List
 
 from adt import adt, Case
 
@@ -115,7 +115,14 @@ class LogSpace:
         self.frame.set_margin_right(5)
         self.frame.set_margin_bottom(5)
 
+        self.text_view.connect('size-allocate', self.scroll_to_the_end)
+
         self.append_to_log('Server logs will be displayed here...')
+
+    def scroll_to_the_end(self, widget, *args) -> None:
+        # Many thanks to https://stackoverflow.com/a/5235358.
+        adjustment = self.scrolled_window.get_vadjustment()
+        adjustment.set_value(adjustment.get_upper() - adjustment.get_page_size())
 
     def on_message(self, msg: Message) -> None:
         msg.match(
@@ -127,7 +134,8 @@ class LogSpace:
         self.log_buf.set_text('')
 
     def append_to_log(self, text: str) -> None:
-        self.log_buf.insert_at_cursor(text)
+        end_iter = self.log_buf.get_end_iter()
+        self.log_buf.insert(end_iter, text)
 
     def root_widget(self) -> gtk.Frame:
         return self.frame
@@ -158,19 +166,65 @@ class TopRow:
         return self.box
 
 
+class ParamsRow:
+    def __init__(self, app: 'App') -> None:
+        self.app = app
+
+        self.listen_address_label = gtk.Label('Listen on:')
+        self.listen_address_entry = gtk.Entry()
+        self.listen_address_entry.set_text('0.0.0.0')
+
+        self.listen_port_label = gtk.Label('Port:')
+        self.listen_port_entry = gtk.Entry()
+        self.listen_port_entry.set_input_purpose(gtk.InputPurpose.DIGITS)
+        self.listen_port_entry.set_text('23456')
+
+        self.box = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=0)
+        self.box.set_margin_left(5)
+        self.box.set_margin_right(5)
+
+        self.box.pack_start(self.listen_address_label, expand=False, fill=False, padding=0)
+        self.box.pack_start(self.listen_address_entry, expand=False, fill=False, padding=20)
+        self.box.pack_start(self.listen_port_label, expand=False, fill=False, padding=0)
+        self.box.pack_start(self.listen_port_entry, expand=False, fill=False, padding=20)
+
+    def on_message(self, msg: Message) -> None:
+        is_server_running = msg.match(
+            server_started = lambda: True,
+            server_stopped = lambda: False,
+        )
+
+        self.listen_address_entry.set_sensitive(not is_server_running)
+        self.listen_port_entry.set_sensitive(not is_server_running)
+
+    def root_widget(self) -> gtk.Box:
+        return self.box
+
+    def get_startup_params(self) -> 'StartupParams':
+        address = self.listen_address_entry.get_text()
+        try:
+            port = int(self.listen_port_entry.get_text())
+        except ValueError:
+            raise ValueError('Port must be an integer number')
+        return StartupParams(address, port)
+
+
 class LayoutColumn:
     def __init__(self, app: 'App'):
         self.app = app
         self.top_row = TopRow(app)
+        self.params_row = ParamsRow(app)
         self.log_space = LogSpace(app)
 
         self.box = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=5)
 
         self.box.pack_start(self.top_row.root_widget(), expand=False, fill=False, padding=0)
+        self.box.pack_start(self.params_row.root_widget(), expand=False, fill=False, padding=0)
         self.box.pack_end(self.log_space.root_widget(), expand=True, fill=True, padding=0)
 
     def on_message(self, msg: Message) -> None:
         self.top_row.on_message(msg)
+        self.params_row.on_message(msg)
         self.log_space.on_message(msg)
 
     def root_widget(self) -> gtk.Box:
@@ -181,6 +235,9 @@ class LayoutColumn:
 class StartupParams:
     listen_address: str
     listen_port: int
+
+    def get_args(self) -> List[str]:
+        return ['--listen-on', self.listen_address, '--port', str(self.listen_port)]
 
 
 class App:
@@ -207,11 +264,24 @@ class App:
         self.layout_column.on_message(msg)
 
     def start_server(self) -> None:
-        self._server_thread.start()
+        try:
+            self._server_thread.start()
+        except Exception as e:
+            dialog = gtk.MessageDialog(
+                parent = self.window,
+                message_type = gtk.MessageType.ERROR,
+                buttons = gtk.ButtonsType.OK,
+            )
+            dialog.set_markup(f'Error: {e}')
+            dialog.set_modal(True)
+            dialog.run()
+            dialog.hide()
+            return
+
         self.raise_message(Message.SERVER_STARTED())
 
     def on_server_stopped(self) -> None:
-        self.append_to_log('--- Server stopped ---')
+        self.append_to_log('\n--- Server stopped ---')
         self.raise_message(Message.SERVER_STOPPED())
 
     def stop_server(self) -> None:
@@ -219,6 +289,9 @@ class App:
 
     def append_to_log(self, text: str) -> None:
         self.layout_column.log_space.append_to_log(text)
+
+    def get_startup_params(self) -> StartupParams:
+        return self.layout_column.params_row.get_startup_params()
 
 
 class ServerThread:
@@ -245,24 +318,26 @@ class ServerThread:
         with self._lock:
             return self._running
 
-    def start(self):
+    def start(self) -> None:
         if self._running:
             raise Exception('Attempted to start more than one server instance')
-        self.set_dead(False)
 
-        thread = Thread(target=self.run, daemon=True)
+        params = self.app.get_startup_params()
+
+        self.set_dead(False)
+        thread = Thread(target = lambda: self.run(params), daemon=True)
         thread.start()
 
-    def run(self):
-        asyncio.run(self.async_run())
+    def run(self, params: StartupParams) -> None:
+        asyncio.run(self.async_run(params))
         self.set_running(False)
         self.child = None
         gdk.threads_add_idle(glib.PRIORITY_HIGH_IDLE, self.app.on_server_stopped)
 
-    async def async_run(self):
+    async def async_run(self, params: StartupParams) -> None:
         self.child = await asyncio.create_subprocess_exec(
             'bot-arena-server',
-            *self.get_server_args(),
+            *params.get_args(),
             stdout=PIPE,
             stderr=PIPE,
         )
@@ -289,9 +364,6 @@ class ServerThread:
             raise ProcessLookupError()
 
         self.child.terminate()
-
-    def get_server_args(self) -> Iterable[str]:
-        return []
 
 
 def main() -> None:
