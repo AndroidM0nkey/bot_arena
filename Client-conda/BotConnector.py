@@ -13,5 +13,5 @@ class BotConnector:
     def __init__(self, cmd: str):
         self.cmd = cmd
     def start_bot(self, inp: str):
-        bot_process = subprocess.run(self.cmd,stdout=subprocess.PIPE, input=inp, encoding="ascii")
+        bot_process = subprocess.run(args=self.cmd,stdout=subprocess.PIPE, input=inp, encoding="ascii")
         return bot_process.stdout

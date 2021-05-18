@@ -24,7 +24,7 @@ class StreamEditor:
                 return ind
             ind += 2 
 
-    def field_to_matrix(self, f_height, f_width, field_state: FieldState):
+    def field_to_matrix(self, f_width, f_height, field_state: FieldState):
 
         matrix = [[0 for i in range(f_height)] for j in range(f_width)]
         snake_index = 2
@@ -48,14 +48,22 @@ class StreamEditor:
             
             snake_index += 2
 
+        
+        for apple in field_state.objects:
+            x = apple[0].x
+            y = apple[0].y
+            matrix[y][x] = 1
+
+
+
         return matrix
 
     def matrix_into_str(self, f_height, f_width, matrix, field_state: FieldState):
         str_out = ""
-        n = f_width.to_string()
-        m = f_height.to_string()
-        ind = (self.get_snake_index(self, field_state)).to_string()
-        ind_head = (self.get_snake_index(self, field_state) + 1).to_string()
+        n = str(f_width)
+        m = str(f_height)
+        ind = str(self.get_snake_index(field_state))
+        ind_head = str(self.get_snake_index(field_state) + 1)
         str_out+=m
         str_out+=" "
         str_out+=n
@@ -66,19 +74,19 @@ class StreamEditor:
         str_out+=" "
         for i in matrix:
             for j in i:
-                str_out+=j.to_string()
+                str_out+=str(j)
                 str_out+=" "
         str_out+="\n"
         return str_out
 
     def make_str(self, f_height, f_width, field_state: FieldState):
-        matrix = self.field_to_matrix(self, f_height, f_width, field_state)
-        str_out = self.matrix_into_str(self, f_height, f_width, matrix, field_state)
+        matrix = self.field_to_matrix(f_height, f_width, field_state)
+        str_out = self.matrix_into_str(f_height, f_width, matrix, field_state)
         return str_out
 
     def call_bot(self, f_height, f_width, field_state: FieldState):
         cur_bot = BotConnector(self.cmd)
-        inp = self.make_str(self, f_height, f_width, field_state)
+        inp = self.make_str(f_height, f_width, field_state)
         return cur_bot.start_bot(inp)
 
 
