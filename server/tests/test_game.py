@@ -13,9 +13,22 @@ from bot_arena_server.game import (
     GameInfo,
     GameScore,
 )
+from bot_arena_server.game_config import GameConfig
 
 import pytest
-from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object
+from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object, FoodRespawnBehavior
+
+
+def make_default_config(**kwargs) -> GameConfig:
+    params = dict(
+        snake_len = 5,
+        num_food_items = 5,
+        respawn_food = FoodRespawnBehavior.YES(),
+        max_turns = None,
+    )
+
+    params.update(kwargs)
+    return GameConfig(**params)
 
 
 class TestSnake:
@@ -190,9 +203,9 @@ class TestField:
         snakes = {'Bob': bob, 'Mike': mike}
         objects = [(Point(15, 8), Object.FOOD()), (Point(11, 11), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -212,9 +225,9 @@ class TestField:
         }
         objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -245,9 +258,9 @@ class TestField:
         }
         objects = [(Point(4, 4), Object.FOOD()), (Point(9, 4), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -462,9 +475,9 @@ class TestField:
         }
         objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -494,9 +507,9 @@ class TestField:
         }
         objects = [(Point(0, 0), Object.FOOD()), (Point(4, 2), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -530,8 +543,7 @@ class TestField:
         ]
 
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -557,9 +569,9 @@ class TestField:
             if Point(x, y) not in free_cells
         ]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
@@ -585,7 +597,8 @@ class TestField:
             (Point(3, 4), Object.FOOD()),
         ]
 
-        field = Field(width=10, height=10, snakes={'A': snake_a}, objects=objects)
+        config = make_default_config(field_width=10, field_height=10)
+        field = Field(config=config, snakes={'A': snake_a}, objects=objects)
 
         score1 = field.get_score()
         score2 = field.get_score()
@@ -633,14 +646,14 @@ class TestGame:
         }
         objects = [(Point(6, 3), Object.FOOD())]
 
+        config = make_default_config(field_width=width, field_height=height)
         field = Field(
-            width = width,
-            height = height,
+            config = config,
             snakes = snakes,
             objects = objects,
         )
 
-        game = Game(width, height, list(snakes.keys()), None)
+        game = Game(list(snakes.keys()), config)
         game._field = field
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
@@ -684,12 +697,14 @@ class TestGame:
     @staticmethod
     def test_snake_names():
         for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
-            game = Game(10, 10, names, None)
+            config = make_default_config(field_width=10, field_height=10)
+            game = Game(names, config)
             assert set(game.snake_names()) == set(names)
 
     @staticmethod
     def test_info():
-        game = Game(326, 16, ['A', 'B'], None)
+        config = make_default_config(field_width=326, field_height=16)
+        game = Game(['A', 'B'], config)
         assert game.info() == GameInfo(field_width=326, field_height=16)
 
 

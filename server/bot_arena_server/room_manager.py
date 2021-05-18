@@ -1,5 +1,6 @@
 from bot_arena_server.client_name import ClientName
 from bot_arena_server.game import Game
+from bot_arena_server.game_config import GameConfig
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_mapping import RoomMapping
@@ -69,6 +70,16 @@ class RoomDetails:
             password = lambda password: RoomOpenness.PASSWORD(''),
         ) # type: ignore
         return result
+
+    def as_game_config(self) -> GameConfig:
+        return GameConfig(
+            snake_len = self.snake_len,
+            field_width = self.field_width,
+            field_height = self.field_height,
+            num_food_items = self.num_food_items,
+            respawn_food = self.respawn_food,
+            max_turns = self.max_turns,
+        )
 
 
 def generate_room_id() -> str:
@@ -297,7 +308,7 @@ class RoomManager:
             # TODO: shuffle for fairness.
             client_names = list(clients)
 
-            game = create_game(client_names)
+            game = create_game(client_names, room.as_game_config())
             game_room = GameRoom(client_names, game, room_info.name)
 
             await sync_object.pubsub.publish((game, game_room))
@@ -352,15 +363,10 @@ class RoomManager:
         )
 
 
-def create_game(client_names: List[ClientName]) -> Game:
-    field_width = 20
-    field_height = 20
-    max_turns = 500
+def create_game(client_names: List[ClientName], game_config: GameConfig) -> Game:
     return Game(
-        field_width,
-        field_height,
         [str(x) for x in client_names if x.is_player()],
-        max_turns,
+        game_config,
     )
 
 

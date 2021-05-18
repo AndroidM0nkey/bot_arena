@@ -1,3 +1,5 @@
+from bot_arena_server.game_config import GameConfig
+
 import random
 from copy import copy
 from dataclasses import dataclass
@@ -111,23 +113,20 @@ def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
 
 
 class Game:
-    def __init__(self, field_width: int, field_height: int, snake_names: List[str], max_turns: Optional[int]):
+    def __init__(self, snake_names: List[str], config: GameConfig) -> None:
+        self._config = config
         self._turns_counter = 0
-        self._max_turns = max_turns
         self._field = Field(
-            width = field_width,
-            height = field_height,
+            config = config,
             snakes = {},
             objects = [],
         )
 
         for name in snake_names:
-            # TODO: make the length configurable
-            snake = _generate_snake(self._field, 5)
+            snake = _generate_snake(self._field, self._config.snake_len)
             self._field.add_snake(name, snake)
 
-        # TODO: make the number of objects configurable
-        for i in range(5):
+        for i in range(self._config.num_food_items):
             self._field.place_object_randomly(Object.FOOD())
 
     def finish_turn(self) -> None:
@@ -152,7 +151,7 @@ class Game:
         return self.field._snakes.keys()
 
     def turn_limit_exceeded(self) -> bool:
-        return (self._max_turns is not None) and (self._turns_counter >= self._max_turns)
+        return (self._config.max_turns is not None) and (self._turns_counter >= self._config.max_turns)
 
     def is_finish_condition_satisfied(self) -> bool:
         # TODO: make the finish condition configurable.
@@ -195,13 +194,11 @@ class GameScore:
 class Field:
     def __init__(
         self,
-        width: int,
-        height: int,
         snakes: Dict[str, '_Snake'],
         objects: List[Tuple[Point, Object]],
+        config: GameConfig,
     ) -> None:
-        self._width = width
-        self._height = height
+        self._config = config
         self._snakes = snakes
         self._objects: Dict[Point, Object] = dict(objects)
         self._occupied_cells: Set[Point] = set()
@@ -275,10 +272,16 @@ class Field:
         self._objects.pop(snake.head)
         snake.change_score_by(1)
 
-        # TODO: make this behavior configurable.
-        self.place_object_randomly(Object.FOOD())
+        self._maybe_respawn_food_item()
 
         return MoveResult.OK()
+
+    def _maybe_respawn_food_item(self) -> None:
+        self._config.respawn_food.match(
+            yes = lambda: self.try_place_object_randomly(Object.FOOD()),
+            no = lambda: None,
+            random = lambda _: None,
+        ) # type: ignore
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
         for cell in change_in_free_cells.new_occupied():
@@ -304,11 +307,11 @@ class Field:
 
     @property
     def width(self) -> int:
-        return self._width
+        return self._config.field_width
 
     @property
     def height(self) -> int:
-        return self._height
+        return self._config.field_height
 
     def place_object_randomly(self, obj: Object) -> None:
         while not self.try_place_object_randomly(obj):
@@ -323,6 +326,20 @@ class Field:
             return True
         else:
             return False
+
+    def _do_object_placement_step(self) -> None:
+        self._config.respawn_food.match(
+            yes = lambda: None,     # TODO: respawn lost objects.
+            no = lambda: None,
+            random = self._do_probability_object_placement_step,
+        ) # type: ignore
+
+    def _do_probability_object_placement_step(self, probability: float) -> None:
+        random_value = random.random()
+        if random_value >= probability:
+            return
+
+        self.place_object_randomly(Object.FOOD())
 
     def is_cell_completely_free(self, cell: Point) -> bool:
         return (cell in self) and (cell not in self._occupied_cells) and (cell not in self._objects)
