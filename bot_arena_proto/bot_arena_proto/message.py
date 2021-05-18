@@ -18,7 +18,7 @@ __all__ = ['Message']
 
 
 def prop_to_primitive(name: str, value: Any) -> Primitive:
-    if name == 'players':
+    if name == 'players' or name == 'admins':
         value = ensure_type(value, list)
         value = [ensure_type(s, str) for s in value]
         return value
@@ -33,6 +33,11 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
     }:
         return ensure_type(value, int)
 
+    if name == 'max_turns':
+        if value is None:
+            return None
+        return ensure_type(value, int)
+
     if name in {'respawn_food', 'open'}:
         return value.to_primitive()
 
@@ -41,7 +46,7 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
 
 
 def prop_from_primitive(name: str, p: Primitive) -> Any:
-    if name == 'players':
+    if name == 'players' or name == 'admins':
         p = ensure_type(p, list)
         p = [ensure_type(s, str) for s in p]
         return p
@@ -54,6 +59,11 @@ def prop_from_primitive(name: str, p: Primitive) -> Any:
         'field_height',
         'num_food_items',
     }:
+        return ensure_type(p, int)
+
+    if name == 'max_turns':
+        if p is None:
+            return None
         return ensure_type(p, int)
 
     if name == 'respawn_food':
@@ -252,3 +262,5 @@ class Message(PrimitiveSerializable):
 
         raise DeserializationAdtTagError(Message, tag)
 
+    def kind(self) -> str:
+        return cast(List[str], self.to_primitive())[0]

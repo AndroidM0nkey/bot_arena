@@ -162,6 +162,9 @@ class DeserializationError(Exception):
         else:
             return ' of value ' + self.comment
 
+    def __str__(self) -> str:
+        return repr(self)
+
     def __repr__(self) -> str:
         return f'During deserialization{self.fmt_comment()}, {self.describe_error()}'
 

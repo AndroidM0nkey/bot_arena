@@ -11,6 +11,7 @@ from bot_arena_server.game import (
     Game,
     Action,
     GameInfo,
+    GameScore,
 )
 
 import pytest
@@ -575,6 +576,51 @@ class TestField:
             assert field.is_cell_completely_free(new_cell)
             assert not field_copy.is_cell_completely_free(new_cell)
 
+    @staticmethod
+    def test_score():
+        snake_a = _Snake(head=Point(2, 4), tail=[Direction.LEFT()])
+        snake_b = _Snake(head=Point(7, 3), tail=[Direction.DOWN(), Direction.DOWN()])
+
+        objects = [
+            (Point(3, 4), Object.FOOD()),
+        ]
+
+        field = Field(width=10, height=10, snakes={'A': snake_a}, objects=objects)
+
+        score1 = field.get_score()
+        score2 = field.get_score()
+        assert score1 is not score2
+        assert score1.score is not score2.score
+        score1.update('A', 999)
+        assert score1 != score2
+
+        field.add_snake('B', snake_b)
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('B', Direction.UP())
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('B', Direction.UP())
+        assert snake_a.score == 0
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 0, 'B': 0})
+
+        field.move_snake('A', Direction.RIGHT())
+        assert snake_a.head == Point(3, 4)
+        assert snake_a.score == 1
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 1, 'B': 0})
+
+        assert field.count_alive_players() == 2
+        field.move_snake('A', Direction.LEFT())
+        assert snake_a.score == 1
+        assert snake_b.score == 0
+        assert field.get_score() == GameScore({'A': 1, 'B': 0})
+        assert field.count_alive_players() == 1
 
 class TestGame:
     @staticmethod
@@ -594,7 +640,7 @@ class TestGame:
             objects = objects,
         )
 
-        game = Game(width, height, list(snakes.keys()))
+        game = Game(width, height, list(snakes.keys()), None)
         game._field = field
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
@@ -638,12 +684,12 @@ class TestGame:
     @staticmethod
     def test_snake_names():
         for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
-            game = Game(10, 10, names)
+            game = Game(10, 10, names, None)
             assert set(game.snake_names()) == set(names)
 
     @staticmethod
     def test_info():
-        game = Game(326, 16, ['A', 'B'])
+        game = Game(326, 16, ['A', 'B'], None)
         assert game.info() == GameInfo(field_width=326, field_height=16)
 
 
@@ -793,6 +839,20 @@ class TestChangeInFreeCells:
         new_occupied.add(E)
         assert cf._new_free == {A} != new_free == {A, B}
         assert cf._new_occupied == {F} != new_occupied == {E, F}
+
+
+class TestScore:
+    @staticmethod
+    def test_get_winners():
+        assert GameScore({}).get_winners(lambda _: True) == []
+        assert GameScore({'A': 5, 'B': 7, 'C': 3, 'D': 5}).get_winners(lambda _: True) == ['B']
+        assert set(GameScore({'A': 5, 'B': 7, 'C': 3, 'D': 7}).get_winners(lambda _: True)) == {'B', 'D'}
+        assert set(GameScore.from_snake_names(['a', 'b', 'c']).get_winners(lambda _: True)) == {'a', 'b', 'c'}
+        assert set(
+            GameScore
+                .from_snake_names({'a': 3, 'b': 3, 'c': 5})
+                .get_winners(lambda name: name < 'c')
+        ) == {'a', 'b'}
 
 
 def equal_modulo_respawn(set1, set2, min_num_respawned):

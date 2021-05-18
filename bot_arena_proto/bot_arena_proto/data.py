@@ -16,8 +16,11 @@ __all__ = [
     'Action',
     'Direction',
     'FieldState',
+    'FoodRespawnBehavior',
     'Object',
     'Point',
+    'RoomInfo',
+    'RoomOpenness',
     'SnakeState',
 ]
 
@@ -62,6 +65,7 @@ class Direction:
             left = lambda: 2,
             right = lambda: 3,
         ) # type: ignore
+        a = cast(int, a)
 
         return a ^ 0x7843c6aab56971b4
 
@@ -85,14 +89,14 @@ class Point:
         return Class(x=x, y=y)
 
     def shift(self, direction: Direction) -> 'Point':
-        delta: Tuple[int, int] = direction.match(
+        dxdy = direction.match(
             up = lambda: (0, 1),
             down = lambda: (0, -1),
             left = lambda: (-1, 0),
             right = lambda: (1, 0),
         ) # type: ignore
 
-        dx, dy = delta
+        dx, dy = cast(Tuple[int, int], dxdy)
 
         return Point(x = self.x + dx, y = self.y + dy)
 
@@ -242,7 +246,7 @@ class RoomOpenness:
         tag = ensure_type(tag, str)
         if tag == 'open':
             return RoomOpenness.OPEN()
-        if tag == 'close':
+        if tag == 'closed':
             return RoomOpenness.CLOSED()
         if tag == 'whitelist':
             players = ensure_type(data[0], list)
@@ -293,4 +297,3 @@ class RoomInfo:
         players_sanitized = [ensure_type(pl, str) for pl in players]
         init_kwargs['players'] = players
         return RoomInfo(**init_kwargs)  # type: ignore
-
