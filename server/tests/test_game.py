@@ -635,6 +635,66 @@ class TestField:
         assert field.get_score() == GameScore({'A': 1, 'B': 0})
         assert field.count_alive_players() == 1
 
+    @staticmethod
+    def test_food_respawn_behavior():
+        config = make_default_config(
+            field_width = 20,
+            field_height = 20,
+            respawn_food = FoodRespawnBehavior.NO(),
+        )
+        field = Field(
+            snakes = {'a': _Snake(head=Point(4, 4), tail=[Direction.LEFT()])},
+            objects = [(Point(5, 4), Object.FOOD())],
+            config = config,
+        )
+        field.move_snake('a', Direction.RIGHT())
+        assert len(field._objects) == 0
+
+        config = make_default_config(
+            field_width = 20,
+            field_height = 20,
+            respawn_food = FoodRespawnBehavior.YES(),
+        )
+        field = Field(
+            snakes = {'a': _Snake(head=Point(4, 4), tail=[Direction.LEFT()])},
+            objects = [(Point(5, 4), Object.FOOD())],
+            config = config,
+        )
+        field.move_snake('a', Direction.RIGHT())
+        assert len(field._objects) == 1
+
+        config = make_default_config(
+            field_width = 20,
+            field_height = 20,
+            respawn_food = FoodRespawnBehavior.RANDOM(0.0),
+        )
+        field = Field(
+            snakes = {'a': _Snake(head=Point(4, 4), tail=[Direction.LEFT()])},
+            objects = [(Point(5, 4), Object.FOOD())],
+            config = config,
+        )
+        field.move_snake('a', Direction.RIGHT())
+        assert len(field._objects) == 0
+        field.move_snake('a', Direction.UP())
+        assert len(field._objects) == 0
+
+        config = make_default_config(
+            field_width = 20,
+            field_height = 20,
+            respawn_food = FoodRespawnBehavior.RANDOM(1.0),
+        )
+        field = Field(
+            snakes = {'a': _Snake(head=Point(4, 4), tail=[Direction.LEFT()])},
+            objects = [(Point(5, 5), Object.FOOD())],
+            config = config,
+        )
+        field.move_snake('a', Direction.RIGHT())
+        assert len(field._objects) == 2
+
+        field.move_snake('a', Direction.UP())
+        assert len(field._objects) == 2
+
+
 class TestGame:
     @staticmethod
     def test_take_turn():

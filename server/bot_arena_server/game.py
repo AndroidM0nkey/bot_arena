@@ -244,26 +244,29 @@ class Field:
         snake = self._snakes[name]
 
         destination = snake.head.shift(direction)
-        if not self.is_cell_passable(destination):
-            # The snake has crashed.
-            # Free up the cells that were occupied by this snake.
-            self._update_occupied_cells(
-                ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
-            )
-            # Delete it from the world.
-            self._snakes.pop(name)
-            # Report the death.
-            return MoveResult.CRASH()
+        try:
+            if not self.is_cell_passable(destination):
+                # The snake has crashed.
+                # Free up the cells that were occupied by this snake.
+                self._update_occupied_cells(
+                    ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
+                )
+                # Delete it from the world.
+                self._snakes.pop(name)
+                # Report the death.
+                return MoveResult.CRASH()
 
-        if destination in self._objects:
-            obj = self._objects[destination]
-            return obj.match(
-                food = lambda: self._consume_food(snake, direction)
-            ) # type: ignore
+            if destination in self._objects:
+                obj = self._objects[destination]
+                return obj.match(
+                    food = lambda: self._consume_food(snake, direction)
+                ) # type: ignore
 
-        # TODO: pick objects
-        change_in_free_cells = snake.move(direction)
-        self._update_occupied_cells(change_in_free_cells)
+            change_in_free_cells = snake.move(direction)
+            self._update_occupied_cells(change_in_free_cells)
+
+        finally:
+            self._do_object_placement_step()
 
         return MoveResult.OK()
 
