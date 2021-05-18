@@ -39,16 +39,23 @@ class GameRoom:
             raise KeyError(f'No such player in the game room: {client_name!r}')
         self._sessions[client_name] = session
 
+    def mark_snake_dead(self, client_name: ClientName) -> None:
+        assert client_name.is_player()
+        if client_name in self._dead:
+            raise KeyError(f'Snake {client_name!r} somehow managed to die twice')
+        self._dead.add(client_name)
+        self._game.kill_snake_off(str(client_name))
+
     async def report_death(self, client_name: ClientName) -> None:
         assert client_name.is_player()
 
-        if client_name in self._dead:
-            raise KeyError(f'Snake {client_name!r} somehow managed to die twice')
         if client_name not in self._players:
             raise KeyError(f'No such player in the game room: {client_name!r}')
 
-        await self.broadcast_event(Event.SNAKE_DIED(str(client_name)), lambda name: True)
-        self._dead.add(client_name)
+        await self.broadcast_event(
+            Event(name='SnakeDied', data=str(client_name), must_know=False),
+            lambda name: True,
+        )
 
     async def finish_turn(self, client_name: ClientName) -> None:
         assert client_name.is_player()
@@ -124,7 +131,14 @@ class GameRoom:
 
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
         logger.debug(f'Broadcasting event: {event}')
-        await self.broadcast(lambda sess: sess.send_event(event), filter_func)
+
+        async def callback(sess: ServerSession):
+            try:
+                await sess.send_event(event)
+            except BrokenPipeError:
+                logger.warning('Broken pipe error')
+
+        await self.broadcast(callback, filter_func)
 
     async def wait_until_game_ends(self) -> None:
         await self._game_end_pubsub.receive()

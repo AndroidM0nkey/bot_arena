@@ -7,7 +7,7 @@ from bot_arena_proto.serialization import (
 )
 
 from dataclasses import dataclass
-from typing import List, Type, Tuple, Dict
+from typing import List, Type, Tuple, Dict, cast
 
 from adt import adt, Case
 
@@ -61,7 +61,7 @@ class Direction:
             down = lambda: 1,
             left = lambda: 2,
             right = lambda: 3,
-        )
+        ) # type: ignore
 
         return a ^ 0x7843c6aab56971b4
 
@@ -85,12 +85,14 @@ class Point:
         return Class(x=x, y=y)
 
     def shift(self, direction: Direction) -> 'Point':
-        dx, dy = direction.match(
+        delta: Tuple[int, int] = direction.match(
             up = lambda: (0, 1),
             down = lambda: (0, -1),
             left = lambda: (-1, 0),
             right = lambda: (1, 0),
-        )
+        ) # type: ignore
+
+        dx, dy = delta
 
         return Point(x = self.x + dx, y = self.y + dy)
 

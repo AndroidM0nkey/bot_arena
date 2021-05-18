@@ -5,6 +5,7 @@ from game_viewer_files.main_viewer import get_message_and_display
 from bot import Bot
 import pygame
 import game_viewer_files.config as c
+import time
 
 
 # A library that can run async functions.
@@ -23,6 +24,10 @@ name = 'first'
 
 async def main():
     global sess
+    global curField
+    global f_height
+    global f_width
+    global name
 
     # Connect to the server, assuming it is listening on 127.0.0.1:1234.
     socket = await curio.open_connection(host='0.0.0.0', port=23456)
@@ -79,13 +84,20 @@ async def main():
 async def handle_new_field_state(state):
     # Do something when a new field state arrives.
     # Let's update your current field
+    #
+    global sess
+    global curField
+    global f_height
+    global f_width
+    global name
     curField = state
-    pygame.init()
-    main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
-    pygame.display.set_caption('Pythons')
-    get_message_and_display(curField, main_surface)
-    #wait some time to actually show you an image
-    pygame.time.wait(10000)
+    #pygame.init()
+    #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
+    #pygame.display.set_caption('Pythons')
+    #get_message_and_display(curField, main_surface)
+    #time.sleep(1000)
+    
+    
 
 async def handle_event(event):
     # Do something when an event happens.
@@ -93,6 +105,7 @@ async def handle_event(event):
     pass
 
 async def handle_error(description):
+    print(description)
     # Do something when an error happens.
     #print(f'Error: {description}')
     pass
@@ -101,11 +114,15 @@ async def handle_error(description):
 async def take_turn():
     # Tell the server what to do in your turn.
     global sess
+    global curField
+    global f_height
+    global f_width
+    global name
 
     # We will always tell our snake to move right.
     curBot = Bot()
-    action = Action.MOVE(curBot.find_direction(curField), f_height, f_width, name)
-
+    action = Action.MOVE(curBot.find_direction(curField, f_width, f_height, name))
+    #action = Action.MOVE(Direction.UP())
     # Send our action to the server
     await sess.respond(action)  # May cause an ERR if the move is invalid.
                                 # This ERR will appear as the next

@@ -20,7 +20,7 @@ sess = None
 curField = None
 f_width = 0
 f_height = 0
-name = 'second'
+name = '@viewer'
 
 async def main():
     global sess
@@ -91,15 +91,16 @@ async def handle_new_field_state(state):
     global f_width
     global name
     curField = state
-    #pygame.init()
-    #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
-    #pygame.display.set_caption('Pythons')
-    #get_message_and_display(curField, main_surface)
+    pygame.init()
+    pygame.display.set_caption('Pythons')
+    get_message_and_display(curField, f_height, f_width)
     #time.sleep(1000)
     
     
 
 async def handle_event(event):
+    if event.name == 'SnakeDied':
+        time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
     pass

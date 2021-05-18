@@ -145,7 +145,7 @@ async def client_session(endpoint):
         ]
     )
 
-    (await sess.wait_for_notification()).event().game_finished()
+    assert (await sess.wait_for_notification()).event().name == 'GameFinished'
     print_now('Client: game finished')
 
 
@@ -187,7 +187,7 @@ async def server_session(endpoint):
         )
     )
     print_now('Server: sent new field state')
-    await sess.send_event(Event.GAME_FINISHED())
+    await sess.send_event(Event(name='GameFinished', data=None, must_know=True))
     print_now('Server: game finished')
 
 

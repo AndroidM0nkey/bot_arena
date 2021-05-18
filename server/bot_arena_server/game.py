@@ -146,6 +146,10 @@ class Game:
         # TODO: make the finish condition configurable.
         return self.field.count_alive_players() <= 1
 
+    def kill_snake_off(self, snake_name: str):
+        if snake_name in set(self.snake_names()):
+            self.field.kill_snake(snake_name)
+
 
 class Field:
     def __init__(
@@ -177,6 +181,17 @@ class Field:
 
     def count_alive_players(self) -> int:
         return len(self._snakes)
+
+    def kill_snake(self, name: str) -> None:
+        if name not in self._snakes:
+            raise NoSuchSnakeError(name)
+
+        snake = self._snakes[name]
+        self._update_occupied_cells(
+            ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
+        )
+
+        self._snakes.pop(name)
 
     def move_snake(self, name: str, direction: Direction) -> MoveResult:
         if name not in self._snakes:
@@ -211,6 +226,10 @@ class Field:
     def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
         self._update_occupied_cells(snake.grow(direction))
         self._objects.pop(snake.head)
+
+        # TODO: make this behavior configurable.
+        self.place_object_randomly(Object.FOOD())
+
         return MoveResult.OK()
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:

@@ -3,7 +3,7 @@ from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.pubsub import PublishSubscribeService
 
-from typing import Tuple, Callable, Coroutine, List, Optional
+from typing import Tuple, Callable, Coroutine, List, Optional, Set
 
 import curio    # type: ignore
 from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
@@ -36,6 +36,7 @@ class Server:
         self._client_handler = client_handler
         self._client_rich_infos: List[RichClientInfo] = []
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
+        self._clients: Set[ClientName] = set()
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)
@@ -57,36 +58,42 @@ class Server:
         client_info = await sess.pre_initialize()
         try:
             client_name = ClientName(client_info.name)
+            if client_name in self._clients:
+                raise Exception(f'Client {client_name} is already connected')
             logger.info('{!r} joined the party', client_name)
             await sess.initialize_ok()
         except Exception as e:
             await sess.initialize_err(str(e))
             return
 
-        client_rich_info = RichClientInfo(info=client_info, name=client_name)
-        self._client_rich_infos.append(client_rich_info)
-        if len(self._client_rich_infos) >= self.CLIENTS_PER_GAME:
-            logger.info(
-                'Creating a game room for {}',
-                ', '.join(repr(x.name) for x in self._client_rich_infos),
-            )
-            client_rich_infos = self._client_rich_infos
-            self._client_rich_infos = []
-            game = create_game(client_rich_infos)
-            game_room = GameRoom([info.name for info in client_rich_infos], game)
-            await self._game_pubsub.publish((game, game_room))
-            is_game_creator = True
-        else:
-            game, game_room = await self._wait_until_game_is_ready(sess)
-            is_game_creator = False
+        self._clients.add(client_name)
+        try:
+            client_rich_info = RichClientInfo(info=client_info, name=client_name)
+            self._client_rich_infos.append(client_rich_info)
+            if len(self._client_rich_infos) >= self.CLIENTS_PER_GAME:
+                logger.info(
+                    'Creating a game room for {}',
+                    ', '.join(repr(x.name) for x in self._client_rich_infos),
+                )
+                client_rich_infos = self._client_rich_infos
+                self._client_rich_infos = []
+                game = create_game(client_rich_infos)
+                game_room = GameRoom([info.name for info in client_rich_infos], game)
+                await self._game_pubsub.publish((game, game_room))
+                is_game_creator = True
+            else:
+                game, game_room = await self._wait_until_game_is_ready(sess)
+                is_game_creator = False
 
-        if is_game_creator:
-            await curio.spawn(game_room.run_loop, daemon=True)
+            if is_game_creator:
+                await curio.spawn(game_room.run_loop, daemon=True)
 
-        await sess.wait_until_ready()
-        await sess.start_game(game.info())
-        logger.info('Game with {!r} has started', client_name)
-        await self._client_handler(sess, client_rich_info, game, game_room)
+            await sess.wait_until_ready()
+            await sess.start_game(game.info())
+            logger.info('Game with {!r} has started', client_name)
+            await self._client_handler(sess, client_rich_info, game, game_room)
+        finally:
+            self._clients.remove(client_name)
 
     async def _wait_until_game_is_ready(self, sess: ServerSession) -> Tuple[Game, GameRoom]:
         # TODO: poll for messages from the client.
