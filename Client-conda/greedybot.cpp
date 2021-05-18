@@ -1,3 +1,4 @@
+
 #include <bits/stdc++.h>
 
 using namespace std;
@@ -21,7 +22,7 @@ int main(){
 
     for (int i = 0; i < n; i++){
         for (int j = 0; j < m; j++){
-            if (field[i][j] != 0){
+            if (field[i][j] == 1){
                 bfs.push({i, j});
                 dists[i][j] = 0;
             }
@@ -67,14 +68,14 @@ int main(){
         }
     }    
 
-    pair<int,int> max_pos = {-1, 0};
+    pair<int,int> min_pos = {m * n + 1, 0};
     for (auto cur_pos : pos){
-        if (cur_pos.first > max_pos.first){
-            max_pos = cur_pos;
+        if (cur_pos.first < min_pos.first){
+            min_pos = cur_pos;
         }
     }
     
-    cout << max_pos.second << endl;
+    cout << min_pos.second << endl;
 
     return 0;
 }
