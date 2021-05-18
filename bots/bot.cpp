@@ -50,7 +50,7 @@ int main(){
     for (auto move : moves){
         pair<int,int> next = {head.first + move.first, head.second + move.second};
         if (next.first > -1 && next.first < n && next.second > -1 && next.second < m){
-            if (field[next.first][next.second] == 0 && dists[next.first][next.second] != -1){
+            if (dists[next.first][next.second] != -1){
                 if (move == moves[0]){
                     pos.push_back({dists[next.first][next.second], 1});
                 }
@@ -80,9 +80,10 @@ int main(){
 }
 
 /*
-3 3
-2 2
-3 0 1
-0 0 0
-0 0 1
+4 4
+2 3
+0 3 0 0
+0 2 2 0
+0 0 0 1
+1 1 1 1
 */
