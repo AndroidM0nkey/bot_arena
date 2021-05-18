@@ -21,7 +21,7 @@ int main(){
 
     for (int i = 0; i < n; i++){
         for (int j = 0; j < m; j++){
-            if (field[i][j] == 1){
+            if (field[i][j] != 1 && field[i][j] % 2 == 1 && field[i][j] != num_head){
                 bfs.push({i, j});
                 dists[i][j] = 0;
             }
