@@ -81,8 +81,8 @@ class ClientWorker:
                 room_infos = list(self._server._room_manager.list_room_infos(client_name))
                 await self._sess.respond_with_room_list(room_infos)
             elif msg_type == 'EnterRoom':
-                room_name = msg.enter_room()
-                self._server._room_manager.handle_room_entry(client_name, room_name)
+                room_name, password = msg.enter_room()
+                self._server._room_manager.handle_room_entry(client_name, room_name, password)
                 self._state = ClientWorkerState.ROOM()
                 await self._sess.respond_ok()
             elif msg_type == 'NewRoom':
@@ -95,7 +95,7 @@ class ClientWorker:
                 joined = False
                 for info in room_infos:
                     if info.can_join == 'yes':
-                        self._server._room_manager.handle_room_entry(client_name, info.name)
+                        self._server._room_manager.handle_room_entry(client_name, info.name, None)
                         joined = True
 
                 if not joined:

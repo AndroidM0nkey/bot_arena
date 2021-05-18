@@ -10,7 +10,7 @@ from bot_arena_proto.serialization import (
 
 from adt import adt, Case
 from dataclasses import dataclass
-from typing import List, Dict, Any, Type, cast
+from typing import List, Dict, Any, Type, cast, Optional
 
 
 __all__ = ['Message']
@@ -119,7 +119,9 @@ class Message(PrimitiveSerializable):
 
     - LIST_ROOMS        A client's request to get the list of all rooms.
 
-    - ENTER_ROOM:       A client's request to enter a specific room.
+    - ENTER_ROOM:       A client's request to enter a specific room. The
+                        room name and an optional (None if not specified)
+                        password are attached as parameters.
 
     - ENTER_ANY_ROOM:   A client's request to enter any room, at the server's
                         discretion.
@@ -154,7 +156,7 @@ class Message(PrimitiveSerializable):
     OK: Case
     ERR: Case[str]
     LIST_ROOMS: Case
-    ENTER_ROOM: Case[str]
+    ENTER_ROOM: Case[str, Optional[str]]
     ENTER_ANY_ROOM: Case
     NEW_ROOM: Case
     LEAVE_ROOM: Case
@@ -177,7 +179,7 @@ class Message(PrimitiveSerializable):
                 ok = lambda: ['Ok'],
                 err = lambda message: ['Err', message],
                 list_rooms = lambda: ['ListRooms'],
-                enter_room = lambda name: ['EnterRoom', name],
+                enter_room = lambda name, password: ['EnterRoom', name, password],
                 enter_any_room = lambda: ['EnterAnyRoom'],
                 new_room = lambda: ['NewRoom'],
                 leave_room = lambda: ['LeaveRoom'],
@@ -200,48 +202,74 @@ class Message(PrimitiveSerializable):
     @classmethod
     def from_primitive(Class: Type['Message'], p: Primitive) -> 'Message':
         p = ensure_type(p, list)
+        if len(p) < 1:
+            raise DeserializationLogicError('`Message` primitive is empty')
+
         [tag, *data] = p
-        if len(data) > 1:
-            raise DeserializationLogicError(
-                f'`data` array is supposed to contain no more than 1 element, but its length is {len(data)}'
-            )
+
+        def require_length(length: int):
+            if len(data) != length:
+                raise DeserializationLogicError(
+                    f'`data` array is supposed to be of length {length}, but its actual length is {len(data)}'
+                )
 
         if tag == 'ClientHello':
+            require_length(1)
             name = ensure_type(data[0], str)
             return Message.CLIENT_HELLO(name)
         if tag == 'ServerHello':
+            require_length(0)
             return Message.SERVER_HELLO()
         if tag == 'YourTurn':
+            require_length(0)
             return Message.YOUR_TURN()
         if tag == 'Ready':
+            require_length(0)
             return Message.READY()
         if tag == 'NewFieldState':
+            require_length(1)
             state = FieldState.from_primitive(data[0])
             return Message.NEW_FIELD_STATE(state)
         if tag == 'Act':
+            require_length(1)
             action = Action.from_primitive(data[0])
             return Message.ACT(action)
         if tag == 'EventHappened':
+            require_length(1)
             event = Event.from_primitive(data[0])
             return Message.EVENT_HAPPENED(event)
         if tag == 'Ok':
+            require_length(0)
             return Message.OK()
         if tag == 'Err':
+            require_length(1)
             error_message = ensure_type(data[0], str)
             return Message.ERR(error_message)
         if tag == 'ListRooms':
+            require_length(0)
             return Message.LIST_ROOMS()
         if tag == 'EnterRoom':
-            return Message.ENTER_ROOM(ensure_type(data[0], str))
+            require_length(2)
+            room_name = ensure_type(data[0], str)
+            password: Optional[str] = None
+            raw_password = data[1]
+            if raw_password is not None:
+                password = ensure_type(raw_password, str)
+            return Message.ENTER_ROOM(room_name, password)
         if tag == 'EnterAnyRoom':
+            require_length(0)
             return Message.ENTER_ANY_ROOM()
         if tag == 'NewRoom':
+            require_length(0)
             return Message.NEW_ROOM()
         if tag == 'LeaveRoom':
+            require_length(0)
             return Message.LEAVE_ROOM()
         if tag == 'GetRoomProperties':
+            require_length(0)
             return Message.GET_ROOM_PROPERTIES()
         if tag == 'SetRoomProperties':
+            require_length(1)
             props = ensure_type(data[0], dict)
             props_sanitized = {
                 ensure_type(k, str): prop_from_primitive(k, v)
@@ -249,10 +277,12 @@ class Message(PrimitiveSerializable):
             }
             return Message.SET_ROOM_PROPERTIES(props_sanitized)
         if tag == 'RoomListAvailable':
+            require_length(1)
             rooms = ensure_type(data[0], list)
             rooms_sanitized = [RoomInfo.from_primitive(r) for r in rooms]
             return Message.ROOM_LIST_AVAILABLE(rooms_sanitized)
         if tag == 'RoomPropertiesAvailable':
+            require_length(1)
             props = ensure_type(data[0], dict)
             props_sanitized = {
                 ensure_type(k, str): prop_from_primitive(k, v)

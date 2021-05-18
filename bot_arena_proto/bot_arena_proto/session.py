@@ -5,7 +5,7 @@ from bot_arena_proto.serialization import ensure_type, Primitive
 
 from dataclasses import dataclass
 from time import sleep
-from typing import Protocol, Tuple, Any, List, Dict, Type
+from typing import Protocol, Tuple, Any, List, Dict, Type, Optional
 
 from adt import adt, Case
 
@@ -213,10 +213,10 @@ class ClientSession(Session):
         await self.send_message(Message.LIST_ROOMS())
         return not_err(await self.recv_message()).room_list_available()
 
-    async def enter_room(self, room_name: str) -> None:
+    async def enter_room(self, room_name: str, password: Optional[str]) -> None:
         """Enter a room with a specified name."""
 
-        await self.send_message(Message.ENTER_ROOM(room_name))
+        await self.send_message(Message.ENTER_ROOM(room_name, password))
         await self.expect_ok()
 
     async def enter_any_room(self) -> None:

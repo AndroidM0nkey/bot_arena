@@ -170,7 +170,9 @@ class RoomManager:
     def room_name_to_id(self, room_name: str) -> str:
         return self._alias_map[room_name]
 
-    def handle_room_entry(self, invoking_client: ClientName, room_name: str) -> None:
+    def handle_room_entry(self, invoking_client: ClientName, room_name: str, password: Optional[str]) -> None:
+        # TODO: make use of `password`.
+
         # Precondition: room must exist, the client must be able to enter it,
         # the client must be in the hub, and the game must not have started.
         room_id = self.room_name_to_id(room_name)
