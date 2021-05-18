@@ -178,7 +178,7 @@ class Server:
         try:
             client_name = ClientName(client_info.name)
             if client_name in self._client_infos:
-                raise Exception(f'Client {client_name} is already connected')
+                raise Exception(f'Client {client_name!r} is already connected')
             logger.info('{!r} joined the party', client_name)
             await sess.initialize_ok()
         except Exception as e:

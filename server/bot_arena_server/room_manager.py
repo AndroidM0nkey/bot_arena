@@ -24,7 +24,7 @@ class NoSuchProperty(PropertyAccessError):
         self._property_name = property_name
 
     def __repr__(self) -> str:
-        return f'No such room property: "{self._property_name}"'
+        return f'No such room property: {self._property_name!r}'
 
 
 class PropertyAccessDenied(PropertyAccessError):
@@ -33,7 +33,7 @@ class PropertyAccessDenied(PropertyAccessError):
         self._property_name = property_name
 
     def __repr__(self) -> str:
-        return f'Access denied to property "{self._property_name}"'
+        return f'Access denied to property {self._property_name!r}'
 
 
 class PropertyReadOnly(PropertyAccessError):
@@ -42,7 +42,7 @@ class PropertyReadOnly(PropertyAccessError):
         self._property_name = property_name
 
     def __repr__(self) -> str:
-        return f'Property "{self._property_name}" cannot be written to'
+        return f'Property {self._property_name!r} cannot be written to'
 
 
 @dataclass
@@ -100,7 +100,7 @@ class RoomManager:
 
         # We have checked all the necessary preconditions and may now proceed.
 
-        logger.info('{} creates a room {!r}', invoking_client, room_id)
+        logger.info('{!r} creates a room {!r}', invoking_client, room_id)
         self._mapping.add_room(room_id)
         self._mapping.add_client_to_room(room_id, invoking_client)
         self._alias_map[room_id] = room_id

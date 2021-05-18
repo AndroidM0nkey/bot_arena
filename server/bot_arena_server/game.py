@@ -332,7 +332,7 @@ class Field:
 
     def add_snake(self, snake_name: str, snake: '_Snake') -> None:
         if snake_name in self._snakes:
-            raise KeyError(f'Snake `{snake_name}` is already present on the game field')
+            raise KeyError(f'Snake {snake_name!r} is already present on the game field')
         self._snakes[snake_name] = snake
         self._update_occupied_cells(
             ChangeInFreeCells(new_free=[], new_occupied=snake.list_occupied_cells())
