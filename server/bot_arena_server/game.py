@@ -281,7 +281,7 @@ class Field:
 
     def _maybe_respawn_food_item(self) -> None:
         self._config.respawn_food.match(
-            yes = lambda: self.try_place_object_randomly(Object.FOOD()),
+            yes = lambda: self.place_object_randomly(Object.FOOD()),
             no = lambda: None,
             random = lambda _: None,
         ) # type: ignore
