@@ -38,6 +38,11 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
             return None
         return ensure_type(value, int)
 
+    if name == 'turn_timeout_seconds':
+        if value is None:
+            return None
+        return ensure_type(value, float)
+
     if name in {'respawn_food', 'open'}:
         return value.to_primitive()
 
@@ -65,6 +70,11 @@ def prop_from_primitive(name: str, p: Primitive) -> Any:
         if p is None:
             return None
         return ensure_type(p, int)
+
+    if name == 'turn_timeout_seconds':
+        if p is None:
+            return None
+        return ensure_type(p, float)
 
     if name == 'respawn_food':
         return FoodRespawnBehavior.from_primitive(p)

@@ -48,7 +48,7 @@ class GameLoop:
             else:
                 await self.run_for_non_player()
         except BaseException as e:
-            if not isinstance(e, (EOFError, IOError)):
+            if not isinstance(e, (EOFError, IOError, EnsureDisconnect)):
                 logger.error('{!r} disconnected because of an exception: {}', self.client_info.name, e)
             await self.on_disconnect()
             raise EnsureDisconnect(e)
@@ -87,19 +87,14 @@ class GameLoop:
                     await self.sess.respond_err('It is not your turn')
                     continue
 
-            except GameRoomExit:
-                winners = self.game.get_winners()
-                await self.sess.send_event(Event(
-                    name = 'GameFinished',
-                    data = {'winners': winners},
-                    must_know = True,
-                ))
-                break
-
-            try:
                 logger.debug('It is {!r}\'s turn', client_name)
                 with self.game_room.lock_events_for(client_name):
-                    action = await self.sess.request_action()
+                    which, action = await select(
+                        action = self.sess.request_action(),
+                        timeout = self.game_room.wait_for_turn_timeout(client_name),
+                    )
+                    assert which == 'action'
+
                     logger.debug('{!r} requested action: {!r}', client_name, action)
 
                     move_result = self.game.take_turn(name=str(client_name), action=action)
@@ -118,6 +113,14 @@ class GameLoop:
                     lambda context: context.session.send_new_field_state(new_field_state),
                     lambda name: True,
                 )
+            except GameRoomExit:
+                winners = self.game.get_winners()
+                await self.sess.send_event(Event(
+                    name = 'GameFinished',
+                    data = {'winners': winners},
+                    must_know = True,
+                ))
+                break
             except IllegalAction as e:
                 logger.debug('The action {!r} for {!r} is invalid: {!r}', action, client_name, e)
                 await self.sess.respond_err(str(e))

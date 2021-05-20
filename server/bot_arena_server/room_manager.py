@@ -7,6 +7,7 @@ from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_mapping import RoomMapping
 
 import copy
+import math
 import secrets
 from dataclasses import dataclass
 from typing import Dict, Set, Any, Tuple, List, Callable, Coroutine, Iterable, cast, Optional
@@ -123,6 +124,7 @@ class RoomDetails:
     respawn_food: FoodRespawnBehavior
     open: RoomOpenness
     max_turns: Optional[int]
+    turn_timeout_seconds: Optional[float]
     game_started: bool
 
     def strip_private_info(self) -> 'RoomDetails':
@@ -192,6 +194,7 @@ class RoomManager:
             open = RoomOpenness.CLOSED(),
             max_turns = 1000,
             game_started = False,
+            turn_timeout_seconds = None,
         )
         self._room_sync[room_id] = RoomSyncObject()
 
@@ -320,6 +323,8 @@ class RoomManager:
             'num_food_items': room.num_food_items,
             'respawn_food': room.respawn_food,
             'open': room.open,
+            'max_turns': room.max_turns,
+            'turn_timeout_seconds': room.turn_timeout_seconds,
         }
 
     def set_room_properties(self, invoking_client: ClientName, properties: Dict[str, Any]) -> None:
@@ -397,6 +402,16 @@ class RoomManager:
         elif key == 'open':
             room.open = value
 
+        elif key == 'max_turns':
+            if value < 1:
+                raise PropertyValueIsInvalid(key, 'must be at least 1')
+            room.max_turns = value
+
+        elif key == 'turn_timeout_seconds':
+            if not math.isfinite(value) or value <= 0:
+                raise PropertyValueIsInvalid(key, 'must be finite, non-nan and non-negative')
+            room.turn_timeout_seconds = value
+
         else:
             raise Exception(f'Invalid room property name: {key!r}')
 
@@ -438,6 +453,7 @@ class RoomManager:
 
             game = create_game(client_names, room.as_game_config())
             game_room = GameRoom(client_names, game, room_info.name)
+            game_room.set_turn_timeout(room.turn_timeout_seconds)
 
             await sync_object.pubsub.publish((game, game_room))
             logger.info('The game in the room {!r} is starting', room.name)

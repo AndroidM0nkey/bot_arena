@@ -1,7 +1,6 @@
 from bot_arena_server.client_name import ClientName
 from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game, GameScore
-
 from bot_arena_server.pubsub import PublishSubscribeService
 
 from dataclasses import dataclass
@@ -21,6 +20,11 @@ __all__ = [
 ]
 
 
+async def sleep_forever():
+    while True:
+        await curio.sleep(999999)
+
+
 class GameRoomExit(BaseException):
     pass
 
@@ -35,8 +39,11 @@ class GameRoom:
         self._clients: Dict[ClientName, ClientContext] = {}
         self._client_names = client_names
         self._game = game
-
+        self._turn_timeout_seconds: Optional[float] = None
         self._name = name
+
+    def set_turn_timeout(self, turn_timeout_seconds: Optional[float]) -> None:
+        self._turn_timeout_seconds = turn_timeout_seconds
 
     def get_score(self) -> GameScore:
         return self._game.get_score()
@@ -141,6 +148,7 @@ class GameRoom:
             logger.debug('New round')
             for client_name in self._client_names:
                 if self._game.is_finish_condition_satisfied():
+                    await self._flush_event_queues()
                     logger.debug('Loop finished')
                     logger.info(
                         'Game in the room {!r} has finished (winners: {!r})',
@@ -176,8 +184,11 @@ class GameRoom:
     async def _flush_event_queues(self) -> None:
         for context in self._clients.values():
             events = context.event_queue.try_flush()
-            for event in events:
-                await context.session.send_event(event)
+            try:
+                for event in events:
+                    await context.session.send_event(event)
+            except (IOError, EOFError, OSError) as _:
+                pass
 
     async def terminate_all_sessions(self) -> None:
         logger.debug('Terminating all game sessions in this game room')
@@ -208,7 +219,7 @@ class GameRoom:
                 logger.debug('Broadcast: {!r}, context = {!r}', client_name, context)
                 try:
                     await action(context)
-                except (IOError, EOFError) as e:
+                except (IOError, EOFError, OSError) as e:
                     logger.debug('Broadcast failed: endpoint disconnected')
                     await self.ensure_disconnect(client_name)
 
@@ -265,6 +276,21 @@ class GameRoom:
         context = self._clients[client_name]
         return EventLock(context.event_queue)
 
+    async def wait_for_turn_timeout(self, client_name: ClientName) -> None:
+        assert client_name.is_player()
+
+        if self._turn_timeout_seconds is None:
+            await sleep_forever()
+        else:
+            await curio.sleep(self._turn_timeout_seconds)
+
+        # TODO: maybe allow the player to stay in a viewer mode.
+        logger.debug('Waiting for the client\'s action timed out')
+        await self.broadcast_event(
+            Event('PlayerTimedOut', str(client_name), must_know=False),
+            lambda name: name != client_name,
+        )
+        raise EnsureDisconnect()
 
 
 class LockedEventQueue:
