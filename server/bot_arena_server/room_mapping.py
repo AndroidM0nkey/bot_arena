@@ -105,6 +105,9 @@ class RoomMapping:
         self.check_that_room_exists(room_name)
         return self._rooms_to_clients_map[room_name]
 
+    def count_players_in_a_room(self, room_name: str) -> int:
+        return sum(1 for name in self.list_clients_in_a_room(room_name) if name.is_player())
+
     def get_room_with_client(self, client: ClientName) -> str:
         self.check_that_client_is_not_in_hub(client)
         return self._clients_to_rooms_map[client]

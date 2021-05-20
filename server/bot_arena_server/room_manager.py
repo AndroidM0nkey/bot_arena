@@ -1,3 +1,4 @@
+from bot_arena_server import password_utils
 from bot_arena_server.client_name import ClientName
 from bot_arena_server.game import Game
 from bot_arena_server.game_config import GameConfig
@@ -15,6 +16,59 @@ from bot_arena_proto.data import RoomOpenness, FoodRespawnBehavior, RoomInfo
 from loguru import logger # type: ignore
 
 
+class ProhibitedAction(Exception):
+    pass
+
+
+class CannotEnterRoom(ProhibitedAction):
+    pass
+
+
+class GameAlreadyStarted(CannotEnterRoom):
+    def __init__(self, room_name: str) -> None:
+        super().__init__()
+        self.room_name = room_name
+
+    def __str__(self) -> str:
+        return f'Game in the room {self.room_name!r} has already started'
+
+
+class RoomIsFull(CannotEnterRoom):
+    def __init__(self, room_name: str) -> None:
+        super().__init__()
+        self.room_name = room_name
+
+    def __str__(self) -> str:
+        return f'Room {self.room_name!r} is full'
+
+
+class RoomIsClosed(CannotEnterRoom):
+    def __init__(self, room_name: str) -> None:
+        super().__init__()
+        self.room_name = room_name
+
+    def __str__(self) -> str:
+        return f'Room {self.room_name!r} is closed'
+
+
+class RoomPasswordIsInvalid(CannotEnterRoom):
+    def __init__(self, room_name: str) -> None:
+        super().__init__()
+        self.room_name = room_name
+
+    def __str__(self) -> str:
+        return f'Your password to access the room {self.room_name!r} is not correct'
+
+
+class NotWhitelisted(CannotEnterRoom):
+    def __init__(self, room_name: str) -> None:
+        super().__init__()
+        self.room_name = room_name
+
+    def __str__(self) -> str:
+        return f'You are not in the whitelist for the room {self.room_name!r}'
+
+
 class PropertyAccessError(Exception):
     pass
 
@@ -22,28 +76,38 @@ class PropertyAccessError(Exception):
 class NoSuchProperty(PropertyAccessError):
     def __init__(self, property_name: str) -> None:
         super().__init__(property_name)
-        self._property_name = property_name
+        self.property_name = property_name
 
-    def __repr__(self) -> str:
-        return f'No such room property: {self._property_name!r}'
+    def __str__(self) -> str:
+        return f'No such room property: {self.property_name!r}'
 
 
 class PropertyAccessDenied(PropertyAccessError):
     def __init__(self, property_name: str) -> None:
         super().__init__(property_name)
-        self._property_name = property_name
+        self.property_name = property_name
 
-    def __repr__(self) -> str:
-        return f'Access denied to property {self._property_name!r}'
+    def __str__(self) -> str:
+        return f'Access denied to property {self.property_name!r}'
 
 
 class PropertyReadOnly(PropertyAccessError):
     def __init__(self, property_name: str) -> None:
         super().__init__(property_name)
-        self._property_name = property_name
+        self.property_name = property_name
 
-    def __repr__(self) -> str:
-        return f'Property {self._property_name!r} cannot be written to'
+    def __str__(self) -> str:
+        return f'Property {self.property_name!r} cannot be written to'
+
+
+class PropertyValueIsInvalid(PropertyAccessError):
+    def __init__(self, property_name: str, explanation: str) -> None:
+        super().__init__(property_name)
+        self.property_name = property_name
+        self.explanation = explanation
+
+    def __str__(self) -> str:
+        return f'Invalid value specified for {self.property_name!r}: {self.explanation}'
 
 
 @dataclass
@@ -136,7 +200,7 @@ class RoomManager:
         room_id = self._mapping.get_room_with_client(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
-            raise Exception('The game in your room has already started')
+            raise GameAlreadyStarted(room.name)
 
         logger.info('{} leaves the room {!r}', invoking_client, room.name)
 
@@ -182,8 +246,6 @@ class RoomManager:
         return self._alias_map[room_name]
 
     def handle_room_entry(self, invoking_client: ClientName, room_name: str, password: Optional[str]) -> None:
-        # TODO: make use of `password`.
-
         # Precondition: room must exist, the client must be able to enter it,
         # the client must be in the hub, and the game must not have started.
         room_id = self.room_name_to_id(room_name)
@@ -191,7 +253,40 @@ class RoomManager:
         self._mapping.check_that_client_is_in_hub(invoking_client)
         room = self._rooms[room_id]
         if room.game_started:
-            raise Exception('The game in this room has already started')
+            raise GameAlreadyStarted(room_name)
+
+        # The resulting number of players must be less than the upper limit on it.
+        # Not meeting the lower limit is ok here.
+        current_num_players = self._mapping.count_players_in_a_room(room_id)
+        resulting_num_players = current_num_players + 1
+        if resulting_num_players > room.max_players:
+            raise RoomIsFull(room_name)
+
+        # The room must not be closed.
+        def handle_closed_room() -> None:
+            raise RoomIsClosed(room_name)
+
+        # And, if it is password-protected, the password must be correct.
+        def handle_password_protected_room(correct_password: str) -> None:
+            if password is None or (not password_utils.are_passwords_equal(password, correct_password)):
+                raise RoomPasswordIsInvalid(room_name)
+
+        def handle_whitelist_protected_room(whitelist: List[str]) -> None:
+            # Inefficient, but probably not of a great concern.
+            # TODO: put limits on the whitelist size.
+            if invoking_client.is_player():
+                if str(invoking_client) not in whitelist:
+                    raise NotWhitelisted(room_name)
+            else:
+                if '@viewers' not in whitelist:
+                    raise NotWhitelisted(room_name)
+
+        room.open.match(
+            open = lambda: None,
+            closed = handle_closed_room,
+            password = handle_password_protected_room,
+            whitelist = handle_whitelist_protected_room,
+        ) # type: ignore
 
         logger.info('{!r} enters room {!r}', invoking_client, room_name)
         self._mapping.add_client_to_room(room_id, invoking_client)
@@ -239,36 +334,69 @@ class RoomManager:
         if not is_admin:
             raise Exception('You must be an admin to change room properties')
 
+        # TODO: maybe introduce an all-or-nothing scheme?
         for key, value in properties.items():
-            self._set_room_property(room, key, value)
+            self._set_room_property(room_id, room, key, value)
 
-    def _set_room_property(self, room: RoomDetails, key: str, value: Any) -> None:
+    def _set_room_property(self, room_id: str, room: RoomDetails, key: str, value: Any) -> None:
         if key == 'name':
             self._rename_room(room.name, value)
+
         elif key == 'players':
             raise Exception('Property "players" is read-only')
+
         elif key == 'admins':
             players = set(self.list_players_in_a_room(room.name))
             admins = value
             for player_name in admins:
                 if player_name not in players:
-                    raise Exception(f'{player_name!r} is not in this room')
+                    raise PropertyValueIsInvalid(key, f'{player_name!r} is not in this room')
 
             if len(admins) == 0:
-                raise Exception(f'List of admins must be non-empty')
+                raise PropertyValueIsInvalid(key, 'must be non-empty')
 
             room.admins = set(admins)
-        elif key in {
-                'min_players',
-                'max_players',
-                'snake_len',
-                'field_width',
-                'field_height',
-                'num_food_items',
-                'respawn_food',
-                'open',
-        }:
-            setattr(room, key, value)
+
+        elif key == 'min_players':
+            if value < 1 or value > room.max_players:
+                raise PropertyValueIsInvalid(key, 'must be at least 1 and at most `max_players`')
+            room.min_players = value
+
+        elif key == 'max_players':
+            current_num_players = self._mapping.count_players_in_a_room(room_id)
+            if value < current_num_players or value < room.min_players:
+                raise PropertyValueIsInvalid(
+                    key,
+                    'must be at least the current number of players in the rooms and at least `min_players`'
+                )
+            room.max_players = value
+
+        elif key == 'snake_len':
+            if value < 1:
+                raise PropertyValueIsInvalid(key, 'must be at least 1')
+            room.snake_len = value
+
+        elif key == 'field_width':
+            if value < 2:
+                raise PropertyValueIsInvalid(key, 'must be at least 2')
+            room.field_width = value
+
+        elif key == 'field_height':
+            if value < 2:
+                raise PropertyValueIsInvalid(key, 'must be at least 2')
+            room.field_height = value
+
+        elif key == 'num_food_items':
+            if value < 0:
+                raise PropertyValueIsInvalid(key, 'must be non-negative')
+            room.num_food_items = value
+
+        elif key == 'respawn_food':
+            room.respawn_food = value
+
+        elif key == 'open':
+            room.open = value
+
         else:
             raise Exception(f'Invalid room property name: {key!r}')
 
@@ -336,6 +464,8 @@ class RoomManager:
 
         if room.game_started:
             # TODO: maybe make an exception for viewers?
+            can_join = 'no'
+        elif self._mapping.count_players_in_a_room(room_id) + 1 > room.max_players:
             can_join = 'no'
         else:
             can_join = room.open.match(
