@@ -1,5 +1,6 @@
 from bot_arena_server.client_name import RichClientInfo
 from bot_arena_server.control_flow import EnsureDisconnect
+from bot_arena_server.coroutine_utils import select
 from bot_arena_server.game import Game, IllegalAction
 from bot_arena_server.game_room import GameRoom, GameRoomExit
 
@@ -47,12 +48,24 @@ class GameLoop:
             else:
                 await self.run_for_non_player()
         except BaseException as e:
-            logger.info('{!r} disconnected', self.client_info.name)
+            if not isinstance(e, (EOFError, IOError)):
+                logger.error('{!r} disconnected because of an exception: {}', self.client_info.name, e)
             await self.on_disconnect()
             raise EnsureDisconnect(e)
 
     async def run_for_non_player(self) -> None:
-        await self.game_room.wait_until_game_ends(self.client_info.name)
+        while True:
+            which, _ = await select(
+                message = self.sess.recv_message(),
+                end = self.game_room.wait_until_game_ends(self.client_info.name),
+            )
+
+            if which == 'message':
+                await self.sess.respond_err('You cannot send messages during a game')
+                continue
+
+            break
+
         winners = self.game.get_winners()
         await self.sess.send_event(Event(
             name = 'GameFinished',
@@ -65,7 +78,15 @@ class GameLoop:
 
         while True:
             try:
-                await self.game_room.wait_for_turn(client_name)
+                which, _ = await select(
+                    message = self.sess.recv_message(),
+                    turn = self.game_room.wait_for_turn(client_name),
+                )
+
+                if which == 'message':
+                    await self.sess.respond_err('It is not your turn')
+                    continue
+
             except GameRoomExit:
                 winners = self.game.get_winners()
                 await self.sess.send_event(Event(
@@ -77,22 +98,24 @@ class GameLoop:
 
             try:
                 logger.debug('It is {!r}\'s turn', client_name)
-                action = await self.sess.request_action()
-                logger.debug('{!r} requested action: {!r}', client_name, action)
+                with self.game_room.lock_events_for(client_name):
+                    action = await self.sess.request_action()
+                    logger.debug('{!r} requested action: {!r}', client_name, action)
 
-                move_result = self.game.take_turn(name=str(client_name), action=action)
-                crashed: bool = move_result.match(
-                    OK = lambda: False,
-                    CRASH = lambda: True,
-                ) # type: ignore
+                    move_result = self.game.take_turn(name=str(client_name), action=action)
+                    crashed: bool = move_result.match(
+                        OK = lambda: False,
+                        CRASH = lambda: True,
+                    ) # type: ignore
 
-                if crashed:
-                    await self.on_crash()
+                    if crashed:
+                        await self.on_crash()
 
-                await self.sess.respond_ok()
+                    await self.sess.respond_ok()
+
                 new_field_state = self.game.field.get_state()
                 await self.game_room.broadcast(
-                    lambda sess: sess.send_new_field_state(new_field_state),
+                    lambda context: context.session.send_new_field_state(new_field_state),
                     lambda name: True,
                 )
             except IllegalAction as e:

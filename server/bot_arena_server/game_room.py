@@ -51,6 +51,7 @@ class GameRoom:
             sync_queue = pending_context.sync_queue,
             session = session,
             category = pending_context.category,
+            event_queue = LockedEventQueue(),
         )
         self._clients[client_name] = context
 
@@ -150,6 +151,8 @@ class GameRoom:
 
                     return
 
+                await self._flush_event_queues()
+
                 if self._clients[client_name].category != ClientCategory.ALIVE_PLAYER():
                     continue
 
@@ -170,6 +173,11 @@ class GameRoom:
                     last_game_score = current_game_score
             self._game.finish_turn()
 
+    async def _flush_event_queues(self) -> None:
+        for context in self._clients.values():
+            events = context.event_queue.try_flush()
+            for event in events:
+                await context.session.send_event(event)
 
     async def terminate_all_sessions(self) -> None:
         logger.debug('Terminating all game sessions in this game room')
@@ -192,14 +200,14 @@ class GameRoom:
 
     async def broadcast(
         self,
-        action: Callable[[ServerSession], Coroutine[Any, None, None]],
+        action: Callable[['ClientContext'], Coroutine[Any, None, None]],
         filter_func: Callable[[ClientName], bool],
     ) -> None:
         for client_name, context in self._clients.items():
             if context.category != ClientCategory.DISCONNECTED() and filter_func(client_name):
                 logger.debug('Broadcast: {!r}, context = {!r}', client_name, context)
                 try:
-                    await action(context.session)
+                    await action(context)
                 except (IOError, EOFError) as e:
                     logger.debug('Broadcast failed: endpoint disconnected')
                     await self.ensure_disconnect(client_name)
@@ -213,8 +221,8 @@ class GameRoom:
     async def broadcast_event(self, event: Event, filter_func: Callable[[ClientName], bool]) -> None:
         logger.debug(f'Broadcasting event: {event}')
 
-        async def callback(sess: ServerSession):
-            await sess.send_event(event)
+        async def callback(context: ClientContext):
+            context.event_queue.enqueue(event)
 
         await self.broadcast(callback, filter_func)
 
@@ -252,6 +260,48 @@ class GameRoom:
     def name(self) -> str:
         return self._name
 
+    def lock_events_for(self, client_name: ClientName) -> 'EventLock':
+        self._check_for_client(client_name)
+        context = self._clients[client_name]
+        return EventLock(context.event_queue)
+
+
+
+class LockedEventQueue:
+    def __init__(self) -> None:
+        self.queue: List[Event] = []
+        self.is_locked = False
+
+    def lock(self) -> None:
+        assert not self.is_locked
+        self.is_locked = True
+
+    def unlock(self) -> None:
+        assert self.is_locked
+        self.is_locked = False
+
+    def try_flush(self) -> List[Event]:
+        if self.is_locked:
+            return []
+        else:
+            queue = self.queue
+            self.queue = []
+            return queue
+
+    def enqueue(self, event: Event) -> None:
+        self.queue.append(event)
+
+
+class EventLock:
+    def __init__(self, locked_queue: LockedEventQueue) -> None:
+        self.locked_queue = locked_queue
+
+    def __enter__(self) -> None:
+        self.locked_queue.lock()
+
+    def __exit__(self, *args) -> None:
+        self.locked_queue.unlock()
+
 
 @adt
 class ViewerNotification:
@@ -278,6 +328,7 @@ class ClientContext:
     sync_queue: curio.Queue
     session: ServerSession
     category: ClientCategory
+    event_queue: LockedEventQueue
 
 
 def make_pending_client_context(client_name: ClientName) -> PendingClientContext:
