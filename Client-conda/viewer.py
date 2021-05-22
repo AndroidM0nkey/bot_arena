@@ -48,7 +48,15 @@ async def main():
     # Perform the handshake
     await sess.initialize()
 
-    ...  # Do what you want before being ready to enter a game
+    await sess.enter_any_room()
+    room_properties = await sess.get_room_properties()
+    if room_properties["open"] != RoomOpenness.OPEN():
+        await sess.set_room_properties({"open": RoomOpenness.OPEN()})
+        print(f'Created room {room_properties["name"]}')
+    else:
+        print(f'Joined room {room_properties["name"]}')
+
+    input('Press Enter when you are ready to start. ')
 
     # Start the game
     await sess.ready()
@@ -95,8 +103,8 @@ async def handle_new_field_state(state):
     pygame.display.set_caption('Pythons')
     get_message_and_display(curField, f_height, f_width)
     #time.sleep(1000)
-    
-    
+
+
 
 async def handle_event(event):
     if event.name == 'SnakeDied':

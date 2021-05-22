@@ -1,11 +1,11 @@
 from bot_arena_proto.data import Action, FieldState, RoomInfo
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
-from bot_arena_proto.serialization import ensure_type
+from bot_arena_proto.serialization import ensure_type, Primitive
 
 from dataclasses import dataclass
 from time import sleep
-from typing import Protocol, Tuple, Any, List, Dict
+from typing import Protocol, Tuple, Any, List, Dict, Type, Optional
 
 from adt import adt, Case
 
@@ -132,7 +132,7 @@ class ClientSession(Session):
         """
 
         await self.send_message(Message.CLIENT_HELLO(self._info.name))
-        (await self.recv_message()).server_hello()
+        not_err(await self.recv_message()).server_hello()
 
     async def ready(self):
         """Signal to the server that you are ready to begin the game by
@@ -159,10 +159,8 @@ class ClientSession(Session):
                 raise ValueError(
                     f'Unexpected event received from the server before the game has started: {event}'
                 )
-            data = ensure_type(event.data, dict)
-            width = ensure_type(data['field_width'], int)
-            height = ensure_type(data['field_height'], int)
-            return GameInfo(field_width=width, field_height=height)
+            return GameInfo.from_primitive(event.data)
+
 
     async def wait_for_notification(self) -> 'ClientNotification':
         """Wait until the server notifies you about something.
@@ -213,12 +211,12 @@ class ClientSession(Session):
         """List the game rooms on the server."""
 
         await self.send_message(Message.LIST_ROOMS())
-        return (await self.recv_message()).room_list_available()
+        return not_err(await self.recv_message()).room_list_available()
 
-    async def enter_room(self, room_name: str) -> None:
+    async def enter_room(self, room_name: str, password: Optional[str]) -> None:
         """Enter a room with a specified name."""
 
-        await self.send_message(Message.ENTER_ROOM(room_name))
+        await self.send_message(Message.ENTER_ROOM(room_name, password))
         await self.expect_ok()
 
     async def enter_any_room(self) -> None:
@@ -237,12 +235,18 @@ class ClientSession(Session):
         """Request the properties of your current room."""
 
         await self.send_message(Message.GET_ROOM_PROPERTIES())
-        return (await self.recv_message()).room_properties_available()
+        return not_err(await self.recv_message()).room_properties_available()
 
     async def set_room_properties(self, properties: Dict[str, Any]) -> None:
         """Change the values of some of the room's properties."""
 
         await self.send_message(Message.SET_ROOM_PROPERTIES(properties))
+        await self.expect_ok()
+
+    async def leave_room(self) -> None:
+        """Leave the current room."""
+
+        await self.send_message(Message.LEAVE_ROOM())
         await self.expect_ok()
 
     async def expect_ok(self) -> None:
@@ -262,6 +266,12 @@ class ClientSession(Session):
             pass
 
         raise Exception(f'Unexpected response from the server: {message}')
+
+
+def not_err(msg: Message) -> Message:
+    if msg.kind() == 'Err':
+        raise Exception(f'Received Err({msg.err()!r})')
+    return msg
 
 
 class ServerSession(Session):
@@ -319,7 +329,7 @@ class ServerSession(Session):
             if success:
                 return message
             else:
-                self.respond_err("This message is invalid in the hub")
+                await self.respond_err("This message is invalid in the hub")
 
     async def wait_for_room_action(self) -> Message:
         """Wait until a player in a game room asks for an appropriate action.
@@ -356,7 +366,7 @@ class ServerSession(Session):
             if success:
                 return message
             else:
-                self.respond_err("This message is invalid in a game room")
+                await self.respond_err("This message is invalid in a game room")
 
     async def respond_with_room_list(self, rooms: List[RoomInfo]) -> None:
         """Send the list of RoomInfo objects describing the rooms currently available."""
@@ -427,6 +437,19 @@ class GameInfo:
 
     field_width: int
     field_height: int
+
+    def to_primitive(self) -> Primitive:
+        return {
+            'field_width': self.field_width,
+            'field_height': self.field_height,
+        }
+
+    @classmethod
+    def from_primitive(Class: Type['GameInfo'], p: Primitive) -> 'GameInfo':
+        p = ensure_type(p, dict)
+        field_width = ensure_type(p['field_width'], int)
+        field_height = ensure_type(p['field_height'], int)
+        return Class(field_width=field_width, field_height=field_height)
 
 
 @dataclass

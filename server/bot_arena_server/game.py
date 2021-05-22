@@ -1,3 +1,5 @@
+from bot_arena_server.game_config import GameConfig
+
 import random
 from copy import copy
 from dataclasses import dataclass
@@ -9,12 +11,13 @@ from bot_arena_proto.session import GameInfo
 
 
 __all__ = [
-    'Game',
     'Field',
+    'Game',
+    'GameScore',
     'IllegalAction',
     'InvalidMoveError',
-    'NoSuchSnakeError',
     'MoveResult',
+    'NoSuchSnakeError',
 ]
 
 
@@ -110,22 +113,27 @@ def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
 
 
 class Game:
-    def __init__(self, field_width: int, field_height: int, snake_names: List[str]):
+    def __init__(self, snake_names: List[str], config: GameConfig) -> None:
+        self._config = config
+        self._turns_counter = 0
         self._field = Field(
-            width = field_width,
-            height = field_height,
+            config = config,
             snakes = {},
             objects = [],
         )
 
         for name in snake_names:
-            # TODO: make the length configurable
-            snake = _generate_snake(self._field, 5)
+            snake = _generate_snake(self._field, self._config.snake_len)
             self._field.add_snake(name, snake)
 
-        # TODO: make the number of objects configurable
-        for i in range(5):
+        for i in range(self._config.num_food_items):
             self._field.place_object_randomly(Object.FOOD())
+
+    def finish_turn(self) -> None:
+        self._turns_counter += 1
+
+    def get_score(self) -> 'GameScore':
+        return self._field.get_score()
 
     @property
     def field(self) -> 'Field':
@@ -142,30 +150,66 @@ class Game:
     def snake_names(self) -> Iterable[str]:
         return self.field._snakes.keys()
 
+    def turn_limit_exceeded(self) -> bool:
+        return (self._config.max_turns is not None) and (self._turns_counter >= self._config.max_turns)
+
     def is_finish_condition_satisfied(self) -> bool:
         # TODO: make the finish condition configurable.
-        return self.field.count_alive_players() <= 1
+        return self.field.count_alive_players() <= 1 or self.turn_limit_exceeded()
+
+    def get_winners(self) -> Optional[List[str]]:
+        if not self.is_finish_condition_satisfied():
+            return None
+
+        return self.get_score().get_winners(lambda name: name in self.field._snakes)
 
     def kill_snake_off(self, snake_name: str):
         if snake_name in set(self.snake_names()):
             self.field.kill_snake(snake_name)
 
 
+@dataclass
+class GameScore:
+    score: Dict[str, int]
+
+    @staticmethod
+    def from_snake_names(names: Iterable[str]) -> 'GameScore':
+        return GameScore(score={name: 0 for name in names})
+
+    def update(self, name: str, new_score: int) -> None:
+        self.score[name] = new_score
+
+    def copy(self) -> 'GameScore':
+        return GameScore(copy(self.score))
+
+    def get_winners(self, candidate_checker: Callable[[str], bool]) -> List[str]:
+        score_dict = {name: value for name, value in self.score.items() if candidate_checker(name)}
+        if len(score_dict) == 0:
+            return []
+
+        max_score = max(value for value in score_dict.values())
+        return list(name for name, value in score_dict.items() if value == max_score)
+
+
 class Field:
     def __init__(
         self,
-        width: int,
-        height: int,
         snakes: Dict[str, '_Snake'],
         objects: List[Tuple[Point, Object]],
+        config: GameConfig,
     ) -> None:
-        self._width = width
-        self._height = height
+        self._config = config
         self._snakes = snakes
         self._objects: Dict[Point, Object] = dict(objects)
         self._occupied_cells: Set[Point] = set()
+        self._game_score = GameScore.from_snake_names(self._snakes.keys())
         for snake in snakes.values():
             self._occupied_cells.update(snake.list_occupied_cells())
+
+    def get_score(self) -> GameScore:
+        for name, snake in self._snakes.items():
+            self._game_score.update(name, snake.score)
+        return self._game_score.copy()
 
     def random_free_cell(self) -> Point:
         while True:
@@ -200,37 +244,47 @@ class Field:
         snake = self._snakes[name]
 
         destination = snake.head.shift(direction)
-        if not self.is_cell_passable(destination):
-            # The snake has crashed.
-            # Free up the cells that were occupied by this snake.
-            self._update_occupied_cells(
-                ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
-            )
-            # Delete it from the world.
-            self._snakes.pop(name)
-            # Report the death.
-            return MoveResult.CRASH()
+        try:
+            if not self.is_cell_passable(destination):
+                # The snake has crashed.
+                # Free up the cells that were occupied by this snake.
+                self._update_occupied_cells(
+                    ChangeInFreeCells(new_free=snake.list_occupied_cells(), new_occupied=[])
+                )
+                # Delete it from the world.
+                self._snakes.pop(name)
+                # Report the death.
+                return MoveResult.CRASH()
 
-        if destination in self._objects:
-            obj = self._objects[destination]
-            return obj.match(
-                food = lambda: self._consume_food(snake, direction)
-            ) # type: ignore
+            if destination in self._objects:
+                obj = self._objects[destination]
+                return obj.match(
+                    food = lambda: self._consume_food(snake, direction)
+                ) # type: ignore
 
-        # TODO: pick objects
-        change_in_free_cells = snake.move(direction)
-        self._update_occupied_cells(change_in_free_cells)
+            change_in_free_cells = snake.move(direction)
+            self._update_occupied_cells(change_in_free_cells)
+
+        finally:
+            self._do_object_placement_step()
 
         return MoveResult.OK()
 
     def _consume_food(self, snake: '_Snake', direction: Direction) -> MoveResult:
         self._update_occupied_cells(snake.grow(direction))
         self._objects.pop(snake.head)
+        snake.change_score_by(1)
 
-        # TODO: make this behavior configurable.
-        self.place_object_randomly(Object.FOOD())
+        self._maybe_respawn_food_item()
 
         return MoveResult.OK()
+
+    def _maybe_respawn_food_item(self) -> None:
+        self._config.respawn_food.match(
+            yes = lambda: self.place_object_randomly(Object.FOOD()),
+            no = lambda: None,
+            random = lambda _: None,
+        ) # type: ignore
 
     def _update_occupied_cells(self, change_in_free_cells: ChangeInFreeCells) -> None:
         for cell in change_in_free_cells.new_occupied():
@@ -256,11 +310,11 @@ class Field:
 
     @property
     def width(self) -> int:
-        return self._width
+        return self._config.field_width
 
     @property
     def height(self) -> int:
-        return self._height
+        return self._config.field_height
 
     def place_object_randomly(self, obj: Object) -> None:
         while not self.try_place_object_randomly(obj):
@@ -276,6 +330,20 @@ class Field:
         else:
             return False
 
+    def _do_object_placement_step(self) -> None:
+        self._config.respawn_food.match(
+            yes = lambda: None,     # TODO: respawn lost objects.
+            no = lambda: None,
+            random = self._do_probability_object_placement_step,
+        ) # type: ignore
+
+    def _do_probability_object_placement_step(self, probability: float) -> None:
+        random_value = random.random()
+        if random_value >= probability:
+            return
+
+        self.place_object_randomly(Object.FOOD())
+
     def is_cell_completely_free(self, cell: Point) -> bool:
         return (cell in self) and (cell not in self._occupied_cells) and (cell not in self._objects)
 
@@ -284,7 +352,7 @@ class Field:
 
     def add_snake(self, snake_name: str, snake: '_Snake') -> None:
         if snake_name in self._snakes:
-            raise KeyError(f'Snake `{snake_name}` is already present on the game field')
+            raise KeyError(f'Snake {snake_name!r} is already present on the game field')
         self._snakes[snake_name] = snake
         self._update_occupied_cells(
             ChangeInFreeCells(new_free=[], new_occupied=snake.list_occupied_cells())
@@ -324,9 +392,17 @@ def _points_to_directions(head: Point, tail: List[Point]) -> List[Direction]:
 
 
 class _Snake:
-    def __init__(self, head: Point, tail: List[Direction]):
+    def __init__(self, head: Point, tail: List[Direction]) -> None:
         self._head = head
         self._tail = _directions_to_points(head, tail)
+        self._score = 0
+
+    @property
+    def score(self) -> int:
+        return self._score
+
+    def change_score_by(self, score_delta: int) -> None:
+        self._score += score_delta
 
     @staticmethod
     def from_raw_parts(head: Point, tail: List[Point]) -> '_Snake':

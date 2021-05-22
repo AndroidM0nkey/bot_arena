@@ -1,0 +1,2 @@
+class EnsureDisconnect(BaseException):
+    pass
