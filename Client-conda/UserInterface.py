@@ -32,8 +32,9 @@ class mywindow(QtWidgets.QMainWindow):
         cmd = self.ui.Cmd.text()
 
         cur = Client(address, port, name, cmd)
+        self.close()
         cur.run_basic_session()
-        sys.exit(app.exec())
+        
 
 
  
