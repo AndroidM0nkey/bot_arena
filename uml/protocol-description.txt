@@ -5,15 +5,19 @@ Client1                       Server                     Client2
    #                            #                           #
    #    <--- ServerHello ----   #                           #
    #                            #                           #
-   #    ------- Ready ------>   #                           #
-   #                            #                           #
+   #    --- EnterAnyRoom --->   #                           #
    #    <-------- Ok --------   #                           #
    #                            #                           #
+   #    ------- Ready ------>   #                           #
+   #    <-------- Ok --------   #                           #
+   #                            #                           #
+   #             ...            #                           #
+   #                            #                           #
    #    <-- EventHappened ---   #                           #
-   #      GameInfo(             #                           #
+   #      GameStarted: {        #                           #
    #          width=40,         #                           #
    #          height=40,        #                           #
-   #      )                     #                           #
+   #      }                     #                           #
    #                            #                           #
    #             ...            #                           #
    #                            #                           #
