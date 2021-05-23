@@ -22,6 +22,8 @@ curField = None
 f_width = 0
 f_height = 0
 name = 'first'
+host = '0.0.0.0'
+port = 23456
 
 async def main():
     global sess
