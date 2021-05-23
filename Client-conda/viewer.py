@@ -1,7 +1,7 @@
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from game_viewer_files.main_viewer import get_message_and_display
+from game_viewer_files.main_viewer import Viewer
 from bot import Bot
 import pygame
 import game_viewer_files.config as c
@@ -21,6 +21,8 @@ curField = None
 f_width = 0
 f_height = 0
 name = '@viewer'
+handler = Viewer()
+
 
 async def main():
     global sess
@@ -90,16 +92,17 @@ async def handle_new_field_state(state):
     global f_height
     global f_width
     global name
+    global handler
     curField = state
     pygame.init()
     pygame.display.set_caption('Pythons')
-    get_message_and_display(curField, f_height, f_width)
+    handler.get_message_and_display(curField, f_height, f_width)
     #time.sleep(1000)
     
     
 
 async def handle_event(event):
-    if event.name == 'SnakeDied':
+    if event.name == 'GameFinished':
         time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')

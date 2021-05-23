@@ -11,5 +11,7 @@ class SnakeBodyPeace(Cell):
     def get_color(self):
         return self.color
 
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, (self.left + 1, self.top + 1, self.width - 1, self.width - 1))
+    def draw(self, surface, is_alive):
+        pygame.draw.rect(surface, self.color, (self.left + 1, self.top + 1, self.width - 2, self.width - 2))
+        if is_alive is False:
+            pygame.draw.rect(surface, (0, 0, 0), (self.left + 2, self.top + 2, self.width - 4, self.width - 4))
