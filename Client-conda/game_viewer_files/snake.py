@@ -2,12 +2,19 @@ import pygame
 
 
 class Snake:
-    def __init__(self, body_pieces, is_snake_alive):
+    def __init__(self, body_pieces, is_snake_alive, name):
         self.body_pieces = body_pieces
         self.alive = is_snake_alive
+        self.name = name
 
     def get_alive_status(self):
         return self.alive
+
+    def get_color(self):
+        return self.body_pieces[0].get_color()
+
+    def get_name(self):
+        return self.name
 
     def draw(self, surface):
         if len(self.body_pieces) <= 0:

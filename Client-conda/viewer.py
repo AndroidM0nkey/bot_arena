@@ -22,6 +22,7 @@ f_width = 0
 f_height = 0
 name = '@viewer'
 handler = Viewer()
+score = None
 
 
 async def main():
@@ -93,15 +94,20 @@ async def handle_new_field_state(state):
     global f_width
     global name
     global handler
+    global score
     curField = state
     pygame.init()
     pygame.display.set_caption('Pythons')
-    handler.get_message_and_display(curField, f_height, f_width)
+    handler.get_message_and_display(curField, f_height, f_width, score)
     #time.sleep(1000)
     
     
 
 async def handle_event(event):
+    if event.name == 'GameScoreChanged':
+        global score
+        score = event.data
+        return
     if event.name == 'GameFinished':
         time.sleep(100000)
     # Do something when an event happens.

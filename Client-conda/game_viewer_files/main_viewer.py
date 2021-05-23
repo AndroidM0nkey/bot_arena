@@ -22,12 +22,14 @@ class Viewer:
     def invert(self, p: int, field_height: int):
         return field_height - 1 - p
 
-    def get_message_and_display(self, cur_state: FieldState, field_height: int, field_width: int):
+    def get_message_and_display(self, cur_state: FieldState, field_height: int, field_width: int,
+                                score):
         cell_width = int(c.screen_width / max(field_height, field_width))
         surface = pygame.display.set_mode((field_width * cell_width, field_height * cell_width))
         colors_cnt = -1
         snakes = []
         surface.fill(pygame.Color('black'))
+        # drawing players
         if len(self.all_snakes) == 0:
             self.all_snakes = cur_state.snakes
         for snake_name in self.all_snakes.keys():
@@ -55,14 +57,31 @@ class Viewer:
                 if peace == Direction.RIGHT():
                     cur_x += cell_width
                 snake_peaces.append(SnakeBodyPeace(cur_x, cur_y, cell_width, self.player_colors[colors_cnt]))
-            cur_snake = Snake(snake_peaces, snake_alive)
+            cur_snake = Snake(snake_peaces, snake_alive, snake_name)
             snakes.append(cur_snake)
         snakes = sorted(snakes, key=lambda elem: elem.get_alive_status())
         for snake in snakes:
             snake.draw(surface)
+        # drawing objects
         for i in range(len(cur_state.objects)):
             apple = Apple(cur_state.objects[i][0].x * cell_width, self.invert(cur_state.objects[i][0].y, field_height) *
                           cell_width, cell_width // 2)
             apple.draw(surface)
+        # drawing score distribution
+        font_size = 30
+        whitespace_size = 15
+        myfont = pygame.font.SysFont('Arial', font_size)
+        textsurface = myfont.render('Score:', True, (255, 255, 255))
+        surface.blit(textsurface, (0, 0))
+        cur_x_coord = textsurface.get_rect().width + whitespace_size
+        for snake in snakes:
+            snake_name = snake.get_name()
+            if score is None:
+                snake_score = 0
+            else:
+                snake_score = score[snake_name]
+            textsurface = myfont.render(str(snake_score), True, snake.get_color())
+            surface.blit(textsurface, (cur_x_coord, 0))
+            cur_x_coord += textsurface.get_rect().width + whitespace_size
         pygame.display.update()
         return
