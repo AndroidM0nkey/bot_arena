@@ -185,7 +185,7 @@ class RoomManager:
             admins = {str(invoking_client)},    # TODO: maybe change this behavior for viewers
             name = room_id,
             min_players = 2,
-            max_players = 2,
+            max_players = 3,
             snake_len = 5,
             field_width = 40,
             field_height = 40,
