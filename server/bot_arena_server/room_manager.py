@@ -261,7 +261,7 @@ class RoomManager:
         # The resulting number of players must be less than the upper limit on it.
         # Not meeting the lower limit is ok here.
         current_num_players = self._mapping.count_players_in_a_room(room_id)
-        resulting_num_players = current_num_players + 1
+        resulting_num_players = current_num_players + (1 if invoking_client.is_player() else 0)
         if resulting_num_players > room.max_players:
             raise RoomIsFull(room_name)
 
@@ -481,7 +481,10 @@ class RoomManager:
         if room.game_started:
             # TODO: maybe make an exception for viewers?
             can_join = 'no'
-        elif self._mapping.count_players_in_a_room(room_id) + 1 > room.max_players:
+        elif (
+            self._mapping.count_players_in_a_room(room_id) + (1 if invoking_client.is_player() else 0)
+                > room.max_players
+        ):
             can_join = 'no'
         else:
             can_join = room.open.match(
