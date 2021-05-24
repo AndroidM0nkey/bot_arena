@@ -2,7 +2,7 @@ from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 from game_viewer_files.main_viewer import get_message_and_display
-from bot import Bot
+from greedybot import GreedyBot
 import pygame
 import game_viewer_files.config as c
 import time
@@ -128,7 +128,7 @@ async def take_turn():
     global name
 
     # We will always tell our snake to move right.
-    curBot = Bot()
+    curBot = GreedyBot()
     action = Action.MOVE(curBot.find_direction(curField, f_width, f_height, name))
     #action = Action.MOVE(Direction.UP())
     # Send our action to the server
