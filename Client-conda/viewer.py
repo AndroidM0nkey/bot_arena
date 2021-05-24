@@ -30,7 +30,7 @@ async def main():
     global name
 
     # Connect to the server, assuming it is listening on 127.0.0.1:1234.
-    socket = await curio.open_connection(host='0.0.0.0', port=23456)
+    socket = await curio.open_connection(host='127.0.0.1', port=23456)
 
     # We need an object with read/write methods. In curio, sockets have
     # recv/send methods, and streams have read/write methods. Hence, we need
