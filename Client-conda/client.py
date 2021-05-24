@@ -1,7 +1,7 @@
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from game_viewer_files.main_viewer import get_message_and_display
+from game_viewer_files.main_viewer import Viewer
 from StreamEditor import StreamEditor
 from bot import Bot
 import pygame
