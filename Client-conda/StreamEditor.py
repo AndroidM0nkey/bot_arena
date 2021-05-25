@@ -2,7 +2,6 @@ from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 from game_viewer_files.main_viewer import get_message_and_display
-from bot import Bot
 from BotConnector import BotConnector
 import pygame
 import game_viewer_files.config as c

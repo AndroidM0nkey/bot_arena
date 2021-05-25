@@ -10,7 +10,7 @@ class Bot(ABC):
 
 
     @staticmethod
-    def field_to_matrix(field_state: FieldState, m: int, n: int):
+    def field_to_matrix(field_state: FieldState, n: int, m: int):
         """Преобразовывает объект класса FieldState в матрицу, в которой все элементы = 0,
         если это пустая клетка, а иначе(яблоко, змейка) = -1."""
 
@@ -18,6 +18,7 @@ class Bot(ABC):
        
 
         for snake_state in field_state.snakes.values():
+            
             x = snake_state.head.x
             y = snake_state.head.y
             matrix[y][x] = -1
@@ -39,7 +40,7 @@ class Bot(ABC):
 
     
 
-    
     @abstractmethod
     def find_direction(self, field_state: FieldState, n: int, m: int, snake_name: str):
-        pass
+        pass 
+

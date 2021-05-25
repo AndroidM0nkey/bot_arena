@@ -1,10 +1,10 @@
 from bot_arena_proto.data import FieldState, Direction, SnakeState, Point, Object
 from abc import ABC, abstractmethod
-from bot import Bot 
-from matrixbfs import MatrixBfs
+from pythonbots.bot import Bot 
+from pythonbots.matrixbfs import MatrixBfs
 
-class GreedyBot(Bot):
-    def find_direction(self, field_state: FieldState, n: int, m: int, snake_name: str):
+class AgressiveBot(Bot):
+    def find_direction(self, field_state: FieldState, m: int, n: int, snake_name: str):
         """Принимает на вход поле, имя змеи и выдает направление хода."""
 
         """Посчитаем расстояния от яблока до каждой свободной клетки поля."""
@@ -12,11 +12,14 @@ class GreedyBot(Bot):
         
         start_points = []
         
-        for apple in field_state.objects:
-            start_points.append((apple[0].y, apple[0].x))
+        for snake_state in field_state.snakes.values():
+            if snake_state != field_state.snakes[snake_name]:
+                x, y = snake_state.head.y, snake_state.head.x
+                start_points.append((x, y))
 
         bfs = MatrixBfs()
         distances = bfs.bfs(matrix, n, m, start_points)
+        print(distances)
 
         snake_state = field_state.snakes[snake_name]
         x, y = snake_state.head.y, snake_state.head.x

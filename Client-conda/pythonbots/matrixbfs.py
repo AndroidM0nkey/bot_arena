@@ -57,3 +57,4 @@ class MatrixBfs:
                         bfs_queue.append((new_x, new_y))
 
         return distances
+

@@ -3,7 +3,6 @@ from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 from game_viewer_files.main_viewer import get_message_and_display
 from StreamEditor import StreamEditor
-from bot import Bot
 import pygame
 import game_viewer_files.config as c
 import time
@@ -133,7 +132,7 @@ async def take_turn():
     # We will always tell our snake to move right.
     #curBot = Bot()
     #action = Action.MOVE(curBot.find_direction(curField, f_width, f_height, name))
-    cmd = "./curbot.exe"
+    cmd = "cppbots/./curbot.exe"
     cur_test = StreamEditor(name, cmd)
     move = cur_test.call_bot(f_height, f_width, curField)
     action = None
