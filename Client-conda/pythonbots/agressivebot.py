@@ -4,7 +4,7 @@ from pythonbots.bot import Bot
 from pythonbots.matrixbfs import MatrixBfs
 
 class AgressiveBot(Bot):
-    def find_direction(self, field_state: FieldState, m: int, n: int, snake_name: str):
+    def find_direction(self, field_state: FieldState, m: int, n: int, snake_name: str) -> Direction:
         """Принимает на вход поле, имя змеи и выдает направление хода."""
 
         """Посчитаем расстояния от яблока до каждой свободной клетки поля."""

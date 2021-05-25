@@ -1,15 +1,16 @@
 from collections import deque
+from typing import List, Tuple
 
 class MatrixBfs:    
     
     @staticmethod
-    def is_cell_correct(cell, n, m):
+    def is_cell_correct(cell, n, m) -> bool:
         """Статический метод. Принимает на вход клетку и размеры поля. Вовращает True, если 
         клетка находится внутри поля, и False в ином случае."""
         return cell[0] > -1 and cell[0] < n and cell[1] > -1 and cell[1] < m
 
 
-    def make_moves(self, cell, n, m):
+    def make_moves(self, cell, n, m) -> List[Tuple[int]]:
         """Принимает на вход клетку поля и возвращает список 
         соседних по стороне клеток."""
 
@@ -22,7 +23,7 @@ class MatrixBfs:
                 new_cells.append(new_cell)
         return new_cells
 
-    def bfs(self, matrix, n, m, start_cells):
+    def bfs(self, matrix, n, m, start_cells) -> List[List[int]]:
         """Реализует алгоритм обхода в ширину, начиная с множества клеток start_cells. Принимает 
         на вход матрицу, где 0 - свободные клетки, -1 - занятые, размеры матрицы и множество 
         стартовых клеток. Возвращает матрицу distances, в которой в каждой клетке записано расстояние 

@@ -1,6 +1,7 @@
+from typing import List
 from bot_arena_proto.data import FieldState, Direction, SnakeState, Point, Object
 from abc import ABC, abstractmethod
-
+from typing import List
 
 class Bot(ABC):
     """Это самая базовая версия игрового бота, он взаимодействует практически
@@ -10,7 +11,7 @@ class Bot(ABC):
 
 
     @staticmethod
-    def field_to_matrix(field_state: FieldState, n: int, m: int):
+    def field_to_matrix(field_state: FieldState, n: int, m: int) -> List[List[int]]:
         """Преобразовывает объект класса FieldState в матрицу, в которой все элементы = 0,
         если это пустая клетка, а иначе(яблоко, змейка) = -1."""
 
