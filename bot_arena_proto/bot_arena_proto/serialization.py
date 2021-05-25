@@ -154,7 +154,7 @@ class PrimitiveSerializable(Serializable, Protocol):
 class DeserializationError(ProtocolError):
     """Base class for errors occuring during deserialization."""
 
-    def __init__(self, comment: Optional[str] = None):
+    def __init__(self, comment: Optional[str] = None) -> None:
         super().__init__()
         self.comment = comment
 
@@ -180,7 +180,7 @@ class DeserializationTypeError(DeserializationError):
     into a certain type, but another one was expected.
     """
 
-    def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None):
+    def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.Expected = Expected
         self.Actual = Actual
@@ -192,7 +192,7 @@ class DeserializationTypeError(DeserializationError):
 class DeserializationAdtVariantUnexpectedError(DeserializationError):
     """Deserialization error when a variant of an ADT was not expected in this place."""
 
-    def __init__(self, Adt: type, variant: Any, comment: Optional[str] = None):
+    def __init__(self, Adt: type, variant: Any, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.Adt = Adt
         self.variant = variant
@@ -206,7 +206,7 @@ class DeserializationAdtTagError(DeserializationError):
     deserialized algebraic data type is encountered.
     """
 
-    def __init__(self, Adt: type, tag: str, comment: Optional[str] = None):
+    def __init__(self, Adt: type, tag: str, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.Adt = Adt
         self.tag = tag
@@ -218,12 +218,44 @@ class DeserializationAdtTagError(DeserializationError):
 class DeserializationLogicError(DeserializationError):
     """Miscellaneous deserialization error. Custom description is provided."""
 
-    def __init__(self, message: str, comment: Optional[str] = None):
+    def __init__(self, message: str, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.message = message
 
     def describe_error(self) -> str:
         return self.message
+
+
+class DeserializationKeyError(DeserializationError):
+    """Failed to look up a key in a deserialized dict."""
+
+    def __init__(self, key: str, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+        self.key = key
+
+    def describe_error(self) -> str:
+        return f'missing key: {self.key!r}'
+
+
+class DeserializationIndexError(DeserializationError):
+    """The length of a deserialized list is too small."""
+
+    def __init__(self, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+
+    def describe_error(self) -> str:
+        return f'list too short'
+
+
+class DeserializationValueError(DeserializationError):
+    """A deserialized value is not valid or allowed."""
+
+    def __init__(self, value: Any, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+        self.value = value
+
+    def describe_error(self) -> str:
+        return f'invalid or forbidden value: {self.value!r}'
 
 
 _T = TypeVar('_T')
