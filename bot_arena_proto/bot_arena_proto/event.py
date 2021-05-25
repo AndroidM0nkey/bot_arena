@@ -1,4 +1,9 @@
-from bot_arena_proto.serialization import Primitive, DeserializationAdtTagError, ensure_type
+from bot_arena_proto.serialization import (
+    Primitive,
+    DeserializationAdtTagError,
+    ensure_type,
+    wrap_deserialization_errors,
+)
 
 from dataclasses import dataclass
 from typing import Type, cast
@@ -23,6 +28,7 @@ class Event:
         }
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Event'], p: Primitive) -> 'Event':
         p = ensure_type(p, dict)
         name = ensure_type(p['name'], str)

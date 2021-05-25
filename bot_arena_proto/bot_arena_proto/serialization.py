@@ -1,3 +1,5 @@
+from bot_arena_proto.error import ProtocolError
+
 from abc import abstractmethod
 from typing import Protocol, Type, TypeVar, Union, Optional, Any
 
@@ -149,7 +151,7 @@ class PrimitiveSerializable(Serializable, Protocol):
         return Class.from_primitive(primitive)  # type: ignore
 
 
-class DeserializationError(Exception):
+class DeserializationError(ProtocolError):
     """Base class for errors occuring during deserialization."""
 
     def __init__(self, comment: Optional[str] = None):
@@ -168,8 +170,9 @@ class DeserializationError(Exception):
     def __repr__(self) -> str:
         return f'During deserialization{self.fmt_comment()}, {self.describe_error()}'
 
+    @abstractmethod
     def describe_error(self) -> str:
-        return 'an unknown error occured'
+        ...
 
 
 class DeserializationTypeError(DeserializationError):
@@ -184,6 +187,18 @@ class DeserializationTypeError(DeserializationError):
 
     def describe_error(self) -> str:
         return f'the type `{self.Actual}` arised, while the code expected `{self.Expected}`'
+
+
+class DeserializationAdtVariantUnexpectedError(DeserializationError):
+    """Deserialization error when a variant of an ADT was not expected in this place."""
+
+    def __init__(self, Adt: type, variant: Any, comment: Optional[str] = None):
+        super().__init__(comment)
+        self.Adt = Adt
+        self.variant = variant
+
+    def describe_error(self) -> str:
+        return f'the unexpected variant {self.variant!r} of {self.Adt!r} arised'
 
 
 class DeserializationAdtTagError(DeserializationError):
@@ -234,3 +249,27 @@ def ensure_type(value: Any, Tp: Type[_T], comment: Optional[str] = None) -> _T:
     if isinstance(value, Tp):
         return value
     raise DeserializationTypeError(Expected=Tp, Actual=type(value), comment=comment)
+
+
+def unwrap_variant(message: Any, variant: str) -> Any:
+    try:
+        return getattr(message, variant)()
+    except AttributeError as e:
+        if 'was constructed' in str(e):
+            raise DeserializationAdtVariantUnexpectedError(type(message), variant)
+        raise
+
+
+def wrap_deserialization_errors(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError as e:
+            raise DeserializationValueError(str(e))
+        except IndexError as e:
+            raise DeserializationIndexError()
+        except KeyError as e:
+            raise DeserializationKeyError(str(e))
+
+    inner.__name__ = func.__name__
+    return inner

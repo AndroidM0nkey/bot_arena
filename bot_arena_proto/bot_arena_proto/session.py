@@ -1,7 +1,8 @@
 from bot_arena_proto.data import Action, FieldState, RoomInfo
+from bot_arena_proto.error import ProtocolError
 from bot_arena_proto.event import Event
 from bot_arena_proto.message import Message
-from bot_arena_proto.serialization import ensure_type, Primitive
+from bot_arena_proto.serialization import ensure_type, Primitive, unwrap_variant, wrap_deserialization_errors
 
 from dataclasses import dataclass
 from time import sleep
@@ -23,6 +24,42 @@ __all__ = [
 
 
 MAX_SANE_LENGTH = 2**20  # 1 MiB should be much more than enough
+
+
+class FrameTooLargeError(ProtocolError):
+    def __init__(self, actual_length: int) -> None:
+        super().__init__()
+        self.actual_length = actual_length
+
+    def __str__(self) -> str:
+        return f'Length limit exceeded: cannot receive a {self.actual_length}-byte frame'
+
+
+class UnexpectedEventError(ProtocolError):
+    def __init__(self, event: Event) -> None:
+        super().__init__()
+        self.event = event
+
+    def __str__(self) -> str:
+        return f'Unexpected event received from the server: {self.event!r}'
+
+
+class UnexpectedMessageError(ProtocolError):
+    def __init__(self, message: Message) -> None:
+        super().__init__()
+        self.message = message
+
+    def __str__(self) -> str:
+        return f'Unexpected message received from the server: {self.message!r}'
+
+
+class ErrReceived(ProtocolError):
+    def __init__(self, err_message: str) -> None:
+        super().__init__()
+        self.err_message = err_message
+
+    def __str__(self) -> str:
+        return f'Error received from the server: {self.err_message}'
 
 
 class AsyncStream(Protocol):
@@ -78,7 +115,7 @@ class Session:
         if length > MAX_SANE_LENGTH:
             # Prevents a malicious user from crashing the server by sending it
             # a multi-gigabyte message, forcing it to run out of RAM.
-            raise ValueError(f'Length limit exceeded: cannot receive a {length}-byte frame')
+            raise FrameTooLargeError(length)
         return await self._read_bytes(length)
 
     async def _write_bytes(self, data: bytes) -> None:
@@ -132,7 +169,7 @@ class ClientSession(Session):
         """
 
         await self.send_message(Message.CLIENT_HELLO(self._info.name))
-        not_err(await self.recv_message()).server_hello()
+        unwrap_variant(not_err(await self.recv_message()), 'server_hello')
 
     async def ready(self):
         """Signal to the server that you are ready to begin the game by
@@ -153,12 +190,10 @@ class ClientSession(Session):
 
 
         while True:
-            event = (await self.wait_for_notification()).event()
+            event = unwrap_variant(await self.wait_for_notification(), 'event')
 
             if event.name != 'GameStarted':
-                raise ValueError(
-                    f'Unexpected event received from the server before the game has started: {event}'
-                )
+                raise UnexpectedEventError(event)
             return GameInfo.from_primitive(event.data)
 
 
@@ -175,28 +210,31 @@ class ClientSession(Session):
             return inner
 
         def unexpected(s):
-            return err(ValueError(f'Unexpected message received from the server: {s}'))
+            return err(UnexpectedMessageError(s))
 
         while True:
-            result = (await self.recv_message()).match(
-                client_hello = unexpected('ClientHello'),
-                server_hello = unexpected('ServerHello'),
+            message = await self.recv_message()
+            on_unexpected = unexpected(message)
+
+            result = message.match(
+                client_hello = on_unexpected,
+                server_hello = on_unexpected,
                 your_turn = lambda: ClientNotification.REQUEST(),
-                ready = unexpected('Ready'),
+                ready = on_unexpected,
                 new_field_state = lambda state: ClientNotification.FIELD_STATE(state),
-                act = unexpected('Act'),
+                act = on_unexpected,
                 event_happened = lambda ev: ClientNotification.EVENT(ev),
                 ok = lambda: None,
                 err = lambda text: ClientNotification.ERROR(text),
-                list_rooms = unexpected('ListRooms'),
-                enter_room = unexpected('EnterRoom'),
-                enter_any_room = unexpected('EnterAnyRoom'),
-                leave_room = unexpected('LeaveRoom'),
-                new_room = unexpected('NewRoom'),
-                get_room_properties = unexpected('GetRoomProperties'),
-                set_room_properties = unexpected('SetRoomProperties'),
-                room_list_available = unexpected('RoomListAvailable'),
-                room_properties_available = unexpected('RoomPropertiesAvailable'),
+                list_rooms = on_unexpected,
+                enter_room = on_unexpected,
+                enter_any_room = on_unexpected,
+                leave_room = on_unexpected,
+                new_room = on_unexpected,
+                get_room_properties = on_unexpected,
+                set_room_properties = on_unexpected,
+                room_list_available = on_unexpected,
+                room_properties_available = on_unexpected,
             )
             if result is not None:
                 return result
@@ -211,7 +249,7 @@ class ClientSession(Session):
         """List the game rooms on the server."""
 
         await self.send_message(Message.LIST_ROOMS())
-        return not_err(await self.recv_message()).room_list_available()
+        return unwrap_variant(not_err(await self.recv_message()), 'room_list_available')
 
     async def enter_room(self, room_name: str, password: Optional[str]) -> None:
         """Enter a room with a specified name."""
@@ -235,7 +273,7 @@ class ClientSession(Session):
         """Request the properties of your current room."""
 
         await self.send_message(Message.GET_ROOM_PROPERTIES())
-        return not_err(await self.recv_message()).room_properties_available()
+        return unwrap_variant(not_err(await self.recv_message()), 'room_properties_available')
 
     async def set_room_properties(self, properties: Dict[str, Any]) -> None:
         """Change the values of some of the room's properties."""
@@ -261,16 +299,16 @@ class ClientSession(Session):
 
         try:
             error_message = message.err()
-            raise Exception(error_message)
+            raise ErrReceived(error_message)
         except AttributeError:
             pass
 
-        raise Exception(f'Unexpected response from the server: {message}')
+        raise UnexpectedMessageError(message)
 
 
 def not_err(msg: Message) -> Message:
     if msg.kind() == 'Err':
-        raise Exception(f'Received Err({msg.err()!r})')
+        raise ErrReceived(msg.err())
     return msg
 
 
@@ -281,7 +319,7 @@ class ServerSession(Session):
         """Receive a CLIENT_HELLO message and return the attached ClientInfo object."""
 
         client_msg = await self.recv_message()
-        name = client_msg.client_hello()
+        name = unwrap_variant(client_msg, 'client_hello')
         return ClientInfo(name=name)
 
     async def initialize_ok(self) -> None:
@@ -397,7 +435,7 @@ class ServerSession(Session):
         """Wait unitl a client sends READY."""
 
         client_msg = await self.recv_message()
-        client_msg.ready()
+        unwrap_variant(client_msg, 'ready')
 
     async def send_new_field_state(self, state: FieldState) -> None:
         """Send a new field state to the client."""
@@ -414,7 +452,7 @@ class ServerSession(Session):
 
         await self.send_message(Message.YOUR_TURN())
         client_msg = await self.recv_message()
-        return client_msg.act()
+        return unwrap_variant(client_msg, 'act')
 
     async def respond_ok(self) -> None:
         """Send OK."""
@@ -445,6 +483,7 @@ class GameInfo:
         }
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['GameInfo'], p: Primitive) -> 'GameInfo':
         p = ensure_type(p, dict)
         field_width = ensure_type(p['field_width'], int)
