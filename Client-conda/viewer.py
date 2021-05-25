@@ -109,6 +109,8 @@ async def handle_event(event):
         score = event.data
         return
     if event.name == 'GameFinished':
+        global handler
+        handler.game_over(event.data)
         time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
