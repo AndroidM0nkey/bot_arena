@@ -1,9 +1,11 @@
 from bot_arena_server.game_config import GameConfig
+from bot_arena_server.work_limit import WorkLimit, WorkLimitCounter
 
 import random
+from collections import deque
 from copy import copy
 from dataclasses import dataclass
-from typing import List, Callable, Tuple, Dict, Set, Generator, Optional, Iterable
+from typing import List, Callable, Tuple, Dict, Set, Generator, Optional, Iterable, Deque
 
 from adt import adt, Case
 from bot_arena_proto.data import SnakeState, Direction, Point, Object, FieldState, Action
@@ -79,19 +81,24 @@ class MoveResult:
     CRASH: Case
 
 
-def _generate_snake(field: 'Field', length: int) -> '_Snake':
+def _generate_snake(field: 'Field', length: int, work_limit_counter: WorkLimitCounter) -> '_Snake':
     while True:
-        maybe_snake = _try_generate_snake(field, length)
+        maybe_snake = _try_generate_snake(field, length, work_limit_counter)
         if maybe_snake is not None:
             return maybe_snake
 
 
-def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
+def _try_generate_snake(
+    field: 'Field',
+    length: int,
+    work_limit_counter: WorkLimitCounter,
+) -> Optional['_Snake']:
     tail = []
     head = field.random_free_cell()
     snake_cells = {head}
 
     for _ in range(length - 1):
+        work_limit_counter.do_work()
         next_cell_candidates = []
         for dx, dy in [(1, 0), (0, 1), (-1, 0), (0, -1)]:
             candidate = Point(head.x + dx, head.y + dy)
@@ -113,7 +120,7 @@ def _try_generate_snake(field: 'Field', length: int) -> Optional['_Snake']:
 
 
 class Game:
-    def __init__(self, snake_names: List[str], config: GameConfig) -> None:
+    def __init__(self, snake_names: List[str], config: GameConfig, work_limit: WorkLimit) -> None:
         self._config = config
         self._turns_counter = 0
         self._field = Field(
@@ -123,7 +130,8 @@ class Game:
         )
 
         for name in snake_names:
-            snake = _generate_snake(self._field, self._config.snake_len)
+            work_limit_counter = work_limit.counter()
+            snake = _generate_snake(self._field, self._config.snake_len, work_limit_counter)
             self._field.add_snake(name, snake)
 
         for i in range(self._config.num_food_items):
@@ -203,6 +211,7 @@ class Field:
         self._objects: Dict[Point, Object] = dict(objects)
         self._occupied_cells: Set[Point] = set()
         self._game_score = GameScore.from_snake_names(self._snakes.keys())
+        self._lost_objects: Deque[Object] = deque()
         for snake in snakes.values():
             self._occupied_cells.update(snake.list_occupied_cells())
 
@@ -317,8 +326,12 @@ class Field:
         return self._config.field_height
 
     def place_object_randomly(self, obj: Object) -> None:
-        while not self.try_place_object_randomly(obj):
-            pass
+        for _ in range(self._random_cell_num_attempts):
+            if self.try_place_object_randomly(obj):
+                return
+
+        # Otherwise
+        self._lost_objects.append(obj)
 
     def try_place_object_randomly(self, obj: Object) -> bool:
         x = random.randrange(0, self.width)
@@ -332,10 +345,29 @@ class Field:
 
     def _do_object_placement_step(self) -> None:
         self._config.respawn_food.match(
-            yes = lambda: None,     # TODO: respawn lost objects.
+            yes = lambda: self._do_lost_object_placement_step,
             no = lambda: None,
             random = self._do_probability_object_placement_step,
         ) # type: ignore
+
+    def _do_lost_object_placement_step(self) -> None:
+        # One at a time.
+        if len(self._lost_objects) > 0:
+            if self.num_free_cells() > 0 and self.num_free_cells() / self.num_cells() >= 0.2:
+                obj = self._lost_objects.popleft()
+                self.place_object_randomly(obj)
+
+    def num_cells(self) -> int:
+        return self.width * self.height
+
+    def num_occupied_cells(self) -> int:
+        return len(self._occupied_cells)
+
+    def num_passable_cells(self) -> int:
+        return self.num_cells() - self.num_occupied_cells()
+
+    def num_free_cells(self) -> int:
+        return self.num_passable_cells() - len(self._objects)
 
     def _do_probability_object_placement_step(self, probability: float) -> None:
         random_value = random.random()
@@ -357,6 +389,8 @@ class Field:
         self._update_occupied_cells(
             ChangeInFreeCells(new_free=[], new_occupied=snake.list_occupied_cells())
         )
+
+    _random_cell_num_attempts = 5
 
 
 def _directions_to_points(head: Point, tail: List[Direction]) -> List[Point]:

@@ -2,6 +2,7 @@ from bot_arena_server.client_name import ClientName, RichClientInfo
 from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
+from bot_arena_server.limits import Limits
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_manager import RoomManager
 
@@ -162,11 +163,12 @@ class Server:
             [ServerSession, RichClientInfo, Game, GameRoom],
             Coroutine[None, None, None],
         ],
+        limits: Limits,
     ) -> None:
         self._client_handler = client_handler
         self._client_infos: Dict[ClientName, RichClientInfo] = {}
         self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
-        self._room_manager = RoomManager()
+        self._room_manager = RoomManager(limits)
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)

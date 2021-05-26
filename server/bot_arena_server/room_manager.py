@@ -3,8 +3,10 @@ from bot_arena_server.client_name import ClientName
 from bot_arena_server.game import Game
 from bot_arena_server.game_config import GameConfig
 from bot_arena_server.game_room import GameRoom
+from bot_arena_server.limits import Limits
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_mapping import RoomMapping
+from bot_arena_server.work_limit import WorkLimit
 
 import copy
 import math
@@ -159,11 +161,12 @@ class RoomSyncObject:
 
 
 class RoomManager:
-    def __init__(self) -> None:
+    def __init__(self, limits: Limits) -> None:
         self._mapping = RoomMapping()
         self._alias_map: Dict[str, str] = {}
         self._rooms: Dict[str, RoomDetails] = {}
         self._room_sync: Dict[str, RoomSyncObject] = {}
+        self._limits = limits
 
     def create_room(self, invoking_client: ClientName) -> None:
         room_id = generate_room_id()
@@ -451,7 +454,7 @@ class RoomManager:
             # TODO: shuffle for fairness.
             client_names = list(clients)
 
-            game = create_game(client_names, room.as_game_config())
+            game = create_game(client_names, room.as_game_config(), self._limits.work_units)
             game_room = GameRoom(client_names, game, room_info.name)
             game_room.set_turn_timeout(room.turn_timeout_seconds)
 
@@ -512,10 +515,11 @@ class RoomManager:
         )
 
 
-def create_game(client_names: List[ClientName], game_config: GameConfig) -> Game:
+def create_game(client_names: List[ClientName], game_config: GameConfig, work_limit: WorkLimit) -> Game:
     return Game(
         [str(x) for x in client_names if x.is_player()],
         game_config,
+        work_limit,
     )
 
 
