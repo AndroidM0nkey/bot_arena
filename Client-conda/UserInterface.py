@@ -13,7 +13,7 @@ class mywindow(QtWidgets.QMainWindow):
 
         #setting up fonts
         self.ui.label.setFont(
-            QtGui.QFont('SansSerif', 12)
+            QtGui.QFont('SansSerif', 10)
         )
         self.ui.label.setAlignment(QtCore.Qt.AlignCenter)
 
