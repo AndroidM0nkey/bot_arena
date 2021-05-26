@@ -1,3 +1,5 @@
+from bot_arena_proto.error import ProtocolError
+
 from abc import abstractmethod
 from typing import Protocol, Type, TypeVar, Union, Optional, Any
 
@@ -149,10 +151,10 @@ class PrimitiveSerializable(Serializable, Protocol):
         return Class.from_primitive(primitive)  # type: ignore
 
 
-class DeserializationError(Exception):
+class DeserializationError(ProtocolError):
     """Base class for errors occuring during deserialization."""
 
-    def __init__(self, comment: Optional[str] = None):
+    def __init__(self, comment: Optional[str] = None) -> None:
         super().__init__()
         self.comment = comment
 
@@ -168,8 +170,9 @@ class DeserializationError(Exception):
     def __repr__(self) -> str:
         return f'During deserialization{self.fmt_comment()}, {self.describe_error()}'
 
+    @abstractmethod
     def describe_error(self) -> str:
-        return 'an unknown error occured'
+        ...
 
 
 class DeserializationTypeError(DeserializationError):
@@ -177,7 +180,7 @@ class DeserializationTypeError(DeserializationError):
     into a certain type, but another one was expected.
     """
 
-    def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None):
+    def __init__(self, Expected: type, Actual: type, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.Expected = Expected
         self.Actual = Actual
@@ -186,12 +189,24 @@ class DeserializationTypeError(DeserializationError):
         return f'the type `{self.Actual}` arised, while the code expected `{self.Expected}`'
 
 
+class DeserializationAdtVariantUnexpectedError(DeserializationError):
+    """Deserialization error when a variant of an ADT was not expected in this place."""
+
+    def __init__(self, Adt: type, variant: Any, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+        self.Adt = Adt
+        self.variant = variant
+
+    def describe_error(self) -> str:
+        return f'the unexpected variant {self.variant!r} of {self.Adt!r} arised'
+
+
 class DeserializationAdtTagError(DeserializationError):
     """Deserialization error when a tag not present in the
     deserialized algebraic data type is encountered.
     """
 
-    def __init__(self, Adt: type, tag: str, comment: Optional[str] = None):
+    def __init__(self, Adt: type, tag: str, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.Adt = Adt
         self.tag = tag
@@ -203,12 +218,44 @@ class DeserializationAdtTagError(DeserializationError):
 class DeserializationLogicError(DeserializationError):
     """Miscellaneous deserialization error. Custom description is provided."""
 
-    def __init__(self, message: str, comment: Optional[str] = None):
+    def __init__(self, message: str, comment: Optional[str] = None) -> None:
         super().__init__(comment)
         self.message = message
 
     def describe_error(self) -> str:
         return self.message
+
+
+class DeserializationKeyError(DeserializationError):
+    """Failed to look up a key in a deserialized dict."""
+
+    def __init__(self, key: str, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+        self.key = key
+
+    def describe_error(self) -> str:
+        return f'missing key: {self.key!r}'
+
+
+class DeserializationIndexError(DeserializationError):
+    """The length of a deserialized list is too small."""
+
+    def __init__(self, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+
+    def describe_error(self) -> str:
+        return f'list too short'
+
+
+class DeserializationValueError(DeserializationError):
+    """A deserialized value is not valid or allowed."""
+
+    def __init__(self, value: Any, comment: Optional[str] = None) -> None:
+        super().__init__(comment)
+        self.value = value
+
+    def describe_error(self) -> str:
+        return f'invalid or forbidden value: {self.value!r}'
 
 
 _T = TypeVar('_T')
@@ -234,3 +281,27 @@ def ensure_type(value: Any, Tp: Type[_T], comment: Optional[str] = None) -> _T:
     if isinstance(value, Tp):
         return value
     raise DeserializationTypeError(Expected=Tp, Actual=type(value), comment=comment)
+
+
+def unwrap_variant(message: Any, variant: str) -> Any:
+    try:
+        return getattr(message, variant)()
+    except AttributeError as e:
+        if 'was constructed' in str(e):
+            raise DeserializationAdtVariantUnexpectedError(type(message), variant)
+        raise
+
+
+def wrap_deserialization_errors(func):
+    def inner(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ValueError as e:
+            raise DeserializationValueError(str(e))
+        except IndexError as e:
+            raise DeserializationIndexError()
+        except KeyError as e:
+            raise DeserializationKeyError(str(e))
+
+    inner.__name__ = func.__name__
+    return inner

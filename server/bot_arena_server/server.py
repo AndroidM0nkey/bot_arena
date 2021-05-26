@@ -9,6 +9,7 @@ from typing import Tuple, Callable, Coroutine, List, Optional, cast, Dict, Set
 
 import curio    # type: ignore
 from adt import adt, Case
+from bot_arena_proto.error import ProtocolError
 from bot_arena_proto.session import ServerSession, ClientInfo, AsyncStream
 from loguru import logger # type: ignore
 
@@ -52,6 +53,12 @@ class ClientWorker:
         except Exception as e:
             if isinstance(e, (EOFError, IOError)):
                 logger.info('{!r} disconnected', self._client_info.name)
+            elif isinstance(e, ProtocolError):
+                logger.info('{!r} disconnected due to a protocol error: {}', self._client_info.name, e)
+                try:
+                    await self._sess.respond_err(str(e))
+                except IOError:
+                    pass
             else:
                 logger.error('{!r} disconnected due to an internal error: {}', self._client_info.name, e)
 
@@ -177,6 +184,14 @@ class Server:
 
 
     async def _handle_client_with_stream(self, stream: AsyncStream) -> None:
+        try:
+            await self._try_handle_client_with_stream(stream)
+        except EOFError:
+            logger.error('Client closed connection abruptly')
+        except ProtocolError as e:
+            logger.error('Protocol error: {}. Client dicsonnected', e)
+
+    async def _try_handle_client_with_stream(self, stream: AsyncStream) -> None:
         sess = ServerSession(stream)
         client_info = await sess.pre_initialize()
         try:

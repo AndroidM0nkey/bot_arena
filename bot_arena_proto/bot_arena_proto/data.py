@@ -4,6 +4,7 @@ from bot_arena_proto.serialization import (
     Primitive,
     PrimitiveSerializable,
     ensure_type,
+    wrap_deserialization_errors,
 )
 
 from dataclasses import dataclass
@@ -44,6 +45,7 @@ class Direction:
         # mypy complains unreasonably here
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Direction'], p: Primitive) -> 'Direction':
         p = ensure_type(p, str)
 
@@ -81,6 +83,7 @@ class Point:
         return [self.x, self.y]
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Point'], p: Primitive) -> 'Point':
         p = ensure_type(p, list)
         [x, y] = p
@@ -115,6 +118,7 @@ class SnakeState:
         return {'head': self.head.to_primitive(), 'tail': [x.to_primitive() for x in self.tail]}
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['SnakeState'], p: Primitive) -> 'SnakeState':
         p = ensure_type(p, dict)
         head = Point.from_primitive(p['head'])
@@ -145,6 +149,7 @@ class FieldState:
         }
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['FieldState'], p: Primitive) -> 'FieldState':
         p = ensure_type(p, dict)
         snakes = ensure_type(p['snakes'], dict)
@@ -166,6 +171,7 @@ class Object:
         # mypy complains unreasonably here
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Object'], p: Primitive) -> 'Object':
         p = ensure_type(p, str)
         if p == 'f':
@@ -186,6 +192,7 @@ class Action:
         # mypy complains unreasonably here
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Action'], p: Primitive) -> 'Action':
         [tag, *data] = ensure_type(p, list)
         tag = ensure_type(tag, str)
@@ -209,6 +216,7 @@ class FoodRespawnBehavior:
         ) # type: ignore
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['FoodRespawnBehavior'], p: Primitive) -> 'FoodRespawnBehavior':
         [tag, *data] = ensure_type(p, list)
         tag = ensure_type(tag, str)
@@ -241,6 +249,7 @@ class RoomOpenness:
         ) # type: ignore
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['RoomOpenness'], p: Primitive) -> 'RoomOpenness':
         [tag, *data] = ensure_type(p, list)
         tag = ensure_type(tag, str)
@@ -283,6 +292,7 @@ class RoomInfo:
         }
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['RoomInfo'], p: Primitive) -> 'RoomInfo':
         p = ensure_type(p, dict)
         init_kwargs = {

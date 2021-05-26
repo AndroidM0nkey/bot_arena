@@ -6,6 +6,7 @@ from bot_arena_proto.serialization import (
     Primitive,
     PrimitiveSerializable,
     ensure_type,
+    wrap_deserialization_errors,
 )
 
 from adt import adt, Case
@@ -15,6 +16,9 @@ from typing import List, Dict, Any, Type, cast, Optional
 
 __all__ = ['Message']
 
+
+class UnknownProperty:
+    pass
 
 
 def prop_to_primitive(name: str, value: Any) -> Primitive:
@@ -83,7 +87,7 @@ def prop_from_primitive(name: str, p: Primitive) -> Any:
         return RoomOpenness.from_primitive(p)
 
     # fallback
-    return p
+    return UnknownProperty()
 
 
 @adt
@@ -210,6 +214,7 @@ class Message(PrimitiveSerializable):
         )
 
     @classmethod
+    @wrap_deserialization_errors
     def from_primitive(Class: Type['Message'], p: Primitive) -> 'Message':
         p = ensure_type(p, list)
         if len(p) < 1:
@@ -217,49 +222,32 @@ class Message(PrimitiveSerializable):
 
         [tag, *data] = p
 
-        def require_length(length: int):
-            if len(data) != length:
-                raise DeserializationLogicError(
-                    f'`data` array is supposed to be of length {length}, but its actual length is {len(data)}'
-                )
-
         if tag == 'ClientHello':
-            require_length(1)
             name = ensure_type(data[0], str)
             return Message.CLIENT_HELLO(name)
         if tag == 'ServerHello':
-            require_length(0)
             return Message.SERVER_HELLO()
         if tag == 'YourTurn':
-            require_length(0)
             return Message.YOUR_TURN()
         if tag == 'Ready':
-            require_length(0)
             return Message.READY()
         if tag == 'NewFieldState':
-            require_length(1)
             state = FieldState.from_primitive(data[0])
             return Message.NEW_FIELD_STATE(state)
         if tag == 'Act':
-            require_length(1)
             action = Action.from_primitive(data[0])
             return Message.ACT(action)
         if tag == 'EventHappened':
-            require_length(1)
             event = Event.from_primitive(data[0])
             return Message.EVENT_HAPPENED(event)
         if tag == 'Ok':
-            require_length(0)
             return Message.OK()
         if tag == 'Err':
-            require_length(1)
             error_message = ensure_type(data[0], str)
             return Message.ERR(error_message)
         if tag == 'ListRooms':
-            require_length(0)
             return Message.LIST_ROOMS()
         if tag == 'EnterRoom':
-            require_length(2)
             room_name = ensure_type(data[0], str)
             password: Optional[str] = None
             raw_password = data[1]
@@ -267,19 +255,14 @@ class Message(PrimitiveSerializable):
                 password = ensure_type(raw_password, str)
             return Message.ENTER_ROOM(room_name, password)
         if tag == 'EnterAnyRoom':
-            require_length(0)
             return Message.ENTER_ANY_ROOM()
         if tag == 'NewRoom':
-            require_length(0)
             return Message.NEW_ROOM()
         if tag == 'LeaveRoom':
-            require_length(0)
             return Message.LEAVE_ROOM()
         if tag == 'GetRoomProperties':
-            require_length(0)
             return Message.GET_ROOM_PROPERTIES()
         if tag == 'SetRoomProperties':
-            require_length(1)
             props = ensure_type(data[0], dict)
             props_sanitized = {
                 ensure_type(k, str): prop_from_primitive(k, v)
@@ -287,12 +270,10 @@ class Message(PrimitiveSerializable):
             }
             return Message.SET_ROOM_PROPERTIES(props_sanitized)
         if tag == 'RoomListAvailable':
-            require_length(1)
             rooms = ensure_type(data[0], list)
             rooms_sanitized = [RoomInfo.from_primitive(r) for r in rooms]
             return Message.ROOM_LIST_AVAILABLE(rooms_sanitized)
         if tag == 'RoomPropertiesAvailable':
-            require_length(1)
             props = ensure_type(data[0], dict)
             props_sanitized = {
                 ensure_type(k, str): prop_from_primitive(k, v)
