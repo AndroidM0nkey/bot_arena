@@ -36,8 +36,10 @@ class Viewer:
         snakes = []
         surface.fill(pygame.Color('black'))
         # drawing players
+        first_time_flag = False
         if len(self.all_snakes) == 0:
             self.all_snakes = cur_state.snakes
+            first_time_flag = True
         for snake_name in self.all_snakes.keys():
             if snake_name in cur_state.snakes.keys():
                 snake_state = cur_state.snakes[snake_name]
@@ -49,7 +51,8 @@ class Viewer:
             colors_cnt += 1
             if colors_cnt >= len(self.player_colors):
                 self.player_colors.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-            self.colors_mapping[snake_name] = self.player_colors[colors_cnt]
+            if first_time_flag is True:
+                self.colors_mapping[snake_name] = self.player_colors[colors_cnt]
             snake_peaces = []
             cur_x = snake_state.head.x * cell_width
             cur_y = self.invert(snake_state.head.y, field_height) * cell_width
@@ -111,7 +114,7 @@ class Viewer:
         font_size2 = min(n, m) // 24
         font2 = pygame.font.SysFont('Arial', font_size2)
 
-        text2 = font2.render(winners['winners'][0], True, (0, 255, 0))
+        text2 = font2.render(winners['winners'][0], True, self.colors_mapping[winners['winners'][0]])
         text2_rect = text2.get_rect()
         text2_rect.midright = (m // 2, (n * 3) // 8 + text1_rect.height)
         surface.blit(text2, text2_rect)
