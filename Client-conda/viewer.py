@@ -24,6 +24,7 @@ name = '@viewer'
 handler = Viewer()
 score = None
 
+
 async def main():
     global sess
     global curField
@@ -50,6 +51,11 @@ async def main():
     # Perform the handshake
     await sess.initialize()
 
+    ...  # Do what you want before being ready to enter a game
+
+    # Start the game
+
+     
     await sess.enter_any_room()
     room_properties = await sess.get_room_properties()
     if room_properties["open"] != RoomOpenness.OPEN():
@@ -60,7 +66,8 @@ async def main():
 
     input('Press Enter when you are ready to start. ')
 
-    # Start the game
+
+
     await sess.ready()
     game_info = await sess.wait_until_game_started()
 
@@ -116,6 +123,8 @@ async def handle_event(event):
         score = event.data
         return
     if event.name == 'GameFinished':
+        global handler
+        handler.game_over(event.data)
         time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
