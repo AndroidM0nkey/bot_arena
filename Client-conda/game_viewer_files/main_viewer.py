@@ -89,7 +89,7 @@ class Viewer:
                 snake_score = score[snake_name]
             text_surface = my_font.render(str(snake_score), True, snake.get_color())
             text_surface_copy = text_surface.copy()
-            text_surface_copy.fill((177, 177, 177))
+            text_surface_copy.fill((0, 0, 0))
             surface.blit(text_surface_copy, (cur_x_coord, 0))
             surface.blit(text_surface, (cur_x_coord, 0))
             cur_x_coord += text_surface.get_rect().width + whitespace_size
@@ -102,16 +102,16 @@ class Viewer:
         m = self.width * cell_width
         surface = pygame.display.set_mode((m, n))
         surface.fill(pygame.Color('black'))
-        font_size1 = min(n, m) // 4
+        font_size1 = min(n, m) // 8
         font1 = pygame.font.SysFont('Arial', font_size1)
         text1 = font1.render('GAME OVER', True, (255, 0, 0))
         text1_rect = text1.get_rect(center=(m // 2, (n * 3) // 8))
         surface.blit(text1, text1_rect)
 
-        font_size2 = min(n, m) // 12
+        font_size2 = min(n, m) // 24
         font2 = pygame.font.SysFont('Arial', font_size2)
 
-        text2 = font2.render(winners[0], True, (0, 255, 0))
+        text2 = font2.render(winners['winners'][0], True, (0, 255, 0))
         text2_rect = text2.get_rect()
         text2_rect.midright = (m // 2, (n * 3) // 8 + text1_rect.height)
         surface.blit(text2, text2_rect)
