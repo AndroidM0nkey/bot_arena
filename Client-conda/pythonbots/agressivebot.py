@@ -25,8 +25,8 @@ class AgressiveBot(Bot):
         x, y = snake_state.head.y, snake_state.head.x
         ans = []
         moves = ((0, 1), (0, -1), (1, 0), (-1, 0))
-        directions = {(0, 1): Direction.RIGHT(), (0, -1):Direction.LEFT(), (1, 0):Direction.UP, (-1, 0):Direction.DOWN()}
-
+        directions = {(0, 1): Direction.RIGHT(), (0, -1):Direction.LEFT(), (1, 0):Direction.UP(), (-1, 0):Direction.DOWN()}
+        
         """Попробуем сделать ходы во все свободные клетки, соседние с головой змеи."""
         for move in moves:
             new_cell = (x + move[0], y + move[1])
@@ -35,11 +35,12 @@ class AgressiveBot(Bot):
                 от нее до яблока и нужное направление."""
 
             if bfs.is_cell_correct(new_cell, n, m) and matrix[new_x][new_y] == 0:
-                ans.append(distances[new_x][new_y], directions[move])
+                ans.append((distances[new_x][new_y], directions[move]))
         
         """Если змейке некуда ходить, возвращаем произвольный ход и проигрываем:"""
         if len(ans) == 0:
             return Direction.UP()
+        print(ans)
 
         """Возвращаем направление хода в сторону клетки, от которой минимальное расстояние до ближайшей головы соперника."""
 
