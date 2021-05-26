@@ -54,7 +54,7 @@ def make_limits(args: Namespace) -> Limits:
         max_client_name_len = UpperBound(args.max_client_name_len),
         max_food_items = UpperBound(args.max_food_items),
         max_password_len = UpperBound(args.max_password_len),
-        max_players_in_a_room = args.max_room_players,
+        max_players_in_a_room = UpperBound(args.max_room_players),
         max_room_name_len = UpperBound(args.max_room_name_len),
         max_snake_len = UpperBound(args.max_snake_len),
         max_turn_timeout = OptionalUpperBound(args.max_turn_timeout),

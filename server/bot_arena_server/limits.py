@@ -1,10 +1,21 @@
 from bot_arena_server.work_limit import WorkLimit
 
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import TypeVar, Generic, Optional, Protocol, Any
 
 
 _T = TypeVar('_T', int, float)
+
+
+class ConstraintNotMetError(Exception):
+    def __init__(self, value: Any, description: str) -> None:
+        super().__init__()
+        self.value = value
+        self.description = description
+
+    def __str__(self) -> str:
+        return f'Constraint not met: {self.value} {self.description}'
 
 
 class OptionalUpperBound(Generic[_T]):
@@ -26,6 +37,16 @@ class OptionalUpperBound(Generic[_T]):
 
         return min(self._bound, value)
 
+    def validate(self, value: Optional[_T]) -> None:
+        if value not in self:
+            raise ConstraintNotMetError(value, self.predicate_str())
+
+    def predicate_str(self) -> str:
+        if self._bound is None:
+            return 'must be anything'
+        else:
+            return f'must be no greater than {self._bound}'
+
 
 class UpperBound(Generic[_T]):
     def __init__(self, bound: _T) -> None:
@@ -36,6 +57,13 @@ class UpperBound(Generic[_T]):
 
     def clamp(self, value: _T) -> _T:
         return min(value, self._bound)
+
+    def validate(self, value: _T) -> None:
+        if value not in self:
+            raise ConstraintNotMetError(value, self.predicate_str())
+
+    def predicate_str(self) -> str:
+        return f'must be no greater than {self._bound}'
 
 
 class Range(Generic[_T]):
@@ -50,6 +78,13 @@ class Range(Generic[_T]):
 
     def clamp(self, value: _T) -> _T:
         return min(self._upper_bound, max(self._lower_bound, value))
+
+    def validate(self, value: _T) -> None:
+        if value not in self:
+            raise ConstraintNotMetError(value, self.predicate_str())
+
+    def predicate_str(self) -> str:
+        return f'must be no smaller than {self._lower_bound} and no greater than {self._upper_bound}'
 
 
 @dataclass
