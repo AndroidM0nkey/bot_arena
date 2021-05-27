@@ -1,7 +1,10 @@
 from bot_arena_server.server import Server
 from bot_arena_server.game_loop import run_game_loop
 
+import sys
 from argparse import ArgumentParser, Namespace
+
+from loguru import logger
 
 
 __all__ = [
@@ -17,6 +20,8 @@ def parse_args() -> Namespace:
 
 def main() -> None:
     args = parse_args()
+    logger.remove()
+    logger.add(sys.stderr, level='INFO')
     server = Server(run_game_loop)
     server.listen(args.listen_on, args.port)
 
