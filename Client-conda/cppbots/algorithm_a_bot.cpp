@@ -1,8 +1,8 @@
 
-#include <bits/stdc++.h>
-
-#define endl '\n'
-
+#include <iostream>
+#include <vector>
+#include <set>
+#include <map>
 
 class Cell {
 private:
@@ -62,7 +62,7 @@ public:
 };
 
 std::ostream& operator <<(std::ostream &out, const Cell &cell) {
-    out <<  cell.str << " " << cell.col << endl;
+    out <<  cell.str << " " << cell.col << std::endl;
     return out;
 }
 
@@ -156,13 +156,13 @@ public:
 
 
 std::ostream& operator <<(std::ostream &out, const GameState &game_state) {
-    out << game_state.height << " " << game_state.width << endl;
-    out << game_state.num_snake << " " << game_state.num_head << endl;
+    out << game_state.height << " " << game_state.width << std::endl;
+    out << game_state.num_snake << " " << game_state.num_head << std::endl;
     for (int i = 0; i < game_state.height; i++) {
         for (int j = 0; j < game_state.width; j++) {
             out << game_state.field[i][j] << " ";
         }
-        out << endl;
+        out << std::endl;
     }
     return out;
 }
@@ -207,7 +207,7 @@ public:
         std::vector<Cell> next_cells = game_state.makeMoves(head, moves);
         for (const auto& next_cell : next_cells) {
             if (game_state[next_cell] == 0) {
-                std::cout << directions[next_cell - head] << endl;   
+                std::cout << directions[next_cell - head] << std::endl;   
                 return true; 
             }
         }
@@ -237,7 +237,7 @@ public:
 
             if (game_state.isCellApple(vertex) == 1) {
                 Cell next_cell = cur_path[1];
-                std::cout << directions[next_cell - head] << endl;
+                std::cout << directions[next_cell - head] << std::endl;
                 return true;
             }
 
@@ -279,7 +279,7 @@ public:
 
         if (!algoritm.makeAlgorithmA()){
             if (!algoritm.goToEmptyCell()){
-                std::cout << DEFAULT_DIRECTION << endl;
+                std::cout << DEFAULT_DIRECTION << std::endl;
             }
         }
     }
