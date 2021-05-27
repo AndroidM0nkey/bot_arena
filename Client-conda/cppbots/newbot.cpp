@@ -1,49 +1,118 @@
 
 #include <bits/stdc++.h>
 
-using namespace std;
-
 #define endl '\n'
 
 
-class BotAlgorithmA{
+class Cell {
 private:
-    int n, m;
-    int num_snake, num_head;
 
-    pair<int,int> head;
-    vector<vector<int>> field;
-    const vector<pair<int,int>> moves = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
-    map<const pair<int,int>, int> directions = 
-        {{{0, 1}, 1}, {{0, -1}, 3}, {{-1, 0}, 0}, {{1, 0}, 2}};
+    int str, col;
+
 public:
 
-    void input(){
-        cin >> n >> m >> num_snake >> num_head;
-        field.assign(n, vector<int>(m));
-        for (int i = 0; i < n; i++){
-            for (int j = 0; j < m; j++){
-                cin >> field[i][j];
-            }
-        }
+    Cell() {
+
     }
 
-    void findHead(){
-        for (int i = 0; i < n; i++){
-            for (int j = 0; j < m; j++){
-                if (field[i][j] == num_head){
-                    head = {i, j};
-                }
-            }
-        }
+    Cell(const int& new_str, const int& new_col) {
+        str = new_str;
+        col = new_col;
     }
 
-    int number_near_snakes(int i, int j){
+    friend std::ostream& operator<< (std::ostream &out, const Cell &cell);
+    
+    friend std::istream& operator>> (std::istream &in, Cell &cell);
+
+    int getStr() const {
+        return str;
+    }
+
+    int getCol() const {
+        return col;
+    }
+
+    bool isCorrect(const int& n, const int& m) const {
+        return str > -1 && str < n && col > -1 && col < m;
+    }
+
+    Cell operator +(const std::pair<int, int>& move) const {
+        return Cell(str + move.first, col + move.second);
+    }
+
+    std::pair<int,int> operator -(const Cell& other_cell) const {
+        return {str - other_cell.getStr(), col - other_cell.getCol()};
+    }
+
+    std::pair<int,int> toPair() const {
+        return {str, col};
+    }
+
+    bool operator < (const Cell& other_cell) const {
+        if (str < other_cell.getStr()){
+            return true;
+        }
+
+        if (str == other_cell.getStr() && col < other_cell.getCol()) {
+            return true;
+        }
+
+        return false;
+    }
+};
+
+std::ostream& operator <<(std::ostream &out, const Cell &cell) {
+    out <<  cell.str << " " << cell.col << endl;
+    return out;
+}
+
+std::istream& operator >>(std::istream &in, Cell &cell) {
+    in >>  cell.str >> cell.col;
+    return in;
+}
+
+class GameState{
+private:
+    int height, width;
+    int num_snake, num_head;
+
+    Cell head;
+    std::vector<std::vector<int>> field;
+
+    const int BLOCK_SIZE = 5;
+
+public:
+
+    friend std::ostream& operator <<(std::ostream &out, const GameState &game_state);
+    friend std::istream& operator>> (std::istream &in, GameState &game_state);
+
+    GameState(){
+
+    }
+
+    Cell getHead() const {
+        return head;
+    }
+
+    int getHeight() const {
+        return height;
+    }
+
+    int getWidth() const {
+        return width;
+    }
+
+    int operator [](const Cell& cell) const {
+        return field[cell.getStr()][cell.getCol()];
+    }
+
+    int numberNearSnakes(const int& str, const int& col) const {
         int number = 0;
-        for (int k = max(0, i - 10); k < min(n, i + 10); k++){
-            for (int u = max(0, j - 10); u < min(m, j + 10); u++){
-                if (field[k][u] > 1 && field[k][u] != num_head 
-                                    && field[k][u] != num_snake){
+        for (int k = std::max(0, str - BLOCK_SIZE); k < 
+                std::min(height, str + BLOCK_SIZE); k++) {
+            for (int u = std::max(0, col - BLOCK_SIZE); 
+                    u < std::min(width, col + BLOCK_SIZE); u++) {
+                if (field[k][u] > 1 && field[k][u] != num_head && field[k][u] != num_snake) {
                     number++;
                 }
             }
@@ -51,109 +120,173 @@ public:
         return number;
     }
 
-    vector<vector<int>> calculateBlocks(){
-        vector<vector<int>> blocks(n, vector<int>(m, -1));
-        for (int i = 0; i < n; i++){
-            for (int j = 0; j < m; j++){
-                blocks[i][j] = number_near_snakes(i, j);
+    std::vector<std::vector<int>> calculateNearSnakes() const {
+        std::vector<std::vector<int>> blocks(height, std::vector<int>(width, -1));
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++) {
+                blocks[i][j] = numberNearSnakes(i, j);
             }
         }
         return blocks;
     }
-    
-    bool isCellCorrect(pair<int,int> cell){
-        return cell.first > -1 && cell.first <  n 
-            && cell.second > -1 && cell.second < m;
-    }
 
-    vector<pair<int,int>> makeMoves(pair<int,int> cell){
-        vector<pair<int,int>> next_cells;
-        for (auto move : moves){
-            pair<int,int> next_cell = {cell.first + move.first, 
-                                cell.second + move.second};
-            if (isCellCorrect(next_cell)){
+    std::vector<Cell> makeMoves(const Cell& cell, const std::vector<std::pair<int,int>>& moves) const {
+        std::vector<Cell> next_cells;
+        for (const auto& move : moves) {
+            Cell next_cell = cell + move;
+            if (next_cell.isCorrect(height, width)) {
                 next_cells.push_back(next_cell);
             }
         }
         return next_cells;
     }
 
-    bool goToEmptyCell(pair<int, int> cell){
-        auto next_cells = makeMoves(cell);
-        for (auto next_cell : next_cells){
-            if (field[next_cell.first][next_cell.second] == 0){
-                pair<int,int> move = {next_cell.first - cell.first, 
-                        next_cell.second - cell.second};
-                cout << directions[move] << endl;   
+    bool isCellApple(const Cell& cell) const {
+        return (*this)[cell] == 1;
+    }
+
+    bool isCellAppleorEmpty(const Cell& cell) const {
+        return (*this)[cell] <= 1;
+    }
+};
+
+
+
+
+
+
+std::ostream& operator <<(std::ostream &out, const GameState &game_state) {
+    out << game_state.height << " " << game_state.width << endl;
+    out << game_state.num_snake << " " << game_state.num_head << endl;
+    for (int i = 0; i < game_state.height; i++) {
+        for (int j = 0; j < game_state.width; j++) {
+            out << game_state.field[i][j] << " ";
+        }
+        out << endl;
+    }
+    return out;
+}
+
+std::istream& operator >>(std::istream &in, GameState &game_state) {
+    in >> game_state.height >> game_state.width;
+    in >> game_state.num_snake >> game_state.num_head;
+    game_state.field.assign(game_state.height, std::vector<int> (game_state.width));
+
+    for (int i = 0; i < game_state.height; i++) {
+        for (int j = 0; j < game_state.width; j++) {
+            in >> game_state.field[i][j];
+            if (game_state.field[i][j] == game_state.num_head) {
+                game_state.head = Cell(i, j);
+            }
+        }
+    }
+    return in;
+}
+
+
+class AlgorithmA {
+private:
+    GameState game_state;
+    const std::vector<std::pair<int,int>> moves = {{0, 1}, {0, -1}, {-1, 0}, {1, 0}};
+    std::map<std::pair<int,int>, int> directions = 
+        {{{0, 1}, 1}, {{0, -1}, 3}, {{-1, 0}, 0}, {{1, 0}, 2}};
+
+    
+public:
+
+    AlgorithmA() {
+
+    }
+
+    void input_data() {
+        std::cin >> game_state;
+    }    
+
+    bool goToEmptyCell() {
+        Cell head = game_state.getHead();
+        std::vector<Cell> next_cells = game_state.makeMoves(head, moves);
+        for (const auto& next_cell : next_cells) {
+            if (game_state[next_cell] == 0) {
+                std::cout << directions[next_cell - head] << endl;   
                 return true; 
             }
         }
         return false;
     }
 
+    bool makeAlgorithmA() {
+        std::vector<std::vector<int>> blocks = game_state.calculateNearSnakes();
+        
+        Cell head = game_state.getHead();
 
-    void findDirection(){
-        findHead();
-        vector<vector<int>> blocks = calculateBlocks();
-    
+        std::set<std::pair<int, std::vector<Cell>>> algo_set;
 
-        set<pair<int, vector<pair<int,int>>>> s;
-        set<pair<int,int>> used;
-        vector<pair<int,int>> start = {head};    
-        s.insert({blocks[head.first][head.second], start});
+        std::set<std::pair<int,int>> used;
+        used.insert(head.toPair());
+        std::vector<Cell> start = {head};    
+        algo_set.insert({blocks[head.getStr()][head.getCol()], start});
 
 
-        while (!s.empty()){
-            auto element = *s.begin();
-            s.erase(s.begin());
+        while (!algo_set.empty()) {
+            auto element = *algo_set.begin();
+            algo_set.erase(algo_set.begin());
 
             int distance = element.first;
-            vector<pair<int,int>> cur_path = element.second;
-            pair<int,int> vertex = element.second.back();
-            
-            if (field[vertex.first][vertex.second] == 1){
-                pair<int,int> next_cell = cur_path[1];
-                pair<int,int> move = {next_cell.first - head.first, 
-                        next_cell.second - head.second};
-                cout << directions[move] << endl;
-                return;
+            std::vector<Cell> cur_path = element.second;
+            Cell vertex = element.second.back();
+
+            if (game_state.isCellApple(vertex) == 1) {
+                Cell next_cell = cur_path[1];
+                std::cout << directions[next_cell - head] << endl;
+                return true;
             }
 
-            auto next_cells = makeMoves(vertex);
-
-            for (auto next_cell : next_cells){
-                if (field[next_cell.first][next_cell.second] <= 1 && 
-                                used.find(next_cell) == used.end()) {
-                    used.insert(next_cell);
-                    vector<pair<int, int>> new_path = cur_path;
+            std::vector<Cell> next_cells = game_state.makeMoves(vertex, moves);
+            for (auto next_cell : next_cells) {
+                if (game_state.isCellAppleorEmpty(next_cell) && 
+                                used.find(next_cell.toPair()) == used.end()) {
+                    used.insert(next_cell.toPair());
+                    
+                    std::vector<Cell> new_path = cur_path;
                     new_path.push_back(next_cell);
-                    s.insert({distance + 1 + blocks[next_cell.first][next_cell.second], new_path});
+
+                    int new_distance = distance + 1;
+                    new_distance += blocks[next_cell.getStr()][next_cell.getStr()];
+
+                    algo_set.insert({new_distance, new_path});
                 }
             } 
         }
-
-        if (!goToEmptyCell(head)){;
-            cout << 0 << endl;
-        }
-        return;
+        return false;
     }
- 
+};
+
+
+
+class Bot{
+private:
+    AlgorithmA algoritm;
+
+    const int DEFAULT_DIRECTION = 0;
+public:
+
+    Bot(){
+
+    }
+
+    void findDirection(){
+        algoritm.input_data();
+
+        if (!algoritm.makeAlgorithmA()){
+            if (!algoritm.goToEmptyCell()){
+                std::cout << DEFAULT_DIRECTION << endl;
+            }
+        }
+    }
 };
 
 int main(){
-    BotAlgorithmA bot;
-    bot.input();
+    Bot bot;
     bot.findDirection();
-    return 0;
+
 }
-
-/*
-
-4 4
-2 3
-0 0 0 2
-0 0 0 3
-0 0 0 0
-0 0 0 1
-
-*/
