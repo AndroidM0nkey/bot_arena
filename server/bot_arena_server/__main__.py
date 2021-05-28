@@ -4,8 +4,11 @@ from bot_arena_server.limits import Limits, UpperBound, OptionalUpperBound, Rang
 from bot_arena_server.work_limit import WorkLimit
 
 import math
+import sys
 from argparse import ArgumentParser, Namespace
 from typing import Callable
+
+from loguru import logger
 
 
 __all__ = [
@@ -78,8 +81,11 @@ def make_limits(args: Namespace) -> Limits:
 
 def main() -> None:
     args = parse_args()
+    logger.remove()
+    logger.add(sys.stderr, level='INFO')
     limits = make_limits(args)
     server = Server(run_game_loop, limits)
+
     server.listen(args.listen_on, args.port)
 
 
