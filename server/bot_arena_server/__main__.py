@@ -5,6 +5,7 @@ from bot_arena_server.work_limit import WorkLimit
 
 import math
 from argparse import ArgumentParser, Namespace
+from typing import Callable
 
 
 __all__ = [
@@ -29,20 +30,31 @@ def ufloat(s: str) -> float:
     return f
 
 
+def int_ge(limit: int) -> Callable[[str], int]:
+    def inner(s: str) -> int:
+        n = int(s)
+        if n < limit:
+            raise ValueError(f'value is less than {limit}')
+        return n
+
+    inner.__name__ = f'int ≥ {limit}'
+    return inner
+
+
 def parse_args() -> Namespace:
     ap = ArgumentParser(prog='bot-arena-server', description='Pythons game server')
     ap.add_argument('--listen-on', default='0.0.0.0', help='IP address or domain name to listen on')
     ap.add_argument('--port', '-p', type=uint, default=23456, help='Port to listen on')
     ap.add_argument('--max-client-name-len', type=uint, default=50, help='Maximum allowed client name length')
     ap.add_argument('--max-field-side', type=uint, default=200, help='Maximum allowed field width/height')
+    ap.add_argument('--min-field-side', type=uint, default=5, help='Minimum allowed field width/height')
     ap.add_argument('--max-food-items', type=uint, default=50, help='Maximum allowed initial number of food items')
     ap.add_argument('--max-password-len', type=uint, default=500, help='Maximum allowed password length')
-    ap.add_argument('--max-room-name-len', type=uint, default=50, help='Maximum allowed room name length')
+    ap.add_argument('--max-room-name-len', type=int_ge(16), default=50, help='Maximum allowed room name length (at least 16)')
     ap.add_argument('--max-room-players', type=uint, default=20, help='Maximum allowed number of players in a room')
     ap.add_argument('--max-snake-len', type=uint, default=50, help='Maximum allowed initial snake length')
     ap.add_argument('--max-turn-timeout', type=ufloat, default=None, help='Maximum allowed turn timeout in seconds')
     ap.add_argument('--max-turns', type=uint, default=None, help='Maximum allowed number of turns')
-    ap.add_argument('--min-field-side', type=uint, default=5, help='Minimum allowed field width/height')
     ap.add_argument('--turn-delay', type=ufloat, default=0.1, help='Delay between turns in seconds')
     ap.add_argument('--work-units', type=uint, default=500, help='Maximum allowed amount of game preparation work')
     return ap.parse_args()

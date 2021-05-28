@@ -37,9 +37,12 @@ class OptionalUpperBound(Generic[_T]):
 
         return min(self._bound, value)
 
-    def validate(self, value: Optional[_T]) -> None:
+    def validate(self, value: Optional[_T], value_description: Optional[str] = None) -> None:
         if value not in self:
-            raise ConstraintNotMetError(value, self.predicate_str())
+            raise ConstraintNotMetError(
+                value_description if value_description is not None else value,
+                self.predicate_str(),
+            )
 
     def predicate_str(self) -> str:
         if self._bound is None:
@@ -58,9 +61,12 @@ class UpperBound(Generic[_T]):
     def clamp(self, value: _T) -> _T:
         return min(value, self._bound)
 
-    def validate(self, value: _T) -> None:
+    def validate(self, value: _T, value_description: Optional[str] = None) -> None:
         if value not in self:
-            raise ConstraintNotMetError(value, self.predicate_str())
+            raise ConstraintNotMetError(
+                value_description if value_description is not None else value,
+                self.predicate_str(),
+            )
 
     def predicate_str(self) -> str:
         return f'must be no greater than {self._bound}'
@@ -79,9 +85,12 @@ class Range(Generic[_T]):
     def clamp(self, value: _T) -> _T:
         return min(self._upper_bound, max(self._lower_bound, value))
 
-    def validate(self, value: _T) -> None:
+    def validate(self, value: _T, value_description: Optional[str] = None) -> None:
         if value not in self:
-            raise ConstraintNotMetError(value, self.predicate_str())
+            raise ConstraintNotMetError(
+                value_description if value_description is not None else value,
+                self.predicate_str(),
+            )
 
     def predicate_str(self) -> str:
         return f'must be no smaller than {self._lower_bound} and no greater than {self._upper_bound}'

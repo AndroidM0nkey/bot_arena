@@ -360,6 +360,7 @@ class RoomManager:
     @wrap_constraint_not_met_exceptions
     def _set_room_property(self, room_id: str, room: RoomDetails, key: str, value: Any) -> None:
         if key == 'name':
+            self._limits.max_room_name_len.validate(len(value))
             self._rename_room(room.name, value)
 
         elif key == 'players':
@@ -474,7 +475,7 @@ class RoomManager:
             client_names = list(clients)
 
             game = create_game(client_names, room.as_game_config(), self._limits.work_units)
-            game_room = GameRoom(client_names, game, room_info.name)
+            game_room = GameRoom(client_names, game, room_info.name, self._limits.turn_delay)
             game_room.set_turn_timeout(room.turn_timeout_seconds)
 
             await sync_object.pubsub.publish((game, game_room))

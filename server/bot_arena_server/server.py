@@ -3,7 +3,6 @@ from bot_arena_server.control_flow import EnsureDisconnect
 from bot_arena_server.game import Game
 from bot_arena_server.game_room import GameRoom
 from bot_arena_server.limits import Limits
-from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_manager import RoomManager
 
 from typing import Tuple, Callable, Coroutine, List, Optional, cast, Dict, Set
@@ -167,8 +166,8 @@ class Server:
     ) -> None:
         self._client_handler = client_handler
         self._client_infos: Dict[ClientName, RichClientInfo] = {}
-        self._game_pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
         self._room_manager = RoomManager(limits)
+        self._limits = limits
 
     def listen(self, host: str, port: int) -> None:
         logger.info('Listening on {}:{}', host, port)
@@ -198,6 +197,8 @@ class Server:
         client_info = await sess.pre_initialize()
         try:
             client_name = ClientName(client_info.name)
+            if client_name.is_player():
+                self._limits.max_client_name_len.validate(len(str(client_name)), 'your name length')
             if client_name in self._client_infos:
                 raise Exception(f'Client {client_name!r} is already connected')
             logger.info('{!r} joined the party', client_name)
@@ -217,10 +218,3 @@ class Server:
             return
         finally:
             self._client_infos.pop(client_name)
-
-    async def _wait_until_game_is_ready(self, sess: ServerSession) -> Tuple[Game, GameRoom]:
-        # TODO: poll for messages from the client.
-        return await self._game_pubsub.receive()
-
-    # TODO: don't hardcode this.
-    CLIENTS_PER_GAME = 3
