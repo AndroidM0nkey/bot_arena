@@ -1,8 +1,9 @@
 import asyncio
+import math
 from dataclasses import dataclass
 from subprocess import PIPE
 from threading import Thread, Lock
-from typing import List, Iterable, Tuple
+from typing import List, Iterable, Tuple, Any, Optional
 
 from adt import adt, Case
 
@@ -13,6 +14,13 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import GLib as glib  # type: ignore
 from gi.repository import Gdk as gdk    # type: ignore
 from gi.repository import Gtk as gtk    # type: ignore
+
+
+def optional(T: type, value: str) -> Any:
+    x = T(value)
+    if x < 0:
+        return None
+    return x
 
 
 @adt
@@ -215,23 +223,71 @@ class BasicParamsTab:
         return BasicStartupParams(address, port)
 
 
+lots = 1e+10
+
 class ExtendedParamsTab:
     def __init__(self, app: 'App') -> None:
         self.app = app
 
-        self.foo_label = gtk.Label('Foo:')
-        self.foo_input = gtk.Entry()
+        self.max_client_name_len_label = gtk.Label('Maximum allowed client name length:')
+        self.max_client_name_len_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_client_name_len_input.set_value(50)
 
-        self.bar_label = gtk.Label('Barrrr:')
-        self.bar_input = gtk.Entry()
+        self.min_field_side_label = gtk.Label('Minimum allowed field side (width & height):')
+        self.min_field_side_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.min_field_side_input.set_value(5)
+        self.min_field_side_input.connect('value-changed', self.update_max_field_side)
+
+        self.max_field_side_label = gtk.Label('Maximum allowed field side (width & height):')
+        self.max_field_side_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_field_side_input.set_value(200)
+        self.max_field_side_input.connect('value-changed', self.update_min_field_side)
+
+        self.max_food_items_label = gtk.Label('Maximum allowed initial number of food items:')
+        self.max_food_items_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_food_items_input.set_value(50)
+
+        self.max_password_len_label = gtk.Label('Maximum allowed password length:')
+        self.max_password_len_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_password_len_input.set_value(500)
+
+        self.max_room_name_len_label = gtk.Label('Maximum allowed room name length:')
+        self.max_room_name_len_input = gtk.SpinButton.new_with_range(16, lots, 1)
+        self.max_room_name_len_input.set_value(50)
+
+        self.max_room_players_label = gtk.Label('Maximum allowed number of players in a room:')
+        self.max_room_players_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_room_players_input.set_value(20)
+
+        self.max_snake_len_label = gtk.Label('Maximum allowed initial snake length:')
+        self.max_snake_len_input = gtk.SpinButton.new_with_range(0, lots, 1)
+        self.max_snake_len_input.set_value(50)
+
+        self.max_turn_timeout_label = gtk.Label('Maximum allowed turn timeout in seconds (-1 for no limit):')
+        self.max_turn_timeout_input = gtk.SpinButton.new_with_range(-1, lots, 1)
+        self.max_turn_timeout_input.set_value(-1)
+
+        self.max_turns_label = gtk.Label('Maximum allowed number of turns (-1 for no limit):')
+        self.max_turns_input = gtk.SpinButton.new_with_range(-1, lots, 1)
+        self.max_turns_input.set_value(-1)
+
+        self.turn_delay_label = gtk.Label('Delay between turns in seconds (0 for no delay):')
+        self.turn_delay_input = gtk.SpinButton.new_with_range(0, lots, 0.001)
+        self.turn_delay_input.set_value(0.1)
+
+        self.work_units_label = gtk.Label('Maximum amount of work done generating field:')
+        self.work_units_input = gtk.SpinButton.new_with_range(0, lots, 10)
+        self.work_units_input.set_value(500)
 
         self.grid = gtk.Grid()
 
-        for i, (label, input) in enumerate(self.inputs()):
+        rows = [0, 0]
+        for label, input, col in self.inputs():
             label_box = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=0)
             label_box.pack_end(label, expand=False, fill=False, padding=0)
-            self.grid.attach(label_box, left=0, top=i, width=1, height=1)
-            self.grid.attach(input, left=1, top=i, width=1, height=1)
+            self.grid.attach(label_box, left=2*col, top=rows[col], width=1, height=1)
+            self.grid.attach(input, left=1+2*col, top=rows[col], width=1, height=1)
+            rows[col] += 1
 
         self.grid.set_row_spacing(5)
         self.grid.set_column_spacing(20)
@@ -240,24 +296,58 @@ class ExtendedParamsTab:
         self.grid.set_margin_left(5)
         self.grid.set_margin_right(5)
 
-    def inputs(self) -> Iterable[Tuple[gtk.Label, gtk.Widget]]:
-        yield (self.foo_label, self.foo_input)
-        yield (self.bar_label, self.bar_input)
+    def update_max_field_side(self, *args) -> None:
+        min_value = self.min_field_side_input.get_value()
+        max_value = self.max_field_side_input.get_value()
+        if min_value > max_value:
+            self.max_field_side_input.set_value(min_value)
+
+    def update_min_field_side(self, *args) -> None:
+        min_value = self.min_field_side_input.get_value()
+        max_value = self.max_field_side_input.get_value()
+        if max_value < min_value:
+            self.min_field_side_input.set_value(max_value)
+
+    def inputs(self) -> Iterable[Tuple[gtk.Label, gtk.Widget, int]]:
+        yield (self.max_client_name_len_label, self.max_client_name_len_input, 0)
+        yield (self.min_field_side_label, self.min_field_side_input, 0)
+        yield (self.max_field_side_label, self.max_field_side_input, 0)
+        yield (self.max_food_items_label, self.max_food_items_input, 0)
+        yield (self.max_password_len_label, self.max_password_len_input, 0)
+        yield (self.max_room_name_len_label, self.max_room_name_len_input, 0)
+        yield (self.max_room_players_label, self.max_room_players_input, 1)
+        yield (self.max_snake_len_label, self.max_snake_len_input, 1)
+        yield (self.max_turn_timeout_label, self.max_turn_timeout_input, 1)
+        yield (self.max_turns_label, self.max_turns_input, 1)
+        yield (self.turn_delay_label, self.turn_delay_input, 1)
+        yield (self.work_units_label, self.work_units_input, 1)
 
     def on_message(self, msg: Message) -> None:
-        self.foo_input.on_message(msg)
-        self.bar_input.on_message(msg)
+        is_server_running = msg.match(
+            server_started = lambda: True,
+            server_stopped = lambda: False
+        )
+
+        for _, input, _ in self.inputs():
+            input.set_sensitive(not is_server_running)
 
     def root_widget(self) -> gtk.Box:
         return self.grid
 
     def get_startup_params(self) -> 'ExtendedStartupParams':
-        foo = self.foo_input.get_text()
-        bar = self.bar_input.get_text()
-
         return ExtendedStartupParams(
-            foo = foo,
-            bar = bar,
+            max_client_name_len = int(self.max_client_name_len_input.get_value()),
+            min_field_side = int(self.min_field_side_input.get_value()),
+            max_field_side = int(self.max_field_side_input.get_value()),
+            max_food_items = int(self.max_food_items_input.get_value()),
+            max_password_len = int(self.max_password_len_input.get_value()),
+            max_room_name_len = int(self.max_room_name_len_input.get_value()),
+            max_room_players = int(self.max_room_players_input.get_value()),
+            max_snake_len = int(self.max_snake_len_input.get_value()),
+            max_turn_timeout = optional(float, self.max_turn_timeout_input.get_value()),
+            max_turns = optional(int, self.max_turns_input.get_value()),
+            turn_delay = int(self.turn_delay_input.get_value()),
+            work_units = int(self.work_units_input.get_value()),
         )
 
 
@@ -322,11 +412,36 @@ class BasicStartupParams:
 
 @dataclass
 class ExtendedStartupParams:
-    foo: str
-    bar: str
+    max_client_name_len: int
+    min_field_side: int
+    max_field_side: int
+    max_food_items: int
+    max_password_len: int
+    max_room_name_len: int
+    max_room_players: int
+    max_snake_len: int
+    max_turn_timeout: Optional[float]
+    max_turns: Optional[int]
+    turn_delay: int
+    work_units: int
 
     def get_args(self) -> List[str]:
-        return ['--foo', self.foo, '--bar', self.bar]
+        return [
+            '--max-client-name-len', str(self.max_client_name_len),
+            '--min-field-side', str(self.min_field_side),
+            '--max-field-side', str(self.max_field_side),
+            '--max-food-items', str(self.max_food_items),
+            '--max-password-len', str(self.max_password_len),
+            '--max-room-name-len', str(self.max_room_name_len),
+            '--max-room-players', str(self.max_room_players),
+            '--max-snake-len', str(self.max_snake_len),
+            '--turn-delay', str(self.turn_delay),
+            '--work-units', str(self.work_units),
+        ] + (
+            [] if self.max_turn_timeout is None else ['--max-turn-timeout', str(self.max_turn_timeout)]
+        ) + (
+            [] if self.max_turns is None else ['--max-turns', str(self.max_turns)]
+        )
 
 
 @dataclass

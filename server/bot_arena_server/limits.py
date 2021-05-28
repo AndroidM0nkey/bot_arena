@@ -75,7 +75,7 @@ class UpperBound(Generic[_T]):
 class Range(Generic[_T]):
     def __init__(self, lower_bound: _T, upper_bound: _T) -> None:
         if upper_bound < lower_bound:
-            raise ValueError('Invalid range: [{lower_bound}, {upper_bound}]')
+            raise ValueError(f'Invalid range: [{lower_bound}, {upper_bound}]')
         self._lower_bound: _T = lower_bound
         self._upper_bound: _T = upper_bound
 
