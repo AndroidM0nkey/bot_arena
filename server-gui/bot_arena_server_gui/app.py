@@ -2,17 +2,17 @@ import asyncio
 from dataclasses import dataclass
 from subprocess import PIPE
 from threading import Thread, Lock
-from typing import List
+from typing import List, Iterable, Tuple
 
 from adt import adt, Case
 
-import gi
+import gi  # type: ignore
 gi.require_version('GLib', '2.0')
 gi.require_version('Gdk', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import GLib as glib
-from gi.repository import Gdk as gdk
-from gi.repository import Gtk as gtk
+from gi.repository import GLib as glib  # type: ignore
+from gi.repository import Gdk as gdk    # type: ignore
+from gi.repository import Gtk as gtk    # type: ignore
 
 
 @adt
@@ -166,7 +166,7 @@ class TopRow:
         return self.box
 
 
-class ParamsRow:
+class BasicParamsTab:
     def __init__(self, app: 'App') -> None:
         self.app = app
 
@@ -180,13 +180,19 @@ class ParamsRow:
         self.listen_port_entry.set_text('23456')
 
         self.box = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=0)
-        self.box.set_margin_left(5)
-        self.box.set_margin_right(5)
 
         self.box.pack_start(self.listen_address_label, expand=False, fill=False, padding=0)
         self.box.pack_start(self.listen_address_entry, expand=False, fill=False, padding=20)
         self.box.pack_start(self.listen_port_label, expand=False, fill=False, padding=0)
         self.box.pack_start(self.listen_port_entry, expand=False, fill=False, padding=20)
+
+        self.box.set_margin_top(5)
+        self.box.set_margin_bottom(5)
+        self.box.set_margin_left(5)
+        self.box.set_margin_right(5)
+
+        self.outer_box = gtk.Box(orientation=gtk.Orientation.VERTICAL, spacing=0)
+        self.outer_box.pack_start(self.box, expand=False, fill=False, padding=0)
 
     def on_message(self, msg: Message) -> None:
         is_server_running = msg.match(
@@ -198,15 +204,89 @@ class ParamsRow:
         self.listen_port_entry.set_sensitive(not is_server_running)
 
     def root_widget(self) -> gtk.Box:
-        return self.box
+        return self.outer_box
 
-    def get_startup_params(self) -> 'StartupParams':
+    def get_startup_params(self) -> 'BasicStartupParams':
         address = self.listen_address_entry.get_text()
         try:
             port = int(self.listen_port_entry.get_text())
         except ValueError:
             raise ValueError('Port must be an integer number')
-        return StartupParams(address, port)
+        return BasicStartupParams(address, port)
+
+
+class ExtendedParamsTab:
+    def __init__(self, app: 'App') -> None:
+        self.app = app
+
+        self.foo_label = gtk.Label('Foo:')
+        self.foo_input = gtk.Entry()
+
+        self.bar_label = gtk.Label('Barrrr:')
+        self.bar_input = gtk.Entry()
+
+        self.grid = gtk.Grid()
+
+        for i, (label, input) in enumerate(self.inputs()):
+            label_box = gtk.Box(orientation=gtk.Orientation.HORIZONTAL, spacing=0)
+            label_box.pack_end(label, expand=False, fill=False, padding=0)
+            self.grid.attach(label_box, left=0, top=i, width=1, height=1)
+            self.grid.attach(input, left=1, top=i, width=1, height=1)
+
+        self.grid.set_row_spacing(5)
+        self.grid.set_column_spacing(20)
+        self.grid.set_margin_top(5)
+        self.grid.set_margin_bottom(5)
+        self.grid.set_margin_left(5)
+        self.grid.set_margin_right(5)
+
+    def inputs(self) -> Iterable[Tuple[gtk.Label, gtk.Widget]]:
+        yield (self.foo_label, self.foo_input)
+        yield (self.bar_label, self.bar_input)
+
+    def on_message(self, msg: Message) -> None:
+        self.foo_input.on_message(msg)
+        self.bar_input.on_message(msg)
+
+    def root_widget(self) -> gtk.Box:
+        return self.grid
+
+    def get_startup_params(self) -> 'ExtendedStartupParams':
+        foo = self.foo_input.get_text()
+        bar = self.bar_input.get_text()
+
+        return ExtendedStartupParams(
+            foo = foo,
+            bar = bar,
+        )
+
+
+class ParamsRow:
+    def __init__(self, app: 'App') -> None:
+        self.app = app
+
+        self.basic_tab = BasicParamsTab(app)
+        self.extended_tab = ExtendedParamsTab(app)
+
+        self.notebook = gtk.Notebook()
+        self.notebook.append_page(self.basic_tab.root_widget(), gtk.Label('Basic parameters'))
+        self.notebook.append_page(self.extended_tab.root_widget(), gtk.Label('Extended parameters'))
+
+        self.notebook.set_margin_left(5)
+        self.notebook.set_margin_right(5)
+
+    def on_message(self, msg: Message) -> None:
+        self.basic_tab.on_message(msg)
+        self.extended_tab.on_message(msg)
+
+    def root_widget(self) -> gtk.Notebook:
+        return self.notebook
+
+    def get_startup_params(self) -> 'StartupParams':
+        return StartupParams(
+            basic = self.basic_tab.get_startup_params(),
+            extended = self.extended_tab.get_startup_params(),
+        )
 
 
 class LayoutColumn:
@@ -232,12 +312,30 @@ class LayoutColumn:
 
 
 @dataclass
-class StartupParams:
+class BasicStartupParams:
     listen_address: str
     listen_port: int
 
     def get_args(self) -> List[str]:
         return ['--listen-on', self.listen_address, '--port', str(self.listen_port)]
+
+
+@dataclass
+class ExtendedStartupParams:
+    foo: str
+    bar: str
+
+    def get_args(self) -> List[str]:
+        return ['--foo', self.foo, '--bar', self.bar]
+
+
+@dataclass
+class StartupParams:
+    basic: BasicStartupParams
+    extended: ExtendedStartupParams
+
+    def get_args(self) -> List[str]:
+        return self.basic.get_args() + self.extended.get_args()
 
 
 class App:
