@@ -474,7 +474,13 @@ class RoomManager:
             # TODO: shuffle for fairness.
             client_names = list(clients)
 
-            game = create_game(client_names, room.as_game_config(), self._limits.work_units)
+            game: Game = await curio.run_in_thread(
+                create_game,
+                client_names,
+                room.as_game_config(),
+                self._limits.work_units,
+            )
+
             game_room = GameRoom(client_names, game, room_info.name, self._limits.turn_delay)
             game_room.set_turn_timeout(room.turn_timeout_seconds)
 
