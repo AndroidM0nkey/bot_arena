@@ -198,17 +198,17 @@ class RoomManager:
         self._rooms[room_id] = RoomDetails(
             admins = {str(invoking_client)},    # TODO: maybe change this behavior for viewers
             name = room_id,
-            min_players = 2,
-            max_players = 3,
-            snake_len = 5,
-            field_width = 40,
-            field_height = 40,
-            num_food_items = 3,
+            min_players = self._limits.max_players_in_a_room.clamp(2),
+            max_players = self._limits.max_players_in_a_room.clamp(3),
+            snake_len = self._limits.max_snake_len.clamp(5),
+            field_width = self._limits.field_side_limits.clamp(40),
+            field_height = self._limits.field_side_limits.clamp(40),
+            num_food_items = self._limits.max_food_items.clamp(3),
             respawn_food = FoodRespawnBehavior.YES(),
             open = RoomOpenness.CLOSED(),
-            max_turns = 1000,
+            max_turns = self._limits.max_turns.clamp(500),
             game_started = False,
-            turn_timeout_seconds = None,
+            turn_timeout_seconds = self._limits.max_turn_timeout.clamp(None),
         )
         self._room_sync[room_id] = RoomSyncObject()
 
