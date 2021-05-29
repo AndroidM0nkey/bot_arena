@@ -11,7 +11,7 @@ setup(
         'bot_arena_server': ['py.typed'],
     },
 
-    install_requires = ['bot-arena-proto', 'curio', 'loguru'],
+    install_requires = ['bot-arena-proto ~= 1.0.0', 'curio', 'loguru'],
 
     entry_points = {
         'console_scripts': [
