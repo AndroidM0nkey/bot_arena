@@ -124,7 +124,8 @@ async def handle_event(event):
         return
     if event.name == 'GameFinished':
         global handler
-        handler.game_over(event.data)
+        handler.get_message_and_display(handler.get_last_fieldstate(), handler.get_height(),
+                                            handler.get_width(), handler.get_score(), event.data)
         time.sleep(100000)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
