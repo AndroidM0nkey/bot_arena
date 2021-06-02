@@ -125,27 +125,30 @@ class Viewer:
             else:
                 textbox.topleft = (xcoord, ycoord)
             screen.blit(text_to_show, textbox)
+            return textbox.height
 
         if winners is not None:
             font_size = 40
-            winner_name = winners['winners'][0]
-            black_color = (0, 0, 0)
-            white_color = (255, 255, 255)
-            x_coord = (field_width * cell_width) // 2
             y_coord = 2
-            x_coord -= 2
-            show_text(x_coord - 2, y_coord - 2, winner_name, black_color, font_size, surface, True)
-            show_text(x_coord + 2, y_coord - 2, winner_name, black_color, font_size, surface, True)
-            show_text(x_coord - 2, y_coord + 2, winner_name, black_color, font_size, surface, True)
-            show_text(x_coord + 2, y_coord + 2, winner_name, black_color, font_size, surface, True)
-            show_text(x_coord, y_coord, winner_name, self.colors_mapping[winner_name], font_size, surface, True)
-            x_coord += 4
-            win_text = ' won!'
-            show_text(x_coord - 2, y_coord - 2, win_text, black_color, font_size, surface, False)
-            show_text(x_coord + 2, y_coord - 2, win_text, black_color, font_size, surface, False)
-            show_text(x_coord - 2, y_coord + 2, win_text, black_color, font_size, surface, False)
-            show_text(x_coord + 2, y_coord + 2, win_text, black_color, font_size, surface, False)
-            show_text(x_coord, y_coord, win_text, white_color, font_size, surface, False)
+            for i in range(len(winners['winners'])):
+                winner_name = winners['winners'][i]
+                black_color = (0, 0, 0)
+                white_color = (255, 255, 255)
+                x_coord = (field_width * cell_width) // 2
+                x_coord -= 2
+                show_text(x_coord - 2, y_coord - 2, winner_name, black_color, font_size, surface, True)
+                show_text(x_coord + 2, y_coord - 2, winner_name, black_color, font_size, surface, True)
+                show_text(x_coord - 2, y_coord + 2, winner_name, black_color, font_size, surface, True)
+                show_text(x_coord + 2, y_coord + 2, winner_name, black_color, font_size, surface, True)
+                p = show_text(x_coord, y_coord, winner_name, self.colors_mapping[winner_name], font_size, surface, True)
+                x_coord += 4
+                win_text = ' won!'
+                show_text(x_coord - 2, y_coord - 2, win_text, black_color, font_size, surface, False)
+                show_text(x_coord + 2, y_coord - 2, win_text, black_color, font_size, surface, False)
+                show_text(x_coord - 2, y_coord + 2, win_text, black_color, font_size, surface, False)
+                show_text(x_coord + 2, y_coord + 2, win_text, black_color, font_size, surface, False)
+                show_text(x_coord, y_coord, win_text, white_color, font_size, surface, False)
+                y_coord += p
 
         pygame.display.update()
         return
