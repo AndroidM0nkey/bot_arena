@@ -40,6 +40,10 @@ class mywindow(QtWidgets.QMainWindow):
 
         cur = Client(address, port, name, cmd)
         self.hide()
+
+        cur.application = Readywnd()
+        cur.application.show()
+
         threading.Thread(target=cur.run_basic_session, daemon=True).start()
  
 app = QtWidgets.QApplication(sys.argv)

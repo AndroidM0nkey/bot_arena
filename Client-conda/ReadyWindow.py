@@ -20,14 +20,30 @@ class Readywnd(QtWidgets.QDialog):
         self.ui = Ui_ReadyWind()
         self.ui.setupUi(self)
         self.ui.pushButton.clicked.connect(self.btnClicked)
+        self.ui.label.setFont(
+            QtGui.QFont('SansSerif', 10)
+        )
+        self.ui.label.setAlignment(QtCore.Qt.AlignCenter)
+        #self.ui.label.setText("Нажмите готов, когда все игроки подключатся и будут готовы начать")
         self.check = 0
 
     def btnClicked(self):
         self.check = 1
-        print("1")
+        self.changeTitle(0)
+        #print("1")
+    
+    def changeTitle(self, param):
+        if param == 0:
+            self.ui.label.setText("Дождитесь других игроков/окончания игры")
+        if param == 1:
+            self.ui.label.setText("Поздравляем с победой")
+        if param == 2:
+            self.ui.label.setText("К сожалению, в этот раз вы проиграли")
 
 #for tests
+"""
 app = QtWidgets.QApplication(sys.argv)
 application = Readywnd()
 application.show()
 sys.exit(app.exec())
+"""
