@@ -3,7 +3,7 @@ from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 from game_viewer_files.main_viewer import Viewer
 from StreamEditor import StreamEditor
-from bot import Bot
+#from bot import Bot
 import pygame
 import game_viewer_files.config as c
 import time

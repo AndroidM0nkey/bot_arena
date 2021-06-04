@@ -2,7 +2,7 @@ from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
 from game_viewer_files.main_viewer import Viewer
-from bot import Bot
+#from bot import Bot
 import pygame
 import game_viewer_files.config as c
 import time
@@ -64,7 +64,7 @@ async def main():
     else:
         print(f'Joined room {room_properties["name"]}')
 
-    input('Press Enter when you are ready to start. ')
+    #input('Press Enter when you are ready to start. ')
 
 
 
@@ -146,7 +146,7 @@ async def take_turn():
     global name
 
     # We will always tell our snake to move right.
-    curBot = Bot()
+    curBot = None
     action = Action.MOVE(curBot.find_direction(curField, f_width, f_height, name))
     #action = Action.MOVE(Direction.UP())
     # Send our action to the server
