@@ -18,8 +18,10 @@ import curio
 # using global variables, but this is just a tiny example.
 sess = None
 curField = None
+screen = None
 f_width = 0
 f_height = 0
+cell_width = 0
 name = '@viewer'
 handler = Viewer()
 score = None
@@ -28,8 +30,10 @@ score = None
 async def main():
     global sess
     global curField
+    global screen
     global f_height
     global f_width
+    global cell_width
     global name
 
     # Connect to the server, assuming it is listening on 127.0.0.1:1234.
@@ -74,6 +78,10 @@ async def main():
     # Important data
     f_width = game_info.field_width
     f_height = game_info.field_height
+    cell_width = int(c.screen_width / max(f_height, f_width))
+    pygame.init()
+    pygame.display.set_caption('Pythons')
+    screen = pygame.display.set_mode((f_width * cell_width, f_height * cell_width))
 
     # Handle server-sent notifications
     while True:
@@ -104,18 +112,17 @@ async def handle_new_field_state(state):
     #
     global sess
     global curField
+    global screen
     global f_height
     global f_width
     global name
     global handler
     global score
     curField = state
-    pygame.init()
-    pygame.display.set_caption('Pythons')
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             exit(0)
-    handler.get_message_and_display(curField, f_height, f_width, score)
+    handler.get_message_and_display(curField, f_height, f_width, score, screen)
     #time.sleep(1000)
     
     
@@ -127,8 +134,9 @@ async def handle_event(event):
         return
     if event.name == 'GameFinished':
         global handler
+        global screen
         handler.get_message_and_display(handler.get_last_fieldstate(), handler.get_height(),
-                                            handler.get_width(), handler.get_score(), event.data)
+                                            handler.get_width(), handler.get_score(), screen, event.data)
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
