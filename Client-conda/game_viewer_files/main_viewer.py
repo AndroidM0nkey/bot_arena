@@ -3,6 +3,7 @@ from bot_arena_proto.data import FieldState, Direction, SnakeState, Point, Objec
 from game_viewer_files.apple import Apple
 from game_viewer_files.snake_body_peace import SnakeBodyPeace
 from game_viewer_files.snake import Snake
+from ctypes import windll
 import game_viewer_files.config as c
 import pygame
 import random
@@ -50,6 +51,7 @@ class Viewer:
         self.last_fieldstate = cur_state
         self.score = score
         surface = pygame.display.set_mode((field_width * cell_width, field_height * cell_width))
+        windll.user32.SetWindowPos(pygame.display.get_wm_info()['window'], -1, 0, 0, 0, 0, 0x0003)
         colors_cnt = -1
         snakes = []
         surface.fill(pygame.Color('black'))

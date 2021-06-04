@@ -112,6 +112,9 @@ async def handle_new_field_state(state):
     curField = state
     pygame.init()
     pygame.display.set_caption('Pythons')
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            exit(0)
     handler.get_message_and_display(curField, f_height, f_width, score)
     #time.sleep(1000)
     
@@ -126,7 +129,10 @@ async def handle_event(event):
         global handler
         handler.get_message_and_display(handler.get_last_fieldstate(), handler.get_height(),
                                             handler.get_width(), handler.get_score(), event.data)
-        time.sleep(100000)
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    exit(0)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
     pass
