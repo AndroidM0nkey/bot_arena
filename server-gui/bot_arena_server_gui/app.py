@@ -346,7 +346,7 @@ class ExtendedParamsTab:
             max_snake_len = int(self.max_snake_len_input.get_value()),
             max_turn_timeout = optional(float, self.max_turn_timeout_input.get_value()),
             max_turns = optional(int, self.max_turns_input.get_value()),
-            turn_delay = int(self.turn_delay_input.get_value()),
+            turn_delay = float(self.turn_delay_input.get_value()),
             work_units = int(self.work_units_input.get_value()),
         )
 
@@ -422,7 +422,7 @@ class ExtendedStartupParams:
     max_snake_len: int
     max_turn_timeout: Optional[float]
     max_turns: Optional[int]
-    turn_delay: int
+    turn_delay: float
     work_units: int
 
     def get_args(self) -> List[str]:
