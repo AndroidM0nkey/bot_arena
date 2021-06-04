@@ -138,9 +138,8 @@ async def handle_event(event):
         handler.get_message_and_display(handler.get_last_fieldstate(), handler.get_height(),
                                             handler.get_width(), handler.get_score(), screen, event.data)
         while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    exit(0)
+            if pygame.event.wait().type == pygame.QUIT:
+                exit(0)
     # Do something when an event happens.
     #print(f'Event happened: {event}')
     pass
