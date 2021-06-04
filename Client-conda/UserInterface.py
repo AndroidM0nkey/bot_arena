@@ -1,13 +1,19 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from client import Client
+from ReadyDialog import Ui_ReadyWind
+from ReadyWindow import Readywnd
+from contextlib import ExitStack
+from functools import partial
 from FirstDialog import Ui_Hello   # импорт нашего сгенерированного файла
 import sys
+import os
+import time
  
  
 class mywindow(QtWidgets.QMainWindow):
 
     def __init__(self):
-        super(mywindow, self).__init__()
+        super().__init__()
         self.ui = Ui_Hello()
         self.ui.setupUi(self)
 
@@ -32,14 +38,33 @@ class mywindow(QtWidgets.QMainWindow):
         cmd = self.ui.Cmd.text()
 
         cur = Client(address, port, name, cmd)
-        self.close()
-        cur.run_basic_session()
+        self.w = Readywnd()
+        self.w.show()
+        self.hide()
+
+        with ExitStack() as stack:
+            stack.callback(cur.run_basic_session)
+            
         
 
+        
 
+class Readywnd(QtWidgets.QDialog):
+    check = 0
+
+    def __init__(self):
+        super().__init__()
+        self.ui = Ui_ReadyWind()
+        self.ui.setupUi(self)
+        self.ui.pushButton.clicked.connect(self.btnClicked)
+        
+
+    def btnClicked(self):
+        check = 1
  
  
-app = QtWidgets.QApplication([])
+app = QtWidgets.QApplication(sys.argv)
+#application = Readywnd()
 application = mywindow()
 application.show()
  

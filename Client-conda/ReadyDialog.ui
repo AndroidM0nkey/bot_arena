@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>ReadyWind</class>
+ <widget class="QDialog" name="ReadyWind">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -16,27 +16,27 @@
   <widget class="QPushButton" name="pushButton">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>280</y>
-     <width>241</width>
+     <x>30</x>
+     <y>270</y>
+     <width>171</width>
      <height>34</height>
     </rect>
    </property>
    <property name="text">
-    <string>Подтвердить</string>
+    <string>PushButton</string>
    </property>
   </widget>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>10</y>
-     <width>231</width>
-     <height>191</height>
+     <x>70</x>
+     <y>50</y>
+     <width>58</width>
+     <height>18</height>
     </rect>
    </property>
    <property name="text">
-    <string>Нажмите подтвердить, когда все игроки поделючатся и вы будете готовы начать игру</string>
+    <string>TEST</string>
    </property>
   </widget>
  </widget>

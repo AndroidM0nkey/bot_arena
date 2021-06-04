@@ -1,6 +1,7 @@
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
+from ReadyWindow import Readywnd
 from game_viewer_files.main_viewer import Viewer
 from StreamEditor import StreamEditor
 #from bot import Bot
@@ -8,6 +9,8 @@ import pygame
 import game_viewer_files.config as c
 import time
 import curio
+import sys
+from PyQt5 import QtWidgets, QtGui, QtCore
 
 
 class Client:
@@ -22,9 +25,12 @@ class Client:
         curField = None
         f_width = 0
         f_height = 0
+        self.application = None
 
     def run_basic_session(self):
+        #app = QtWidgets.QApplication(sys.argv)
         curio.run(self.main)
+       
 
     async def main(self):
 
@@ -56,6 +62,13 @@ class Client:
             print(f'Joined room {room_properties["name"]}')
 
         # Start the game
+        
+        #app2 = QtWidgets.QApplication([])
+        """
+        while(self.application.check == 1):
+            time.sleep(0.1) 
+        """
+
         await self.sess.ready()
         game_info = await self.sess.wait_until_game_started()
 
