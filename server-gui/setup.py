@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'bot-arena-server-gui',
-    version = '0.1.0',
+    version = '1.0.0',
     packages = find_packages(),
 
     # Enable type hints in the installed packages
