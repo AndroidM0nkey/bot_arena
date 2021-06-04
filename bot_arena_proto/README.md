@@ -8,7 +8,7 @@ set of functionality.
 ## API reference
 **TL;DR**: docstrings are available, to build and view HTML documentation out of them
 run `cd doc && ./build.sh && ./run.sh` (Python package `pdoc3` must be installed).
-Also available in releases.
+Also available [online](https://kodopp.mooo.com/bot_arena/api-docs).
 
 This library attempts to provide the docstrings for every non-internal class, function and method.
 These can be either viewed in the source code, or accessed by the Python's `help(...)`
@@ -118,7 +118,13 @@ async def main():
     # Perform the handshake
     await sess.initialize()
 
-    ...  # Do what you want before being ready to enter a game
+    # Enter some game room
+    await sess.enter_any_room()
+
+    # If we have created a game, make it open for everyone
+    props = await sess.get_room_properties()
+    if client_info.name in props['admins']:
+        await sess.set_room_properties({'open': RoomOpenness.OPEN()})
 
     # Start the game
     await sess.ready()

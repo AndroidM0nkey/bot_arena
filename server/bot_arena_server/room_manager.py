@@ -3,8 +3,10 @@ from bot_arena_server.client_name import ClientName
 from bot_arena_server.game import Game
 from bot_arena_server.game_config import GameConfig
 from bot_arena_server.game_room import GameRoom
+from bot_arena_server.limits import Limits, ConstraintNotMetError
 from bot_arena_server.pubsub import PublishSubscribeService
 from bot_arena_server.room_mapping import RoomMapping
+from bot_arena_server.work_limit import WorkLimit
 
 import copy
 import math
@@ -158,12 +160,24 @@ class RoomSyncObject:
         self.pubsub: PublishSubscribeService[Tuple[Game, GameRoom]] = PublishSubscribeService()
 
 
+def wrap_constraint_not_met_exceptions(func):
+    def inner(self, room_id, room, key, value):
+        try:
+            return func(self, room_id, room, key, value)
+        except ConstraintNotMetError as e:
+            raise PropertyValueIsInvalid(key, e.description)
+
+    inner.__name__ = func.__name__
+    return inner
+
+
 class RoomManager:
-    def __init__(self) -> None:
+    def __init__(self, limits: Limits) -> None:
         self._mapping = RoomMapping()
         self._alias_map: Dict[str, str] = {}
         self._rooms: Dict[str, RoomDetails] = {}
         self._room_sync: Dict[str, RoomSyncObject] = {}
+        self._limits = limits
 
     def create_room(self, invoking_client: ClientName) -> None:
         room_id = generate_room_id()
@@ -184,17 +198,17 @@ class RoomManager:
         self._rooms[room_id] = RoomDetails(
             admins = {str(invoking_client)},    # TODO: maybe change this behavior for viewers
             name = room_id,
-            min_players = 2,
-            max_players = 3,
-            snake_len = 5,
-            field_width = 40,
-            field_height = 40,
-            num_food_items = 3,
+            min_players = self._limits.max_players_in_a_room.clamp(2),
+            max_players = self._limits.max_players_in_a_room.clamp(3),
+            snake_len = self._limits.max_snake_len.clamp(5),
+            field_width = self._limits.field_side_limits.clamp(40),
+            field_height = self._limits.field_side_limits.clamp(40),
+            num_food_items = self._limits.max_food_items.clamp(3),
             respawn_food = FoodRespawnBehavior.YES(),
             open = RoomOpenness.CLOSED(),
-            max_turns = 1000,
+            max_turns = self._limits.max_turns.clamp(500),
             game_started = False,
-            turn_timeout_seconds = None,
+            turn_timeout_seconds = self._limits.max_turn_timeout.clamp(None),
         )
         self._room_sync[room_id] = RoomSyncObject()
 
@@ -343,8 +357,10 @@ class RoomManager:
         for key, value in properties.items():
             self._set_room_property(room_id, room, key, value)
 
+    @wrap_constraint_not_met_exceptions
     def _set_room_property(self, room_id: str, room: RoomDetails, key: str, value: Any) -> None:
         if key == 'name':
+            self._limits.max_room_name_len.validate(len(value))
             self._rename_room(room.name, value)
 
         elif key == 'players':
@@ -363,8 +379,8 @@ class RoomManager:
             room.admins = set(admins)
 
         elif key == 'min_players':
-            if value < 1 or value > room.max_players:
-                raise PropertyValueIsInvalid(key, 'must be at least 1 and at most `max_players`')
+            if value > room.max_players:
+                raise PropertyValueIsInvalid(key, 'must be at most `max_players`')
             room.min_players = value
 
         elif key == 'max_players':
@@ -374,42 +390,49 @@ class RoomManager:
                     key,
                     'must be at least the current number of players in the rooms and at least `min_players`'
                 )
+            self._limits.max_players_in_a_room.validate(value)
             room.max_players = value
 
         elif key == 'snake_len':
-            if value < 1:
-                raise PropertyValueIsInvalid(key, 'must be at least 1')
+            self._limits.max_snake_len.validate(value)
             room.snake_len = value
 
         elif key == 'field_width':
-            if value < 2:
-                raise PropertyValueIsInvalid(key, 'must be at least 2')
+            self._limits.field_side_limits.validate(value)
             room.field_width = value
 
         elif key == 'field_height':
-            if value < 2:
-                raise PropertyValueIsInvalid(key, 'must be at least 2')
+            self._limits.field_side_limits.validate(value)
             room.field_height = value
 
         elif key == 'num_food_items':
             if value < 0:
                 raise PropertyValueIsInvalid(key, 'must be non-negative')
+            self._limits.max_food_items.validate(value)
             room.num_food_items = value
 
         elif key == 'respawn_food':
             room.respawn_food = value
 
         elif key == 'open':
+            value.match(
+                open = lambda: None,
+                closed = lambda: None,
+                whitelist = lambda _: None,
+                password = lambda p: self._limits.max_password_len.validate(len(p)),
+            )
             room.open = value
 
         elif key == 'max_turns':
-            if value < 1:
+            if value is not None and value < 1:
                 raise PropertyValueIsInvalid(key, 'must be at least 1')
+            self._limits.max_turns.validate(value)
             room.max_turns = value
 
         elif key == 'turn_timeout_seconds':
-            if not math.isfinite(value) or value <= 0:
+            if value is not None and (not math.isfinite(value) or value <= 0):
                 raise PropertyValueIsInvalid(key, 'must be finite, non-nan and non-negative')
+            self._limits.max_turn_timeout.validate(value)
             room.turn_timeout_seconds = value
 
         else:
@@ -451,8 +474,14 @@ class RoomManager:
             # TODO: shuffle for fairness.
             client_names = list(clients)
 
-            game = create_game(client_names, room.as_game_config())
-            game_room = GameRoom(client_names, game, room_info.name)
+            game: Game = await curio.run_in_thread(
+                create_game,
+                client_names,
+                room.as_game_config(),
+                self._limits.work_units,
+            )
+
+            game_room = GameRoom(client_names, game, room_info.name, self._limits.turn_delay)
             game_room.set_turn_timeout(room.turn_timeout_seconds)
 
             await sync_object.pubsub.publish((game, game_room))
@@ -512,10 +541,11 @@ class RoomManager:
         )
 
 
-def create_game(client_names: List[ClientName], game_config: GameConfig) -> Game:
+def create_game(client_names: List[ClientName], game_config: GameConfig, work_limit: WorkLimit) -> Game:
     return Game(
         [str(x) for x in client_names if x.is_player()],
         game_config,
+        work_limit,
     )
 
 

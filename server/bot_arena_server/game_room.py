@@ -34,13 +34,14 @@ class GameRoomError(Exception):
 
 
 class GameRoom:
-    def __init__(self, client_names: List[ClientName], game: Game, name: str) -> None:
+    def __init__(self, client_names: List[ClientName], game: Game, name: str, turn_delay: float) -> None:
         self._pending_clients = {name: make_pending_client_context(name) for name in client_names}
         self._clients: Dict[ClientName, ClientContext] = {}
         self._client_names = client_names
         self._game = game
         self._turn_timeout_seconds: Optional[float] = None
         self._name = name
+        self._turn_delay = turn_delay
 
     def set_turn_timeout(self, turn_timeout_seconds: Optional[float]) -> None:
         self._turn_timeout_seconds = turn_timeout_seconds
@@ -179,6 +180,8 @@ class GameRoom:
                         lambda _: True,
                     )
                     last_game_score = current_game_score
+
+                await curio.sleep(self._turn_delay)
             self._game.finish_turn()
 
     async def _flush_event_queues(self) -> None:

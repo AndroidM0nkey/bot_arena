@@ -22,6 +22,9 @@ class UnknownProperty:
 
 
 def prop_to_primitive(name: str, value: Any) -> Primitive:
+    if name == 'name':
+        return ensure_type(value, str)
+
     if name == 'players' or name == 'admins':
         value = ensure_type(value, list)
         value = [ensure_type(s, str) for s in value]
@@ -55,6 +58,9 @@ def prop_to_primitive(name: str, value: Any) -> Primitive:
 
 
 def prop_from_primitive(name: str, p: Primitive) -> Any:
+    if name == 'name':
+        return ensure_type(p, str)
+
     if name == 'players' or name == 'admins':
         p = ensure_type(p, list)
         p = [ensure_type(s, str) for s in p]

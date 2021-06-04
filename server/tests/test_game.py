@@ -14,6 +14,7 @@ from bot_arena_server.game import (
     GameScore,
 )
 from bot_arena_server.game_config import GameConfig
+from bot_arena_server.limits import WorkLimit
 
 import pytest
 from bot_arena_proto.data import Direction, Point, SnakeState, FieldState, Object, FoodRespawnBehavior
@@ -580,9 +581,12 @@ class TestField:
 
         for i in range(n):
             field_copy = copy.deepcopy(field)
-            field_copy.place_object_randomly(Object.FOOD())
-            set_diff = set(field_copy._objects.keys()) - initial_set
-            assert len(set_diff) == 1
+            while True:
+                # It may take a lot of attempts trying to guess a free cell here, hence a loop.
+                field_copy.place_object_randomly(Object.FOOD())
+                set_diff = set(field_copy._objects.keys()) - initial_set
+                if len(set_diff) == 1:
+                    break
             [new_cell] = set_diff
             assert new_cell in free_cells
             assert field.is_cell_completely_free(new_cell)
@@ -713,7 +717,7 @@ class TestGame:
             objects = objects,
         )
 
-        game = Game(list(snakes.keys()), config)
+        game = Game(list(snakes.keys()), config, work_limit=WorkLimit(999999))
         game._field = field
 
         assert game.take_turn('A', Action.MOVE(Direction.LEFT())) == MoveResult.OK()
@@ -758,13 +762,13 @@ class TestGame:
     def test_snake_names():
         for names in [['A', 'B', 'C', 'foo', 'Barr'], [], ['0']]:
             config = make_default_config(field_width=10, field_height=10)
-            game = Game(names, config)
+            game = Game(names, config, work_limit=WorkLimit(999999))
             assert set(game.snake_names()) == set(names)
 
     @staticmethod
     def test_info():
         config = make_default_config(field_width=326, field_height=16)
-        game = Game(['A', 'B'], config)
+        game = Game(['A', 'B'], config, work_limit=WorkLimit(999999))
         assert game.info() == GameInfo(field_width=326, field_height=16)
 
 

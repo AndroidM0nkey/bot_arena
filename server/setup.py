@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = 'bot-arena-server',
-    version = '0.1.0-a',
+    version = '1.0.0',
     packages = find_packages(),
 
     # Enable type hints in the installed packages
@@ -11,7 +11,7 @@ setup(
         'bot_arena_server': ['py.typed'],
     },
 
-    install_requires = ['bot-arena-proto', 'curio', 'loguru'],
+    install_requires = ['bot-arena-proto ~= 1.0.1', 'curio', 'loguru'],
 
     entry_points = {
         'console_scripts': [
