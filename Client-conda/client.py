@@ -10,6 +10,8 @@ import game_viewer_files.config as c
 import time
 import curio
 import sys
+from contextlib import ExitStack
+from functools import partial
 from PyQt5 import QtWidgets, QtGui, QtCore
 
 
@@ -29,8 +31,10 @@ class Client:
 
     def run_basic_session(self):
         #app = QtWidgets.QApplication(sys.argv)
+        self.application=Readywnd()
+        self.application .show()
         curio.run(self.main)
-       
+        self.application.hide()
 
     async def main(self):
 
@@ -53,6 +57,14 @@ class Client:
         # Perform the handshake
         await self.sess.initialize()
 
+
+        while True:
+            print(self.application.check)
+            if self.application.check == 1:
+                break
+            await curio.sleep(1)
+
+
         await self.sess.enter_any_room()
         room_properties = await self.sess.get_room_properties()
         if room_properties["open"] != RoomOpenness.OPEN():
@@ -64,10 +76,9 @@ class Client:
         # Start the game
         
         #app2 = QtWidgets.QApplication([])
-        """
-        while(self.application.check == 1):
-            time.sleep(0.1) 
-        """
+        
+        
+        
 
         await self.sess.ready()
         game_info = await self.sess.wait_until_game_started()

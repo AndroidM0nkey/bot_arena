@@ -13,15 +13,21 @@ import curio
 
 
 class Readywnd(QtWidgets.QDialog):
-    check = 0
-
+    
     def __init__(self):
-        check = 0
+        self.check = 0
         super(Readywnd, self).__init__()
         self.ui = Ui_ReadyWind()
         self.ui.setupUi(self)
         self.ui.pushButton.clicked.connect(self.btnClicked)
-        
+        self.check = 0
 
     def btnClicked(self):
-        check = 1
+        self.check = 1
+        print("1")
+
+#for tests
+app = QtWidgets.QApplication(sys.argv)
+application = Readywnd()
+application.show()
+sys.exit(app.exec())

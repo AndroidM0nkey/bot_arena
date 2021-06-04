@@ -8,6 +8,7 @@ from FirstDialog import Ui_Hello   # импорт нашего сгенерир�
 import sys
 import os
 import time
+import threading
  
  
 class mywindow(QtWidgets.QMainWindow):
@@ -38,34 +39,10 @@ class mywindow(QtWidgets.QMainWindow):
         cmd = self.ui.Cmd.text()
 
         cur = Client(address, port, name, cmd)
-        self.w = Readywnd()
-        self.w.show()
         self.hide()
-
-        with ExitStack() as stack:
-            stack.callback(cur.run_basic_session)
-            
-        
-
-        
-
-class Readywnd(QtWidgets.QDialog):
-    check = 0
-
-    def __init__(self):
-        super().__init__()
-        self.ui = Ui_ReadyWind()
-        self.ui.setupUi(self)
-        self.ui.pushButton.clicked.connect(self.btnClicked)
-        
-
-    def btnClicked(self):
-        check = 1
- 
+        threading.Thread(target=cur.run_basic_session, daemon=True).start()
  
 app = QtWidgets.QApplication(sys.argv)
-#application = Readywnd()
 application = mywindow()
 application.show()
- 
 sys.exit(app.exec())
