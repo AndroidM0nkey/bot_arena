@@ -1,7 +1,6 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from client import Client
 from ReadyDialog import Ui_ReadyWind
-from ReadyWindow import Readywnd
 from AdminPage import Ui_AdminPage
 from contextlib import ExitStack
 from functools import partial
@@ -35,8 +34,8 @@ class Readywnd(QtWidgets.QDialog):
         if self.check != 1:
             self.check = 1
             self.changeTitle(0)
-        else:
             self.ui.pushButton.setText("Выйти")
+        else:
             self.close()
     
     def changeTitle(self, param):
@@ -199,7 +198,7 @@ class mywindow(QtWidgets.QMainWindow):
         #marking lineEdits
         self.ui.lineEdit.setText("127.0.0.1")
         self.ui.lineEdit_1.setText("23456")
-        self.ui.Pname.setText("Player")
+        self.ui.Pname.setText("Player")    
         self.ui.Cmd.setText("./curbot")
         self.ui.pushButton.clicked.connect(self.btnClicked)
         self.ui.pushButton_2.clicked.connect(self.btnClicked2)

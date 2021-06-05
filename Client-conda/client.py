@@ -1,7 +1,6 @@
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from ReadyWindow import Readywnd
 from game_viewer_files.main_viewer import Viewer
 from StreamEditor import StreamEditor
 import pygame
