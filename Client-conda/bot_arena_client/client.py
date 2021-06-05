@@ -2,9 +2,11 @@ from bot_arena_client.StreamEditor import StreamEditor
 from bot_arena_client.game_viewer_files import config as c
 from bot_arena_client.game_viewer_files.main_viewer import Viewer
 
-import time
+import os
+import signal
 import sys
 import threading
+import time
 from functools import partial
 
 import curio
@@ -24,6 +26,9 @@ from PyQt5.QtWidgets import (
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo, ErrReceived
+
+def quit_forcefully():
+    os.kill(os.getpid(), signal.SIGTERM)
 
 class Client:
     def __init__(self, address, port, name, cmd):
@@ -52,10 +57,10 @@ class Client:
             curio.run(self.main)
         except ErrReceived:
             print("can't connect to server")
-            self.application.hide()
-            sys.exit()
-        self.application.hide()
-        sys.exit()
+            quit_forcefully()
+            quit_forcefully()
+        quit_forcefully()
+        quit_forcefully()
 
     async def main(self):
 
@@ -64,15 +69,15 @@ class Client:
             socket = await curio.open_connection(host=self.host, port=self.port)
         except ConnectionRefusedError:
             print("can't connect to server")
-            self.application.hide()
+            quit_forcefully()
             return
         except ConnectionAbortedError:
             print("can't connect to server")
-            self.application.hide()
-            return 
+            quit_forcefully()
+            return
         except ErrReceived:
             print("can't connect to server")
-            self.application.hide()
+            quit_forcefully()
             return
         # We need an object with read/write methods. In curio, sockets have
         # recv/send methods, and streams have read/write methods. Hence, we need
@@ -94,15 +99,15 @@ class Client:
             await self.sess.initialize()
         except ErrReceived:
             print("can't connect to server")
-            self.application.hide()
+            quit_forcefully()
             return
         except ConnectionRefusedError:
             print("can't connect to server")
-            self.application.hide()
+            quit_forcefully()
             return
         except ConnectionAbortedError:
             print("can't connect to server")
-            self.application.hide()
+            quit_forcefully()
             return
 
 
