@@ -16,7 +16,7 @@ class Ui_Hello(object):
         Hello.setObjectName("Hello")
         Hello.resize(332, 419)
         self.label = QtWidgets.QLabel(Hello)
-        self.label.setGeometry(QtCore.QRect(10, 20, 311, 81))
+        self.label.setGeometry(QtCore.QRect(20, 30, 311, 81))
         self.label.setScaledContents(False)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
@@ -35,6 +35,9 @@ class Ui_Hello(object):
         self.Cmd = QtWidgets.QLineEdit(Hello)
         self.Cmd.setGeometry(QtCore.QRect(10, 260, 311, 32))
         self.Cmd.setObjectName("Cmd")
+        self.pushButton_2 = QtWidgets.QPushButton(Hello)
+        self.pushButton_2.setGeometry(QtCore.QRect(10, 380, 221, 34))
+        self.pushButton_2.setObjectName("pushButton_2")
 
         self.retranslateUi(Hello)
         QtCore.QMetaObject.connectSlotsByName(Hello)
@@ -44,3 +47,4 @@ class Ui_Hello(object):
         Hello.setWindowTitle(_translate("Hello", "Dialog"))
         self.label.setText(_translate("Hello", "Введите адрес сервера, хост. имя пользователя и команду для запуска вашего программируемого бота"))
         self.pushButton.setText(_translate("Hello", "Продолжить"))
+        self.pushButton_2.setText(_translate("Hello", "Подключить в режиме просмотра"))

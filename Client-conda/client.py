@@ -70,14 +70,13 @@ class Client:
         self.application.something.emit()
 
         while True:
-            print (self.application.check)
             if self.application.check == 1:
-                await self.sess.enter_room(self.application.roomname)
-                self.application.check = 4
+                self.application.check = 5
+                await self.sess.enter_room(self.application.roomname, None)
                 break
             if self.application.check == 2:
+                self.application.check = 4
                 await self.sess.enter_any_room()
-                self.application.check = 5
                 break
             if self.application.check == 3:
                 self.application.tableData = room_names
@@ -92,17 +91,29 @@ class Client:
             print(f'Created room {room_properties["name"]}')
         else:
             print(f'Joined room {room_properties["name"]}')
-
-        # Start the game
-    
-        
-        while True:
-            if self.application.check == 2:
-                break
-            await curio.sleep(1)
+        if self.application.check == 4:
+            self.application.something.emit()
+            while True:
+                if self.application.newI.check == 7:
+                    d = {}
+                    d['name'] = self.application.newI.name
+                    d['field_height'] = int(self.application.newI.m)
+                    d['field_width'] = int(self.application.newI.n)
+                    d['min_players'] = int(self.application.newI.plr)
+                    d['turn_timeout_seconds'] = float(self.application.newI.time)
+                    d['max_turns'] = int(self.application.newI.turns)
+                    await self.sess.set_room_properties(d)
+                    break
+                await curio.sleep(1)
+        else:
+            while True:
+                if self.application.check == 5:
+                    break
+                await curio.sleep(1)
         
 
         await self.sess.ready()
+        print("ready for game")
         game_info = await self.sess.wait_until_game_started()
 
         # Important data

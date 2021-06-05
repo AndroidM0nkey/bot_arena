@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from client import Client
 from ReadyDialog import Ui_ReadyWind
 from ReadyWindow import Readywnd
+from AdminPage import Ui_AdminPage
 from contextlib import ExitStack
 from functools import partial
 from FirstDialog import Ui_Hello   # импорт нашего сгенерированного файла
@@ -15,6 +16,40 @@ import threading
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QPushButton, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QAbstractItemView
 from PyQt5.QtCore import Qt
 
+class AdminPage(QtWidgets.QDialog):
+    
+    def __init__(self):
+        self.check = 0
+        self.tableData = []
+        super(AdminPage, self).__init__()
+        self.ui = Ui_AdminPage()
+        self.ui.setupUi(self)
+        self.ui.pushButton.clicked.connect(self.btnClicked)
+
+        self.m = 20
+        self.n = 20
+        self.plr = 2
+        self.time = 1000
+        self.turns = 10000
+
+        self.ui.lineEdit.setText("20")
+        self.ui.lineEdit_1.setText("20")
+        self.ui.Cmd.setText("2")
+        self.ui.Cmd_2.setText("1000")
+        self.ui.Cmd_3.setText("1000")
+        self.ui.Cmd_4.setText("Room1")
+
+    def btnClicked(self):
+        print("ok")
+        self.m = self.ui.lineEdit.text()
+        self.m = self.ui.lineEdit_1.text()
+        self.plr = self.ui.Cmd.text()
+        self.time = self.ui.Cmd_2.text()
+        self.turns = self.ui.Cmd_3.text()
+        self.name = self.ui.Cmd_4.text()
+
+        self.check = 7
+
 class App(QWidget):
     something = pyqtSignal()
     
@@ -23,9 +58,19 @@ class App(QWidget):
 
     @QtCore.pyqtSlot()
     def myAction(self):
-        print("hello")
         self.updateTableData(self.tableData)
+        if self.check == 4:
+            self.changeInterface()
+        if self.check == 6:
+            pass
+    def changeInterface(self):
+        self.newI = AdminPage()
+        self.newI.tableData = self.tableData
+        self.newI.check = self.check
+        self.hide()
+        self.newI.show()
     def __init__(self, tableData: list):
+        self.newI = AdminPage()
         super(QWidget, self).__init__()
         self.roomname = None
         self.table = QTableWidget()
@@ -72,6 +117,7 @@ class App(QWidget):
         self.table.resizeColumnToContents(0)
 
     def updateButtonClick(self):
+        self.check = 3
         self.updateTableData(self.tableData)
         pass
 
@@ -83,9 +129,8 @@ class App(QWidget):
 
     def createButtonClick(self):
         self.check = 2
+        self.changeInterface()
         pass
-
-
 
 class mywindow(QtWidgets.QMainWindow):
 

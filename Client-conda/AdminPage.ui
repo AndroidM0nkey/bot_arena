@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Hello</class>
- <widget class="QDialog" name="Hello">
+ <class>AdminPage</class>
+ <widget class="QDialog" name="AdminPage">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>332</width>
-    <height>419</height>
+    <width>336</width>
+    <height>432</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,13 +17,13 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>30</y>
-     <width>311</width>
-     <height>81</height>
+     <y>10</y>
+     <width>301</width>
+     <height>141</height>
     </rect>
    </property>
    <property name="text">
-    <string>Введите адрес сервера, хост. имя пользователя и команду для запуска вашего программируемого бота</string>
+    <string>Вы были назначены администратором, введите параметры игры: высоту и ширину поля, количество игроков, таймаут, количество ходов и имя комнаты</string>
    </property>
    <property name="scaledContents">
     <bool>false</bool>
@@ -36,20 +36,20 @@
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>380</y>
-     <width>91</width>
+     <y>390</y>
+     <width>88</width>
      <height>34</height>
     </rect>
    </property>
    <property name="text">
-    <string>Продолжить</string>
+    <string>Ок</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="Pname">
+  <widget class="QLineEdit" name="lineEdit">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>220</y>
+     <y>120</y>
      <width>311</width>
      <height>32</height>
     </rect>
@@ -59,17 +59,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>180</y>
-     <width>311</width>
-     <height>32</height>
-    </rect>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="lineEdit">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>140</y>
+     <y>160</y>
      <width>311</width>
      <height>32</height>
     </rect>
@@ -79,23 +69,40 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>260</y>
+     <y>200</y>
      <width>311</width>
      <height>32</height>
     </rect>
    </property>
   </widget>
-  <widget class="QPushButton" name="pushButton_2">
+  <widget class="QLineEdit" name="Cmd_2">
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>380</y>
-     <width>221</width>
-     <height>34</height>
+     <y>240</y>
+     <width>311</width>
+     <height>32</height>
     </rect>
    </property>
-   <property name="text">
-    <string>Подключить в режиме просмотра</string>
+  </widget>
+  <widget class="QLineEdit" name="Cmd_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>280</y>
+     <width>311</width>
+     <height>32</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="Cmd_4">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>320</y>
+     <width>311</width>
+     <height>32</height>
+    </rect>
    </property>
   </widget>
  </widget>
