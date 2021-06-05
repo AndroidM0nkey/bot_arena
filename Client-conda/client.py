@@ -93,21 +93,38 @@ class Client:
             print(f'Joined room {room_properties["name"]}')
         if self.application.check == 4:
             self.application.something.emit()
+            chck = 0
+            admlist = await self.sess.get_room_properties()
+            for i in admlist['admins']:
+                if i == self.name:
+                    chck = 1
+                    break
+            if chck == 1:
+                while True:
+                    if self.application.newI.check == 7:
+                        d = {}
+                        d['name'] = self.application.newI.name
+                        d['field_height'] = int(self.application.newI.m)
+                        d['field_width'] = int(self.application.newI.n)
+                        d['min_players'] = int(self.application.newI.plr)
+                        d['turn_timeout_seconds'] = float(self.application.newI.time)
+                        d['max_turns'] = int(self.application.newI.turns)
+                        await self.sess.set_room_properties(d)
+                        rooms_list = await self.sess.list_rooms()
+                        room_names = []
+                        for i in rooms_list:
+                            room_names.append(i.id)
+                        self.application.tableData = room_names 
+                        break
+                    await curio.sleep(1)
+            self.application.check = 5
             while True:
-                if self.application.newI.check == 7:
-                    d = {}
-                    d['name'] = self.application.newI.name
-                    d['field_height'] = int(self.application.newI.m)
-                    d['field_width'] = int(self.application.newI.n)
-                    d['min_players'] = int(self.application.newI.plr)
-                    d['turn_timeout_seconds'] = float(self.application.newI.time)
-                    d['max_turns'] = int(self.application.newI.turns)
-                    await self.sess.set_room_properties(d)
+                if self.application.newI.addui.check == 1:
                     break
                 await curio.sleep(1)
         else:
             while True:
-                if self.application.check == 5:
+                if self.application.addui.check == 1:
                     break
                 await curio.sleep(1)
         

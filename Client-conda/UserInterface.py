@@ -16,6 +16,37 @@ import threading
 from PyQt5.QtWidgets import QApplication, QHBoxLayout, QPushButton, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QAbstractItemView
 from PyQt5.QtCore import Qt
 
+class Readywnd(QtWidgets.QDialog):
+    
+    def __init__(self):
+        self.check = 0
+        super(Readywnd, self).__init__()
+        self.ui = Ui_ReadyWind()
+        self.ui.setupUi(self)
+        self.ui.pushButton.clicked.connect(self.btnClicked)
+        self.ui.label.setFont(
+            QtGui.QFont('SansSerif', 10)
+        )
+        self.ui.label.setAlignment(QtCore.Qt.AlignCenter)
+        #self.ui.label.setText("Нажмите готов, когда все игроки подключатся и будут готовы начать")
+        self.check = 0
+
+    def btnClicked(self):
+        if self.check != 1:
+            self.check = 1
+            self.changeTitle(0)
+        else:
+            self.ui.pushButton.setText("Выйти")
+            self.close()
+    
+    def changeTitle(self, param):
+        if param == 0:
+            self.ui.label.setText("Дождитесь других игроков/окончания игры")
+        if param == 1:
+            self.ui.label.setText("Поздравляем с победой")
+        if param == 2:
+            self.ui.label.setText("К сожалению, в этот раз вы проиграли")
+
 class AdminPage(QtWidgets.QDialog):
     
     def __init__(self):
@@ -39,6 +70,8 @@ class AdminPage(QtWidgets.QDialog):
         self.ui.Cmd_3.setText("1000")
         self.ui.Cmd_4.setText("Room1")
 
+        self.addui = Readywnd()
+
     def btnClicked(self):
         print("ok")
         self.m = self.ui.lineEdit.text()
@@ -49,6 +82,15 @@ class AdminPage(QtWidgets.QDialog):
         self.name = self.ui.Cmd_4.text()
 
         self.check = 7
+
+        time.sleep(0.25)
+        self.changeWindow()
+
+
+    def changeWindow(self):
+        self.addui = Readywnd()
+        self.hide()
+        self.addui.show()
 
 class App(QWidget):
     something = pyqtSignal()
@@ -63,6 +105,11 @@ class App(QWidget):
             self.changeInterface()
         if self.check == 6:
             pass
+    def changeWindow(self):
+        self.addui = Readywnd()
+        self.hide()
+        self.addui.show()
+
     def changeInterface(self):
         self.newI = AdminPage()
         self.newI.tableData = self.tableData
@@ -70,6 +117,7 @@ class App(QWidget):
         self.hide()
         self.newI.show()
     def __init__(self, tableData: list):
+        self.addui = Readywnd()
         self.newI = AdminPage()
         super(QWidget, self).__init__()
         self.roomname = None
@@ -126,6 +174,9 @@ class App(QWidget):
             selectedItem = self.table.selectedItems()[0].text()
             self.roomname = selectedItem
             self.check = 1
+
+            time.sleep(0.25)
+            self.changeWindow()
 
     def createButtonClick(self):
         self.check = 2
