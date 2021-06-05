@@ -79,6 +79,7 @@ class Client:
 
         #await threading.Thread(target=room_interface, args=(room_names), daemon=True).start()
         self.application.tableData = room_names
+        self.application.updateTableData(self.application.tableData)
         self.application.something.emit()
 
         while True:
