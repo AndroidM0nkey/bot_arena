@@ -197,7 +197,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.label.setAlignment(QtCore.Qt.AlignCenter)
 
         #marking lineEdits
-        self.ui.lineEdit.setText("0.0.0.0")
+        self.ui.lineEdit.setText("127.0.0.1")
         self.ui.lineEdit_1.setText("23456")
         self.ui.Pname.setText("Player")
         self.ui.Cmd.setText("./curbot")

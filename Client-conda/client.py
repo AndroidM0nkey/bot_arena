@@ -67,7 +67,7 @@ class Client:
         rooms_list = await self.sess.list_rooms()
         room_names = []
         for i in rooms_list:
-            room_names.append(i.id)
+            room_names.append(i.name)
 
         #await threading.Thread(target=room_interface, args=(room_names), daemon=True).start()
         self.application.tableData = room_names
