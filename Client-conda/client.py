@@ -12,7 +12,9 @@ import sys
 from contextlib import ExitStack
 from functools import partial
 from PyQt5 import QtWidgets, QtGui, QtCore
-
+from PyQt5.QtWidgets import QApplication, QHBoxLayout, QPushButton, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QAbstractItemView
+from PyQt5.QtCore import Qt
+import threading
 
 class Client:
     def __init__(self, address, port, name, cmd):
@@ -58,8 +60,32 @@ class Client:
         # Perform the handshake
         await self.sess.initialize()
 
+        rooms_list = await self.sess.list_rooms()
+        room_names = []
+        for i in rooms_list:
+            room_names.append(i.id)
 
-        await self.sess.enter_any_room()
+        #await threading.Thread(target=room_interface, args=(room_names), daemon=True).start()
+        self.application.tableData = room_names
+        self.application.something.emit()
+
+        while True:
+            print (self.application.check)
+            if self.application.check == 1:
+                await self.sess.enter_room(self.application.roomname)
+                self.application.check = 4
+                break
+            if self.application.check == 2:
+                await self.sess.enter_any_room()
+                self.application.check = 5
+                break
+            if self.application.check == 3:
+                self.application.tableData = room_names
+                self.application.check = 0
+                self.application.something.emit()
+            await curio.sleep(1)
+
+        #await self.sess.enter_any_room()
         room_properties = await self.sess.get_room_properties()
         if room_properties["open"] != RoomOpenness.OPEN():
             await self.sess.set_room_properties({"open": RoomOpenness.OPEN()})
@@ -71,7 +97,7 @@ class Client:
     
         
         while True:
-            if self.application.check == 1:
+            if self.application.check == 2:
                 break
             await curio.sleep(1)
         

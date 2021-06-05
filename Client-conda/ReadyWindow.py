@@ -12,6 +12,7 @@ import time
 import curio
 
 
+
 class Readywnd(QtWidgets.QDialog):
     
     def __init__(self):
