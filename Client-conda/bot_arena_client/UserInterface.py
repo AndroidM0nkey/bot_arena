@@ -178,6 +178,7 @@ class App(QWidget):
 
     def updateButtonClick(self):
         self.check = 3
+        time.sleep(0.3)
         self.updateTableData(self.tableData)
         pass
 

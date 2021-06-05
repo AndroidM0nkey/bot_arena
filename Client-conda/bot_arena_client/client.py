@@ -138,7 +138,7 @@ class Client:
                 self.application.tableData = room_names
                 self.application.check = 0
                 self.application.something.emit()
-            await curio.sleep(1)
+            await curio.sleep(0.2)
 
         #await self.sess.enter_any_room()
         room_properties = await self.sess.get_room_properties()
