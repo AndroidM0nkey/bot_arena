@@ -92,6 +92,10 @@ class Client:
                 await self.sess.enter_any_room()
                 break
             if self.application.check == 3:
+                rooms_list = await self.sess.list_rooms()
+                room_names = []
+                for i in rooms_list:
+                    room_names.append(i.name)
                 self.application.tableData = room_names
                 self.application.check = 0
                 self.application.something.emit()
