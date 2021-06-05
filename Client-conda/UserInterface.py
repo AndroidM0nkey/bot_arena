@@ -202,7 +202,24 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.Pname.setText("Player")
         self.ui.Cmd.setText("./curbot")
         self.ui.pushButton.clicked.connect(self.btnClicked)
- 
+        self.ui.pushButton_2.clicked.connect(self.btnClicked2)
+    def btnClicked2(self):
+        address  = self.ui.lineEdit.text()
+        port = self.ui.lineEdit_1.text()
+        name = "@viewer"
+        cmd = ""
+
+        cur = Client(address, port, name, cmd)
+        self.hide()
+
+        #cur.application = Readywnd()
+        #cur.application.show()
+        cur.application = App([])
+        cur.application.show()
+
+
+        threading.Thread(target=cur.run_basic_session, daemon=True).start()
+
     def btnClicked(self):
 
         address  = self.ui.lineEdit.text()

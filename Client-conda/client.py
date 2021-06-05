@@ -5,6 +5,7 @@ from ReadyWindow import Readywnd
 from game_viewer_files.main_viewer import Viewer
 from StreamEditor import StreamEditor
 import pygame
+from game_viewer_files.main_viewer import Viewer
 import game_viewer_files.config as c
 import time
 import curio
@@ -29,6 +30,9 @@ class Client:
         f_width = 0
         f_height = 0
         self.application = None
+
+        self.handler = Viewer()
+        self.score = None
 
     def run_basic_session(self):
         #app = QtWidgets.QApplication(sys.argv)
@@ -110,11 +114,6 @@ class Client:
                         d['turn_timeout_seconds'] = float(self.application.newI.time)
                         d['max_turns'] = int(self.application.newI.turns)
                         await self.sess.set_room_properties(d)
-                        rooms_list = await self.sess.list_rooms()
-                        room_names = []
-                        for i in rooms_list:
-                            room_names.append(i.id)
-                        self.application.tableData = room_names 
                         break
                     await curio.sleep(1)
             self.application.check = 5
@@ -136,6 +135,13 @@ class Client:
         # Important data
         self.f_width = game_info.field_width
         self.f_height = game_info.field_height
+
+        if self.name == "@viewer":
+            self.cell_width = int(c.screen_width / max(self.f_height, self.f_width))
+            pygame.init()
+            pygame.display.set_caption('Pythons')
+            self.screen = pygame.display.set_mode((self.f_width * self.cell_width, self.f_height * self.cell_width))
+
 
         # Handle server-sent notifications
         while True:
@@ -165,6 +171,11 @@ class Client:
         # Let's update your current field
         #
         self.curField = state
+        if self.name == "@viewer":
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    exit(0)
+            self.handler.get_message_and_display(self.curField, self.f_height, self.f_width, self.score, self.screen)
         #pygame.init()
         #main_surface = pygame.display.set_mode((c.screen_width, c.screen_width))
         #pygame.display.set_caption('Pythons')
@@ -174,9 +185,21 @@ class Client:
 
 
     async def handle_event(self,event):
+        if self.name == "@viewer":
+                if event.name == 'GameScoreChanged':
+                    self.score = event.data
+                    return
+                if event.name == 'GameFinished':
+                    self.handler.get_message_and_display(self.handler.get_last_fieldstate(), self.handler.get_height(),
+                                                        self.handler.get_width(), self.handler.get_score(), self.screen, event.data)
+                    while True:
+                        if pygame.event.wait().type == pygame.QUIT:
+                            exit(0)
         # TODO: replace it with something that can be handled by the calling code.
         if event.name == 'GameFinished':
             exit()
+
+        
 
     async def handle_error(self,description):
         print(description)
