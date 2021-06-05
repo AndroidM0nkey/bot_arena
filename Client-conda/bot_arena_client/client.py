@@ -53,7 +53,9 @@ class Client:
         except ErrReceived:
             print("can't connect to server")
             self.application.hide()
+            sys.exit()
         self.application.hide()
+        sys.exit()
 
     async def main(self):
 
@@ -63,12 +65,15 @@ class Client:
         except ConnectionRefusedError:
             print("can't connect to server")
             self.application.hide()
+            return
         except ConnectionAbortedError:
             print("can't connect to server")
             self.application.hide()
+            return 
         except ErrReceived:
             print("can't connect to server")
             self.application.hide()
+            return
         # We need an object with read/write methods. In curio, sockets have
         # recv/send methods, and streams have read/write methods. Hence, we need
         # to convert the socket to a stream. Consult the documentation
@@ -90,12 +95,15 @@ class Client:
         except ErrReceived:
             print("can't connect to server")
             self.application.hide()
+            return
         except ConnectionRefusedError:
             print("can't connect to server")
             self.application.hide()
+            return
         except ConnectionAbortedError:
             print("can't connect to server")
             self.application.hide()
+            return
 
 
         rooms_list = await self.sess.list_rooms()
