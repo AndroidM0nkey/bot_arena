@@ -1,5 +1,6 @@
+from bot_arena_client.game_viewer_files import config as c
+
 from pygame.rect import Rect
-import game_viewer_files.config as c
 
 
 class Cell:

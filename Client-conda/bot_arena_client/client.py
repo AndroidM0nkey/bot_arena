@@ -1,20 +1,29 @@
+from bot_arena_client.StreamEditor import StreamEditor
+from bot_arena_client.game_viewer_files import config as c
+from bot_arena_client.game_viewer_files.main_viewer import Viewer
+
+import time
+import sys
+import threading
+from functools import partial
+
+import curio
+import pygame
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QHBoxLayout,
+    QPushButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from game_viewer_files.main_viewer import Viewer
-from StreamEditor import StreamEditor
-import pygame
-from game_viewer_files.main_viewer import Viewer
-import game_viewer_files.config as c
-import time
-import curio
-import sys
-from contextlib import ExitStack
-from functools import partial
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QPushButton, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QAbstractItemView
-from PyQt5.QtCore import Qt
-import threading
 
 class Client:
     def __init__(self, address, port, name, cmd):
@@ -125,7 +134,7 @@ class Client:
                 if self.application.addui.check == 1:
                     break
                 await curio.sleep(1)
-        
+
 
         await self.sess.ready()
         print("ready for game")
@@ -198,7 +207,7 @@ class Client:
         if event.name == 'GameFinished':
             exit()
 
-        
+
 
     async def handle_error(self,description):
         print(description)
