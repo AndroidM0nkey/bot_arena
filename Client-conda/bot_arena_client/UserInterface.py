@@ -26,6 +26,8 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+builtin_bots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bots')
+
 class Readywnd(QtWidgets.QDialog):
 
     def __init__(self):
@@ -210,7 +212,7 @@ class mywindow(QtWidgets.QMainWindow):
         self.ui.lineEdit.setText("127.0.0.1")
         self.ui.lineEdit_1.setText("23456")
         self.ui.Pname.setText("Player")
-        self.ui.Cmd.setText(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bots', 'curbot'))
+        self.ui.Cmd.setText('@BUILTIN_BOTS@/curbot')
         self.ui.pushButton.clicked.connect(self.btnClicked)
         self.ui.pushButton_2.clicked.connect(self.btnClicked2)
     def btnClicked2(self):
@@ -235,7 +237,7 @@ class mywindow(QtWidgets.QMainWindow):
         address  = self.ui.lineEdit.text()
         port = self.ui.lineEdit_1.text()
         name = self.ui.Pname.text()
-        cmd = self.ui.Cmd.text()
+        cmd = self.ui.Cmd.text().replace('@BUILTIN_BOTS@', builtin_bots_dir)
         if not os.access(cmd, os.X_OK) or not os.path.isfile(cmd):
             self.show_error_message(f'{cmd} does not exist or is not executable')
             return
