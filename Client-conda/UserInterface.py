@@ -33,7 +33,7 @@ class App(QWidget):
         self.table.setColumnCount(1)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.check = 0
-        self.tableData = []
+        self.tableData = tableData
         # Инициализация таблицы
         self.updateTableData(tableData)
 
@@ -72,7 +72,7 @@ class App(QWidget):
         self.table.resizeColumnToContents(0)
 
     def updateButtonClick(self):
-        # self.updateTable(tbl.getTable())
+        self.updateTableData(self.tableData)
         pass
 
     def connectButtonClick(self):
