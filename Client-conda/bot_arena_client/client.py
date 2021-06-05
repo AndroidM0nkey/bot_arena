@@ -128,7 +128,7 @@ class Client:
                 break
             if self.application.check == 2:
                 self.application.check = 4
-                await self.sess.enter_any_room()
+                await self.sess.new_room()
                 break
             if self.application.check == 3:
                 rooms_list = await self.sess.list_rooms()
