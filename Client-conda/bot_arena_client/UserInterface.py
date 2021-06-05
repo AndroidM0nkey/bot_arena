@@ -1,22 +1,35 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
-from client import Client
-from ReadyDialog import Ui_ReadyWind
-from AdminPage import Ui_AdminPage
-from contextlib import ExitStack
+from bot_arena_client.AdminPage import Ui_AdminPage
+from bot_arena_client.FirstDialog import Ui_Hello   # импорт нашего сгенерированного файла
+from bot_arena_client.ReadyDialog import Ui_ReadyWind
+from bot_arena_client.client import Client
+
 from functools import partial
-from FirstDialog import Ui_Hello   # импорт нашего сгенерированного файла
-import sys
 import os
-import time
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import (QWidget, QLCDNumber, QSlider,
-    QVBoxLayout, QApplication)
+import sys
 import threading
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QPushButton, QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QAbstractItemView
+import time
+
+from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QHBoxLayout,
+    QLCDNumber,
+    QMessageBox,
+    QPushButton,
+    QSlider,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
+builtin_bots_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bots')
 
 class Readywnd(QtWidgets.QDialog):
-    
+
     def __init__(self):
         self.check = 0
         super(Readywnd, self).__init__()
@@ -37,7 +50,7 @@ class Readywnd(QtWidgets.QDialog):
             self.ui.pushButton.setText("Выйти")
         else:
             self.close()
-    
+
     def changeTitle(self, param):
         if param == 0:
             self.ui.label.setText("Дождитесь других игроков/окончания игры")
@@ -47,7 +60,7 @@ class Readywnd(QtWidgets.QDialog):
             self.ui.label.setText("К сожалению, в этот раз вы проиграли")
 
 class AdminPage(QtWidgets.QDialog):
-    
+
     def __init__(self):
         self.check = 0
         self.tableData = []
@@ -93,8 +106,8 @@ class AdminPage(QtWidgets.QDialog):
 
 class App(QWidget):
     something = pyqtSignal()
-    
-    def connectSignal(self):        
+
+    def connectSignal(self):
         self.something.connect(self.myAction())
 
     @QtCore.pyqtSlot()
@@ -121,7 +134,7 @@ class App(QWidget):
         super(QWidget, self).__init__()
         self.roomname = None
         self.table = QTableWidget()
-        
+
         self.table.setColumnCount(1)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.check = 0
@@ -153,7 +166,7 @@ class App(QWidget):
         self.setLayout(mainLayout)
         self.resize(600, 400)
 
-        
+
     def updateTableData(self, tableData):
         self.tableData = tableData
         self.table.setRowCount(len(self.tableData))
@@ -198,8 +211,8 @@ class mywindow(QtWidgets.QMainWindow):
         #marking lineEdits
         self.ui.lineEdit.setText("127.0.0.1")
         self.ui.lineEdit_1.setText("23456")
-        self.ui.Pname.setText("Player")    
-        self.ui.Cmd.setText("./curbot")
+        self.ui.Pname.setText("Player")
+        self.ui.Cmd.setText('@BUILTIN_BOTS@/curbot')
         self.ui.pushButton.clicked.connect(self.btnClicked)
         self.ui.pushButton_2.clicked.connect(self.btnClicked2)
     def btnClicked2(self):
@@ -224,7 +237,10 @@ class mywindow(QtWidgets.QMainWindow):
         address  = self.ui.lineEdit.text()
         port = self.ui.lineEdit_1.text()
         name = self.ui.Pname.text()
-        cmd = self.ui.Cmd.text()
+        cmd = self.ui.Cmd.text().replace('@BUILTIN_BOTS@', builtin_bots_dir)
+        if not os.access(cmd, os.X_OK) or not os.path.isfile(cmd):
+            self.show_error_message(f'{cmd} does not exist or is not executable')
+            return
 
         cur = Client(address, port, name, cmd)
         self.hide()
@@ -236,8 +252,12 @@ class mywindow(QtWidgets.QMainWindow):
 
 
         threading.Thread(target=cur.run_basic_session, daemon=True).start()
- 
-app = QtWidgets.QApplication(sys.argv)
-application = mywindow()
-application.show()
-sys.exit(app.exec())
+
+    def show_error_message(self, text: str):
+        QMessageBox.critical(self, 'Error', text)
+
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    application = mywindow()
+    application.show()
+    sys.exit(app.exec())

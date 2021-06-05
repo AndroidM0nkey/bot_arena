@@ -1,10 +1,11 @@
+from bot_arena_client.game_viewer_files import config as c
+from bot_arena_client.game_viewer_files.main_viewer import Viewer
+
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from game_viewer_files.main_viewer import Viewer
-#from bot import Bot
+
 import pygame
-import game_viewer_files.config as c
 import time
 import subprocess
 

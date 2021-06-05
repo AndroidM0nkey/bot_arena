@@ -1,11 +1,12 @@
-from bot_arena_proto.data import FieldState, Direction, SnakeState, Point, Object
+from bot_arena_client.game_viewer_files import config as c
+from bot_arena_client.game_viewer_files.apple import Apple
+from bot_arena_client.game_viewer_files.snake import Snake
+from bot_arena_client.game_viewer_files.snake_body_peace import SnakeBodyPeace
 
-from game_viewer_files.apple import Apple
-from game_viewer_files.snake_body_peace import SnakeBodyPeace
-from game_viewer_files.snake import Snake
-import game_viewer_files.config as c
-import pygame
 import random
+
+import pygame
+from bot_arena_proto.data import FieldState, Direction, SnakeState, Point, Object
 
 
 class Viewer:

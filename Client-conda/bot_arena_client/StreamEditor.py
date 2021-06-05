@@ -1,13 +1,14 @@
+from bot_arena_client.BotConnector import BotConnector
+from bot_arena_client.game_viewer_files import config as c
+from bot_arena_client.game_viewer_files.main_viewer import Viewer
+
+import time
+import subprocess
+
+import pygame
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
 from bot_arena_proto.session import ClientSession, ClientInfo
-from game_viewer_files.main_viewer import Viewer
-#from bot import Bot
-from BotConnector import BotConnector
-import pygame
-import game_viewer_files.config as c
-import time
-import subprocess
 
 
 class StreamEditor:
@@ -22,7 +23,7 @@ class StreamEditor:
         for snake_names in field_state.snakes.keys():
             if snake_names == self.snake_name:
                 return ind
-            ind += 2 
+            ind += 2
 
     def field_to_matrix(self, f_width, f_height, field_state: FieldState):
 
@@ -30,7 +31,7 @@ class StreamEditor:
         snake_index = 2
 
         for snake_state in field_state.snakes.values():
-            
+
             x = snake_state.head.x
             y = snake_state.head.y
             matrix[y][x] = snake_index + 1
@@ -45,10 +46,10 @@ class StreamEditor:
                 if snake_cell == Direction.RIGHT():
                     x += 1
                 matrix[y][x] = snake_index
-            
+
             snake_index += 2
 
-        
+
         for apple in field_state.objects:
             x = apple[0].x
             y = apple[0].y

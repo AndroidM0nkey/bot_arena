@@ -1,6 +1,6 @@
-import pygame
+from bot_arena_client.game_viewer_files.cell import Cell
 
-from game_viewer_files.cell import Cell
+import pygame
 
 
 class SnakeBodyPeace(Cell):

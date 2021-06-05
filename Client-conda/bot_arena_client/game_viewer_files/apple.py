@@ -1,7 +1,7 @@
-import pygame
+from bot_arena_client.game_viewer_files import config as c
+from bot_arena_client.game_viewer_files.cell import Cell
 
-from game_viewer_files.cell import Cell
-import game_viewer_files.config as c
+import pygame
 
 
 class Apple(Cell):
