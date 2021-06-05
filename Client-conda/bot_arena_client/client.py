@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
 )
 from bot_arena_proto.data import *
 from bot_arena_proto.event import Event
-from bot_arena_proto.session import ClientSession, ClientInfo
+from bot_arena_proto.session import ClientSession, ClientInfo, ErrReceived
 
 class Client:
     def __init__(self, address, port, name, cmd):
@@ -48,19 +48,33 @@ class Client:
         self.application=Readywnd()
         self.application.show()
         """
-        curio.run(self.main)
+        try:
+            curio.run(self.main)
+        except ErrReceived:
+            print("can't connect to server")
+            self.application.hide()
         self.application.hide()
 
     async def main(self):
 
         # Connect to the server, assuming it is listening on 127.0.0.1:1234.
-        socket = await curio.open_connection(host=self.host, port=self.port)
-
+        try:
+            socket = await curio.open_connection(host=self.host, port=self.port)
+        except ConnectionRefusedError:
+            print("can't connect to server")
+            self.application.hide()
+        except ConnectionAbortedError:
+            print("can't connect to server")
+            self.application.hide()
+        except ErrReceived:
+            print("can't connect to server")
+            self.application.hide()
         # We need an object with read/write methods. In curio, sockets have
         # recv/send methods, and streams have read/write methods. Hence, we need
         # to convert the socket to a stream. Consult the documentation
         # (https://curio.readthedocs.io/en/latest/reference.html#networking)
         # for details.
+
         stream = socket.as_stream()
 
         # [[[ Interesting things start here ]]]
@@ -70,7 +84,19 @@ class Client:
         self.sess = ClientSession(stream=stream, client_info=client_info)
 
         # Perform the handshake
-        await self.sess.initialize()
+
+        try:
+            await self.sess.initialize()
+        except ErrReceived:
+            print("can't connect to server")
+            self.application.hide()
+        except ConnectionRefusedError:
+            print("can't connect to server")
+            self.application.hide()
+        except ConnectionAbortedError:
+            print("can't connect to server")
+            self.application.hide()
+
 
         rooms_list = await self.sess.list_rooms()
         room_names = []
